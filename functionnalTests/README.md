@@ -1,4 +1,4 @@
-# TidyUpSoftware
+# TidyUpSoftware Functionnal Test
 
 Functionnal tests in C# .NET.
 
