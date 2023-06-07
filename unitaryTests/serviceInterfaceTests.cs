@@ -26,7 +26,7 @@ namespace TidyUpSoftware.nUnitTests
             // fileList = _serviceInterface.getFileList();
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -41,7 +41,7 @@ namespace TidyUpSoftware.nUnitTests
             // fileList = _serviceInterface.getFileList();
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -62,7 +62,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -83,7 +83,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -101,7 +101,7 @@ namespace TidyUpSoftware.nUnitTests
             // folderList = _serviceInterface.getFolderList();
 
             // Assert
-            Assert.Equals(folderList, result);
+            Assert.AreEqual(folderList, result);
         }
 
         [Test]
@@ -116,7 +116,7 @@ namespace TidyUpSoftware.nUnitTests
             // folderList = _serviceInterface.getFolderList();
 
             // Assert
-            Assert.Equals(folderList, result);
+            Assert.AreEqual(folderList, result);
         }
 
         [Test]
@@ -137,7 +137,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -158,7 +158,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -173,7 +173,7 @@ namespace TidyUpSoftware.nUnitTests
             // fileCount = _serviceInterface.getNumberOfFiles();
 
             // Assert
-            Assert.Equals(fileCount, result);
+            Assert.AreEqual(fileCount, result);
         }
 
         [Test]
@@ -188,7 +188,7 @@ namespace TidyUpSoftware.nUnitTests
             // fileCount = _serviceInterface.getNumberOfFiles();
 
             // Assert
-            Assert.Equals(fileCount, result);
+            Assert.AreEqual(fileCount, result);
         }
 
         [Test]
@@ -209,7 +209,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -224,7 +224,7 @@ namespace TidyUpSoftware.nUnitTests
             // folderCount = _serviceInterface.getNumberOfFolders();
 
             // Assert
-            Assert.Equals(folderCount, result);
+            Assert.AreEqual(folderCount, result);
         }
 
         [Test]
@@ -239,7 +239,7 @@ namespace TidyUpSoftware.nUnitTests
             // folderCount = _serviceInterface.getNumberOfFolders();
 
             // Assert
-            Assert.Equals(folderCount, result);
+            Assert.AreEqual(folderCount, result);
         }
 
         [Test]
@@ -260,7 +260,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -281,7 +281,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -299,7 +299,7 @@ namespace TidyUpSoftware.nUnitTests
             // fileList = _serviceInterface.getAccessListMember();
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -314,7 +314,7 @@ namespace TidyUpSoftware.nUnitTests
             // fileList = _serviceInterface.getAccessListMember();
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -335,7 +335,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -356,7 +356,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -371,7 +371,7 @@ namespace TidyUpSoftware.nUnitTests
             // user = _serviceInterface.getUser();
 
             // Assert
-            Assert.Equals(user, result);
+            Assert.AreEqual(user, result);
         }
 
         [Test]
@@ -386,7 +386,7 @@ namespace TidyUpSoftware.nUnitTests
             // folderPath = _serviceInterface.getFolderPath();
 
             // Assert
-            Assert.Equals(folderPath, result);
+            Assert.AreEqual(folderPath, result);
         }
 
         [Test]
@@ -400,7 +400,7 @@ namespace TidyUpSoftware.nUnitTests
             // isAllowed = _serviceInterface.isTheUserAllowedHere();
 
             // Assert
-            Assert.Equals(isAllowed, true);
+            Assert.AreEqual(isAllowed, true);
         }
 
         [Test]
@@ -414,7 +414,7 @@ namespace TidyUpSoftware.nUnitTests
             // isAllowed = _serviceInterface.isTheUserAllowedHere();
 
             // Assert
-            Assert.Equals(isAllowed, false);
+            Assert.AreEqual(isAllowed, false);
         }
 
         [Test]
@@ -434,7 +434,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -459,7 +459,7 @@ namespace TidyUpSoftware.nUnitTests
 
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -480,7 +480,7 @@ namespace TidyUpSoftware.nUnitTests
 
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -503,7 +503,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -526,7 +526,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -550,7 +550,7 @@ namespace TidyUpSoftware.nUnitTests
 
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -577,7 +577,7 @@ namespace TidyUpSoftware.nUnitTests
 
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -599,7 +599,7 @@ namespace TidyUpSoftware.nUnitTests
             // fileList = _serviceInterface.getFileList();
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -622,7 +622,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -645,7 +645,7 @@ namespace TidyUpSoftware.nUnitTests
             }
 
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -663,7 +663,7 @@ namespace TidyUpSoftware.nUnitTests
             // fileList = _serviceInterface.getFileList();
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -682,7 +682,7 @@ namespace TidyUpSoftware.nUnitTests
             // fileList = _serviceInterface.getFileList();
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -702,7 +702,7 @@ namespace TidyUpSoftware.nUnitTests
                 catchException = true;
             }
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -722,7 +722,7 @@ namespace TidyUpSoftware.nUnitTests
                 catchException = true;
             }
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -741,7 +741,7 @@ namespace TidyUpSoftware.nUnitTests
             // fileList = _serviceInterface.getFileList();
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -760,7 +760,7 @@ namespace TidyUpSoftware.nUnitTests
             // fileList = _serviceInterface.getFileList();
 
             // Assert
-            Assert.Equals(fileList, result);
+            Assert.AreEqual(fileList, result);
         }
 
         [Test]
@@ -780,7 +780,7 @@ namespace TidyUpSoftware.nUnitTests
                 catchException = true;
             }
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
 
         [Test]
@@ -800,7 +800,7 @@ namespace TidyUpSoftware.nUnitTests
                 catchException = true;
             }
             // Assert
-            Assert.Equals(catchException, true);
+            Assert.AreEqual(catchException, true);
         }
     }
 }

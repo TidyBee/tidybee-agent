@@ -116,7 +116,7 @@ namespace TidyUpSoftware.xUnitTests
         }
 
         [Fact]
-        public void ServiceInterfaceTestTwo()
+        public void ServiceInterfaceTestThree()
         {
             List<string> result = new List<string>();
             bool expected = false;
