@@ -1,3 +1,5 @@
+using NUnit.Framework;
+
 namespace TidyUpSoftware.nUnitTests
 {
     public class serviceInterfaceTests

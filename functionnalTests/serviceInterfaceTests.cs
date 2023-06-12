@@ -1,3 +1,5 @@
+using Xunit;
+
 namespace TidyUpSoftware.xUnitTests
 {
     public class ServiceInterfaceTests
