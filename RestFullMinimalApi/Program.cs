@@ -28,6 +28,7 @@ app.MapGet("/getFiles", () =>
     return files;
 });
 
+
 app.MapGet("/getDirectories", () =>
 {
     var dirs = Directory.GetDirectories(@"C:\Users\guill\Downloads");
@@ -47,6 +48,32 @@ app.MapDelete("/deleteDirectory", () =>
 });
 
 
+app.MapGet("/getFiles/{path}", (string path) =>
+{
+    var files = Directory.GetFiles(path);
+    Console.WriteLine(files);
+    return files;
+});
+
+app.MapGet("/getDirectories/{path}", (string path) =>
+{
+    var dirs = Directory.GetDirectories(path);
+    return dirs;
+});
+
+app.MapPost("/postDirectory/{path}", (string path) =>
+{
+    //string directoryPath = Path.Combine(path, "EIPPPP");
+    Directory.CreateDirectory(path);
+    return "Directory Created";
+});
+
+app.MapDelete("/deleteDirectory/{path}", (string path) =>
+{
+    //string directoryPath = Path.Combine(path, "EIPPPP");
+    Directory.Delete(path);
+    return "Directory Deleted";
+});
 
 
 
