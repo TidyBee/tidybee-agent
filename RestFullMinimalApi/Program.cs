@@ -22,13 +22,33 @@ if (app.Environment.IsDevelopment())
 
 app.MapGet("/", () => "Hello World!");
 
-app.MapGet("/getFileSystem/{path}", (string path) =>
+app.MapGet("/getFiles", () =>
 {
-    Console.WriteLine(path);
-    //var files = Directory.GetFiles(@"C:\Users\guill\Downloads");
-    var files = Directory.GetFiles(path);
+    var files = Directory.GetFiles(@"C:\Users\guill\Downloads");
     return files;
 });
+
+app.MapGet("/getDirectories", () =>
+{
+    var dirs = Directory.GetDirectories(@"C:\Users\guill\Downloads");
+    return dirs;
+});
+
+app.MapPost("/postDirectory", () =>
+{
+    Directory.CreateDirectory(@"C:\Users\guill\Downloads\EIPPPP");
+    return "Directory Created";
+}); 
+
+app.MapDelete("/deleteDirectory", () =>
+{
+    Directory.Delete(@"C:\Users\guill\Downloads\EIPPPP");
+    return "Directory Deleted";
+});
+
+
+
+
 
 app.MapGet("/todoitems", async (TodoDb db) =>
     await db.Todos.ToListAsync());
