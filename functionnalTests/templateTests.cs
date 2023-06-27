@@ -2,7 +2,7 @@ using Xunit;
 
 namespace TidyUpSoftware.xUnitTests
 {
-    public class BasicTests
+    public class TemplateTests
     {
         [Fact]
         public void TestOne()
