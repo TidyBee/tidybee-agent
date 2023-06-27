@@ -2,7 +2,7 @@ using NUnit.Framework;
 
 namespace TidyUpSoftware.nUnitTests
 {
-    public class serviceInterfaceTests
+    public class BasicTests
     {
         [SetUp]
         public void Setup()
