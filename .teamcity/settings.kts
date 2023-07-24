@@ -37,7 +37,6 @@ version = "2023.05"
 project {
 
     buildType(Build)
-    buildType(Build_2)
 
     params {
         param("env.DOTNET_ROOT", "/usr/lib/dotnet")
@@ -103,93 +102,6 @@ object Build : BuildType({
 
     triggers {
         vcs {
-        }
-    }
-
-    features {
-        perfmon {
-        }
-        pullRequests {
-            provider = github {
-                authType = vcsRoot()
-                filterAuthorRole = PullRequests.GitHubRoleFilter.MEMBER
-                ignoreDrafts = true
-            }
-        }
-        commitStatusPublisher {
-            publisher = github {
-                githubUrl = "https://api.github.com"
-                authType = personalToken {
-                    token = "credentialsJSON:0f816045-3db7-4a38-893d-b59e0b71a889"
-                }
-            }
-            param("github_oauth_user", "Cavonstavant")
-        }
-    }
-})
-
-object Build_2 : BuildType({
-    name = "Build (backup)"
-
-    params {
-        param("env.DOTNET_HOME", "/usr/bin")
-    }
-
-    vcs {
-        root(DslContext.settingsRoot)
-    }
-
-    steps {
-        dotnetBuild {
-            name = "Build"
-            enabled = false
-            projects = """
-                functionnalTests/*.csproj
-                unitaryTests/*.csproj
-            """.trimIndent()
-            logging = DotnetBuildStep.Verbosity.Normal
-            dockerImage = "mcr.microsoft.com/dotnet/sdk:7.0"
-            param("dotNetCoverage.dotCover.home.path", "%teamcity.tool.JetBrains.dotCover.CommandLineTools.DEFAULT%")
-        }
-        nunit {
-            name = "Test project"
-            enabled = false
-            nunitPath = "%teamcity.tool.NUnit.Console.3.16.2%"
-            includeTests = "unitaryTests/serviceInterfaceTests.cs"
-            coverage = dotcover {
-            }
-        }
-        powerShell {
-            name = "vstest way"
-            enabled = false
-            scriptMode = script {
-                content = """
-                    cd functionnalTests
-                    dotnet publish -o out
-                    dotnet vstest out/TidyUpSoftware.xUnitTests.dll
-                    cd ..
-                    dotnet publish -o out
-                    dotnet vstest out/TidyUpSoftware.nUnitTests.dll
-                """.trimIndent()
-            }
-        }
-        script {
-            name = "cli way"
-            enabled = false
-            scriptContent = """
-                cd functionnalTests
-                dotnet publish -o out
-                dotnet vstest out/TidyUpSoftware.xUnitTests.dll
-                cd ..
-                dotnet publish -o out
-                dotnet vstest out/TidyUpSoftware.nUnitTests.dll
-            """.trimIndent()
-        }
-    }
-
-    triggers {
-        vcs {
-            branchFilter = "16-backtestingserviceinterface"
         }
     }
 
