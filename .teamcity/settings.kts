@@ -9,7 +9,6 @@ import jetbrains.buildServer.configs.kotlin.buildSteps.nunit
 import jetbrains.buildServer.configs.kotlin.buildSteps.powerShell
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
-import jetbrains.buildServer.configs.kotlin.vcs.GitVcsRoot
 
 /*
 The settings script is an entry point for defining a TeamCity
@@ -36,8 +35,6 @@ To debug in IntelliJ Idea, open the 'Maven Projects' tool window (View
 version = "2023.05"
 
 project {
-
-    vcsRoot(HttpsGithubComTidyBeeTidyUpSoftwareRefsHeadsMain1)
 
     buildType(Build)
     buildType(Build_2)
@@ -216,16 +213,4 @@ object Build_2 : BuildType({
             param("github_oauth_user", "Cavonstavant")
         }
     }
-})
-
-object HttpsGithubComTidyBeeTidyUpSoftwareRefsHeadsMain1 : GitVcsRoot({
-    name = "https://github.com/TidyBee/TidyUpSoftware#refs/heads/main (1)"
-    url = "https://github.com/TidyBee/TidyUpSoftware"
-    branch = "refs/heads/main"
-    branchSpec = "refs/heads/*"
-    authMethod = password {
-        userName = "Cavonstavant"
-        password = "credentialsJSON:0f816045-3db7-4a38-893d-b59e0b71a889"
-    }
-    param("oauthProviderId", "PROJECT_EXT_2")
 })
