@@ -46,10 +46,6 @@ project {
 object Build : BuildType({
     name = "Build"
 
-    params {
-        param("env.DOTNET_HOME", "/usr/bin")
-    }
-
     vcs {
         root(DslContext.settingsRoot)
     }
@@ -64,28 +60,6 @@ object Build : BuildType({
             logging = DotnetBuildStep.Verbosity.Normal
             dockerImage = "mcr.microsoft.com/dotnet/sdk:7.0"
             param("dotNetCoverage.dotCover.home.path", "%teamcity.tool.JetBrains.dotCover.CommandLineTools.DEFAULT%")
-        }
-        nunit {
-            name = "Test project"
-            enabled = false
-            nunitPath = "%teamcity.tool.NUnit.Console.3.16.2%"
-            includeTests = "unitaryTests/serviceInterfaceTests.cs"
-            coverage = dotcover {
-            }
-        }
-        powerShell {
-            name = "vstest way"
-            enabled = false
-            scriptMode = script {
-                content = """
-                    cd functionnalTests
-                    dotnet publish -o out
-                    dotnet vstest out/TidyUpSoftware.xUnitTests.dll
-                    cd ..
-                    dotnet publish -o out
-                    dotnet vstest out/TidyUpSoftware.nUnitTests.dll
-                """.trimIndent()
-            }
         }
         script {
             name = "Tests"
