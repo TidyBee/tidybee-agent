@@ -7,10 +7,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
-
-builder.Services.AddDbContext<TodoDb>(opt =>
-    opt.UseInMemoryDatabase("TodoList"));
 var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -24,8 +20,14 @@ app.MapGet("/", () => "Hello World!");
 
 app.MapGet("/getFiles", () =>
 {
-    var files = Directory.GetFiles(@"C:\Users\guill\Downloads");
-    return files;
+    var fs = new List<File> { };
+    for(int i = 0; i < 10; i++)
+    {
+        var f = new File(Name: "test" + i, Path: "test" + i, Extension: "test" + i, CreationTime: "test" + i, LastAccessTime: "test" + i, LastWriteTime: "test" + i, Size: "test" + i, Id: i, IsComplete: false);
+        fs.Add(f);
+    }
+    //var files = Directory.GetFiles(@"C:\Users\guill\Downloads");
+    return fs;
 });
 
 
@@ -43,16 +45,22 @@ app.MapPost("/postDirectory", () =>
 
 app.MapDelete("/deleteDirectory", () =>
 {
-    Directory.Delete(@"C:\Users\guill\Downloads\EIPPPP");
-    return "Directory Deleted";
+    if (Directory.Exists(@"C:\Users\guill\Downloads\EIPPPP")) { 
+        Directory.Delete(@"C:\Users\guill\Downloads\EIPPPP");
+        return "Directory Deleted";
+     }
+    return "Directory does not exist";
 });
 
 
 app.MapGet("/getFiles/{path}", (string path) =>
 {
-    var files = Directory.GetFiles(path);
-    Console.WriteLine(files);
-    return files;
+    if (Directory.Exists(path))
+    {
+        var files = Directory.GetFiles(path);
+        return files;
+    }
+    return null;
 });
 
 app.MapGet("/getDirectories/{path}", (string path) =>
@@ -63,67 +71,44 @@ app.MapGet("/getDirectories/{path}", (string path) =>
 
 app.MapPost("/postDirectory/{path}", (string path) =>
 {
-    //string directoryPath = Path.Combine(path, "EIPPPP");
     Directory.CreateDirectory(path);
     return "Directory Created";
 });
 
 app.MapDelete("/deleteDirectory/{path}", (string path) =>
 {
-    //string directoryPath = Path.Combine(path, "EIPPPP");
-    Directory.Delete(path);
-    return "Directory Deleted";
-});
-
-
-
-app.MapGet("/todoitems", async (TodoDb db) =>
-    await db.Todos.ToListAsync());
-app.MapGet("/todoitems/complete", async (TodoDb db) =>
-    await db.Todos.Where(t => t.IsComplete).ToListAsync());
-app.MapGet("/todoitems/{id}", async (int id, TodoDb db) =>
-    await db.Todos.FindAsync(id)
-        is Todo todo
-        ? Results.Ok(todo)
-        : Results.NotFound());
-app.MapPost("/todoitems", async (Todo todo, TodoDb db) =>{
-    db.Todos.Add(todo);
-    await db.SaveChangesAsync();
-    return Results.Created($"/todoitems/{todo.Id}", todo);
-});
-app.MapPut("/todoitems/{id}", async (int id, Todo inputTodo, TodoDb db) =>
-{
-    var todo = await db.Todos.FindAsync(id);
-    if (todo is null) return Results.NotFound();
-    todo.Name = inputTodo.Name;
-    todo.IsComplete = inputTodo.IsComplete;
-    await db.SaveChangesAsync();
-    return Results.NoContent();
-});
-app.MapDelete("/todoitems/{id}", async (int id, TodoDb db) =>
-{
-    if (await db.Todos.FindAsync(id) is Todo todo)
+    if (Directory.Exists(path))
     {
-        db.Todos.Remove(todo);
-        await db.SaveChangesAsync();
-        return Results.Ok(todo);
+        Directory.Delete(path);
+        return "Directory Deleted";
     }
-    return Results.NotFound();
+    return "Directory does not exist";
 });
+
 app.Run();
-class Todo
-{
-    public int Id { get; set; }
-    public string? Name { get; set; }
-    public bool IsComplete { get; set; }
-}
 
-class TodoDb : DbContext
+class File
 {
-    public TodoDb(DbContextOptions<TodoDb> options)
-        : base(options)
+    public File(string Name, string Path, string Extension, string CreationTime, string LastAccessTime, string LastWriteTime, string Size, int Id, bool IsComplete)
     {
+        this.Name = Name;
+        this.Path = Path;
+        this.Extension = Extension;
+        this.CreationTime = CreationTime;
+        this.LastAccessTime = LastAccessTime;
+        this.LastWriteTime = LastWriteTime;
+        this.Size = Size;
+        this.Id = Id;
+        this.IsComplete = IsComplete;
     }
 
-    public DbSet<Todo> Todos => Set<Todo>();
+    public string Name { get; set; }
+    public string Path { get; set; }
+    public string Extension { get; set; }
+    public string CreationTime { get; set; }
+    public string LastAccessTime { get; set; }
+    public string LastWriteTime { get; set; }
+    public string Size { get; set; }
+    public int Id { get; set; }
+    public bool IsComplete { get; set; }
 }
