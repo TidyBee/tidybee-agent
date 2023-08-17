@@ -32,7 +32,8 @@ fn main() {
     }
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    let file_to_watch_path = std::env::args().nth(2)
+    let file_to_watch_path: String = std::env::args()
+        .nth(2)
         .expect("Argument needs to be a path");
 
     if let Err(error) = watcher::watch(&file_to_watch_path) {
@@ -41,7 +42,9 @@ fn main() {
 }
 
 fn print_help() {
-    eprintln!("Usage:
-      --watch <directory> : Watch for changes in the specified directory
-      --help              : Print help message and exit 0");
+    eprintln!(
+        "Usage:
+  --watch <directory> : Watch for changes in the specified directory
+  --help              : Print help message and exit 0"
+    );
 }
