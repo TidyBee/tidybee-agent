@@ -3,7 +3,7 @@ mod options;
 use std::process;
 
 fn main() {
-    let options: Result<options::Options, options::ParseError> = options::get_options();
+    let options: Result<options::Options, options::OptionsError> = options::get_options();
 
     match options {
         Ok(options) => {
@@ -22,8 +22,11 @@ fn main() {
         }
         Err(error) => {
             match error {
-                options::ParseError::ConflictingOptions(msg) => {
-                    eprintln!("Error: {}", msg);
+                options::OptionsError::ConflictingOptions(e) => {
+                    eprintln!("Error: {}", e);
+                }
+                options::OptionsError::InvalidDirectory(e) => {
+                    eprintln!("Error: {}", e);
                 }
             }
             process::exit(1);

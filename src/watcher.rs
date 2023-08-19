@@ -1,7 +1,8 @@
-use std::path::Path;
+use std::path;
+use std::sync;
 
-pub fn watch<P: AsRef<Path>>(path: P) -> notify::Result<()> {
-    let (tx, rx) = std::sync::mpsc::channel();
+pub fn watch_directory<P: AsRef<path::Path>>(path: P) -> notify::Result<()> {
+    let (tx, rx) = sync::mpsc::channel();
     let mut watcher: notify::FsEventWatcher = notify::RecommendedWatcher::new(tx, notify::Config::default())?;
     watcher.watch(path.as_ref(), notify::RecursiveMode::Recursive)?;
 

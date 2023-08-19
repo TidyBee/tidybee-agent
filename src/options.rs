@@ -7,15 +7,16 @@ pub struct Options {
     pub watch_directories: Option<Vec<path::PathBuf>>,
 }
 
-pub enum ParseError {
+pub enum OptionsError {
     ConflictingOptions(String),
+    InvalidDirectory(String),
 }
 
-pub fn get_options() -> Result<Options, ParseError> {
-    let options = clap::App::new("TidyBee Core")
+pub fn get_options() -> Result<Options, OptionsError> {
+    let options: clap::ArgMatches<'_> = clap::App::new("TidyBee Core")
         .version("0.0.1")
         .author("majent4")
-        .about("Watch for changes in files and subdirectories, recursively list directories")
+        .about("Watch for changes in directories, recursively list directories")
         .arg(
             clap::Arg::with_name("extension")
                 .short("e")
@@ -78,9 +79,31 @@ pub fn get_options() -> Result<Options, ParseError> {
         .values_of("watch")
         .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect());
 
+    if let Some(directories) = &list_directories {
+        for d in directories {
+            if !d.is_dir() {
+                return Err(OptionsError::InvalidDirectory(format!(
+                    "Specified directory {:?} does not exists",
+                    d
+                )));
+            }
+        }
+    }
+
+    if let Some(directories) = &watch_directories {
+        for d in directories {
+            if !d.is_dir() {
+                return Err(OptionsError::InvalidDirectory(format!(
+                    "Specified directory {:?} does not exists",
+                    d
+                )));
+            }
+        }
+    }
+
     if list_directories.is_some() && watch_directories.is_some() {
-        return Err(ParseError::ConflictingOptions(
-            "Can't specify both --list and --watch".to_string(),
+        return Err(OptionsError::ConflictingOptions(
+            "Can't specify both list and watch".to_string(),
         ));
     }
 
