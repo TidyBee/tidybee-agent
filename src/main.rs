@@ -1,7 +1,7 @@
 mod config;
 
 fn main() {
-    let config_result = config::get_options();
+    let config_result: Result<config::Config, config::ParseError> = config::get_options();
 
     match config_result {
         Ok(config) => {

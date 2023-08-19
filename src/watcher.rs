@@ -1,13 +1,12 @@
-use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::Path;
 
 pub fn watch<P: AsRef<Path>>(path: P) -> notify::Result<()> {
     let (tx, rx) = std::sync::mpsc::channel();
-    let mut watcher: notify::FsEventWatcher = RecommendedWatcher::new(tx, Config::default())?;
-    watcher.watch(path.as_ref(), RecursiveMode::Recursive)?;
+    let mut watcher: notify::FsEventWatcher = notify::RecommendedWatcher::new(tx, notify::Config::default())?;
+    watcher.watch(path.as_ref(), notify::RecursiveMode::Recursive)?;
 
-    for res in rx {
-        match res {
+    for e in rx {
+        match e {
             Ok(event) => {
                 log::info!("Change: {:?}", event)
             }

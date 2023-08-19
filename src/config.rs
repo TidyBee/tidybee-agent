@@ -1,4 +1,3 @@
-use clap::{App, Arg};
 use std::path::PathBuf;
 
 pub struct Config {
@@ -13,12 +12,12 @@ pub enum ParseError {
 }
 
 pub fn get_options() -> Result<Config, ParseError> {
-    let matches = App::new("TidyBee")
+    let matches = clap::App::new("TidyBee")
         .version("0.0.1")
         .author("majent4")
         .about("Watch for file changes and list directories")
         .arg(
-            Arg::with_name("extension")
+            clap::Arg::with_name("extension")
                 .short("e")
                 .long("extension")
                 .value_name("EXTENSIONS")
@@ -28,7 +27,7 @@ pub fn get_options() -> Result<Config, ParseError> {
                 .help("Specify extensions"),
         )
         .arg(
-            Arg::with_name("type")
+            clap::Arg::with_name("type")
                 .short("t")
                 .long("type")
                 .value_name("TYPES")
@@ -38,7 +37,7 @@ pub fn get_options() -> Result<Config, ParseError> {
                 .help("Specify types"),
         )
         .arg(
-            Arg::with_name("list")
+            clap::Arg::with_name("list")
                 .short("l")
                 .long("list")
                 .value_name("DIRECTORIES")
@@ -50,7 +49,7 @@ pub fn get_options() -> Result<Config, ParseError> {
                 .help("Specify directories for listing"),
         )
         .arg(
-            Arg::with_name("watch")
+            clap::Arg::with_name("watch")
                 .short("w")
                 .long("watch")
                 .value_name("DIRECTORIES")
@@ -63,24 +62,22 @@ pub fn get_options() -> Result<Config, ParseError> {
         )
         .get_matches();
 
-    let file_extensions = matches
+    let file_extensions: Option<Vec<String>> = matches
         .values_of("extension")
-        .map(|exts| exts.map(String::from)
-        .collect());
-    let file_types = matches
+        .map(|exts: clap::Values<'_>| exts.map(String::from).collect());
+    let file_types: Option<Vec<String>> = matches
         .values_of("type")
-        .map(|file_types| file_types.map(String::from)
-        .collect());
-    let list_directories = matches
+        .map(|file_types: clap::Values<'_>| file_types.map(String::from).collect());
+    let list_directories: Option<Vec<PathBuf>> = matches
         .values_of("list")
-        .map(|dirs| dirs.map(PathBuf::from)
-        .collect());
-    let watch_directories = matches
+        .map(|dirs: clap::Values<'_>| dirs.map(PathBuf::from).collect());
+    let watch_directories: Option<Vec<PathBuf>> = matches
         .values_of("watch")
-        .map(|dirs| dirs.map(PathBuf::from)
-        .collect());
+        .map(|dirs: clap::Values<'_>| dirs.map(PathBuf::from).collect());
     if list_directories.is_some() && watch_directories.is_some() {
-        return Err(ParseError::ConflictingArguments("-l and -w cannot be provided at the same time.".to_string()));
+        return Err(ParseError::ConflictingArguments(
+            "-l and -w cannot be provided at the same time.".to_string(),
+        ));
     }
 
     Ok(Config {
