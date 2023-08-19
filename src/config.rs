@@ -2,13 +2,17 @@ use clap::{App, Arg};
 use std::path::PathBuf;
 
 pub struct Config {
-    pub extensions: Option<Vec<String>>,
-    pub types: Option<Vec<String>>,
+    pub file_extensions: Option<Vec<String>>,
+    pub file_types: Option<Vec<String>>,
     pub list_directories: Option<Vec<PathBuf>>,
     pub watch_directories: Option<Vec<PathBuf>>,
 }
 
-pub fn get_options() -> Config {
+pub enum ParseError {
+    ConflictingArguments(String),
+}
+
+pub fn get_options() -> Result<Config, ParseError> {
     let matches = App::new("TidyBee")
         .version("0.0.1")
         .author("majent4")
@@ -59,13 +63,13 @@ pub fn get_options() -> Config {
         )
         .get_matches();
 
-    let extensions = matches
+    let file_extensions = matches
         .values_of("extension")
         .map(|exts| exts.map(String::from)
         .collect());
-    let types = matches
+    let file_types = matches
         .values_of("type")
-        .map(|types| types.map(String::from)
+        .map(|file_types| file_types.map(String::from)
         .collect());
     let list_directories = matches
         .values_of("list")
@@ -75,10 +79,14 @@ pub fn get_options() -> Config {
         .values_of("watch")
         .map(|dirs| dirs.map(PathBuf::from)
         .collect());
-    Config {
-        extensions,
-        types,
+    if list_directories.is_some() && watch_directories.is_some() {
+        return Err(ParseError::ConflictingArguments("-l and -w cannot be provided at the same time.".to_string()));
+    }
+
+    Ok(Config {
+        file_extensions,
+        file_types,
         list_directories,
         watch_directories,
-    }
+    })
 }
