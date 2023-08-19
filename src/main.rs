@@ -1,33 +1,32 @@
-mod config;
+mod options;
+
+use std::process;
 
 fn main() {
-    let config_result: Result<config::Config, config::ParseError> = config::get_options();
+    let options: Result<options::Options, options::ParseError> = options::get_options();
 
-    match config_result {
-        Ok(config) => {
-            if let Some(e) = &config.file_extensions {
-                println!("Extensions: {:?}", e);
+    match options {
+        Ok(options) => {
+            if let Some(e) = &options.file_extensions {
+                println!("file extensions: {:?}", e);
             }
-
-            if let Some(t) = &config.file_types {
-                println!("Types: {:?}", t);
+            if let Some(t) = &options.file_types {
+                println!("file types: {:?}", t);
             }
-
-            if let Some(d) = &config.list_directories {
-                println!("List Directories: {:?}", d);
+            if let Some(d) = &options.list_directories {
+                println!("directories listing: {:?}", d);
             }
-
-            if let Some(d) = &config.watch_directories {
-                println!("Watch Directories: {:?}", d);
+            if let Some(d) = &options.watch_directories {
+                println!("directories watching: {:?}", d);
             }
         }
         Err(error) => {
             match error {
-                config::ParseError::ConflictingArguments(msg) => {
+                options::ParseError::ConflictingOptions(msg) => {
                     eprintln!("Error: {}", msg);
                 }
             }
-            std::process::exit(1);
+            process::exit(1);
         }
     }
 }
