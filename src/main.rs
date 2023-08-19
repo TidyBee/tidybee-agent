@@ -1,79 +1,26 @@
-use clap::{App, Arg};
+mod config;
 
 fn main() {
-    let matches = App::new("TidyBee")
-        .version("0.0.1")
-        .author("majent4")
-        .about("Watch for file changes and list directories")
-        .arg(
-            Arg::with_name("extension")
-                .short("e")
-                .long("extension")
-                .value_name("EXTENSIONS")
-                .multiple(true)
-                .use_delimiter(true)
-                .takes_value(true)
-                .help("Specify extensions"),
-        )
-        .arg(
-            Arg::with_name("type")
-                .short("t")
-                .long("type")
-                .value_name("TYPES")
-                .multiple(true)
-                .use_delimiter(true)
-                .takes_value(true)
-                .help("Specify types"),
-        )
-        .arg(
-            Arg::with_name("list")
-                .short("l")
-                .long("list")
-                .value_name("DIRECTORIES")
-                .multiple(true)
-                .use_delimiter(true)
-                .takes_value(true)
-                .required_unless("watch")
-                .conflicts_with("watch")
-                .help("Specify directories for listing"),
-        )
-        .arg(
-            Arg::with_name("watch")
-                .short("w")
-                .long("watch")
-                .value_name("DIRECTORIES")
-                .multiple(true)
-                .use_delimiter(true)
-                .required_unless("list")
-                .conflicts_with("list")
-                .takes_value(true)
-                .help("Specify directories for watching"),
-        )
-        .get_matches();
+    let config = config::get_options();
 
-    if matches.is_present("list") && matches.is_present("watch") {
+    if config.list_directories.is_some() && config.watch_directories.is_some() {
         eprintln!("Error: -l and -w cannot be provided at the same time.");
         std::process::exit(1);
     }
 
-    // Process the rest of the arguments as needed
-    if let Some(extensions) = matches.values_of("extension") {
-        let e: Vec<_> = extensions.collect();
+    if let Some(e) = &config.extensions {
         println!("Extensions: {:?}", e);
     }
 
-    if let Some(types) = matches.values_of("type") {
-        let t: Vec<_> = types.collect();
+    if let Some(t) = &config.types {
         println!("Types: {:?}", t);
     }
 
-    if let Some(directories) = matches.values_of("list") {
-        let d: Vec<_> = directories.collect();
+    if let Some(d) = &config.list_directories {
         println!("List Directories: {:?}", d);
     }
 
-    if let Some(directories) = matches.values_of("watch") {
-        let d: Vec<_> = directories.collect();
+    if let Some(d) = &config.watch_directories {
         println!("Watch Directories: {:?}", d);
     }
 }
