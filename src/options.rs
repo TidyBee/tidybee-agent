@@ -10,6 +10,8 @@ pub struct Options {
 pub enum OptionsError {
     ConflictingOptions(String),
     InvalidDirectory(String),
+    InvalidFileType(String),
+    InvalidFileExtension(String)
 }
 
 pub fn get_options() -> Result<Options, OptionsError> {
@@ -63,14 +65,6 @@ pub fn get_options() -> Result<Options, OptionsError> {
         )
         .get_matches();
 
-    let file_extensions: Option<Vec<String>> = options
-        .values_of("extension")
-        .map(|exts: clap::Values<'_>| exts.map(String::from).collect());
-
-    let file_types: Option<Vec<String>> = options
-        .values_of("type")
-        .map(|file_types: clap::Values<'_>| file_types.map(String::from).collect());
-
     let list_directories: Option<Vec<path::PathBuf>> = options
         .values_of("list")
         .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect());
@@ -78,6 +72,12 @@ pub fn get_options() -> Result<Options, OptionsError> {
     let watch_directories: Option<Vec<path::PathBuf>> = options
         .values_of("watch")
         .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect());
+
+    if list_directories.is_some() && watch_directories.is_some() {
+        return Err(OptionsError::ConflictingOptions(
+            "Can't specify both list and watch".to_string(),
+        ));
+    }
 
     if let Some(directories) = &list_directories {
         for d in directories {
@@ -101,10 +101,38 @@ pub fn get_options() -> Result<Options, OptionsError> {
         }
     }
 
-    if list_directories.is_some() && watch_directories.is_some() {
-        return Err(OptionsError::ConflictingOptions(
-            "Can't specify both list and watch".to_string(),
-        ));
+    let file_extensions: Option<Vec<String>> = options
+        .values_of("extension")
+        .map(|exts: clap::Values<'_>| exts.map(String::from).collect());
+
+    let valid_extensions = vec!["txt", "docx", "pdf", "ai", "xlsx"];
+
+    if let Some(file_extensions) = &file_extensions {
+        for e in file_extensions {
+            if !valid_extensions.contains(&e.as_str()) {
+                return Err(OptionsError::InvalidFileExtension(format!(
+                    "Invalid file extension: {}",
+                    e
+                )));
+            }
+        }
+    }
+
+    let file_types: Option<Vec<String>> = options
+        .values_of("type")
+        .map(|file_types: clap::Values<'_>| file_types.map(String::from).collect());
+
+    let valid_file_types: Vec<&str> = vec!["regular", "all", "directories"];
+
+    if let Some(file_types) = &file_types {
+        for ft in file_types {
+            if !valid_file_types.contains(&ft.as_str()) {
+                return Err(OptionsError::InvalidFileType(format!(
+                    "Invalid file type: {}",
+                    ft
+                )));
+            }
+        }
     }
 
     Ok(Options {
