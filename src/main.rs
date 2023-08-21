@@ -23,8 +23,7 @@ fn main() {
     let options: Result<options::Options, options::OptionsError> = options::get_options();
 
     match options {
-        Ok(_) => {
-        }
+        Ok(_) => {}
         Err(error) => {
             print_option_error(error);
             process::exit(1);

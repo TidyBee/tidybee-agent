@@ -5,13 +5,15 @@ pub struct Options {
     pub file_types: Option<Vec<String>>,
     pub list_directories: Option<Vec<path::PathBuf>>,
     pub watch_directories: Option<Vec<path::PathBuf>>,
+    pub receive_address: Option<String>,
+    pub send_address: Option<String>,
 }
 
 pub enum OptionsError {
     ConflictingOptions(String),
     InvalidDirectory(String),
     InvalidFileType(String),
-    InvalidFileExtension(String)
+    InvalidFileExtension(String),
 }
 
 pub fn get_options() -> Result<Options, OptionsError> {
@@ -63,6 +65,22 @@ pub fn get_options() -> Result<Options, OptionsError> {
                 .takes_value(true)
                 .help("Specify directories for watching"),
         )
+        .arg(
+            clap::Arg::with_name("receive")
+                .short("r")
+                .long("receive")
+                .value_name("ADDRESS")
+                .takes_value(true)
+                .help("Specify receive address"),
+        )
+        .arg(
+            clap::Arg::with_name("send")
+                .short("s")
+                .long("send")
+                .value_name("ADDRESS")
+                .takes_value(true)
+                .help("Specify send address"),
+        )
         .get_matches();
 
     let list_directories: Option<Vec<path::PathBuf>> = options
@@ -105,7 +123,8 @@ pub fn get_options() -> Result<Options, OptionsError> {
         .values_of("extension")
         .map(|exts: clap::Values<'_>| exts.map(String::from).collect());
 
-    let valid_extensions = vec!["txt", "docx", "pdf", "ai", "xlsx"];
+    let valid_extensions: Vec<&str> =
+        vec!["docx", "jpeg", "jpg", "mp3", "mp4", "pdf", "png", "xlsx"];
 
     if let Some(file_extensions) = &file_extensions {
         for e in file_extensions {
@@ -122,23 +141,30 @@ pub fn get_options() -> Result<Options, OptionsError> {
         .values_of("type")
         .map(|file_types: clap::Values<'_>| file_types.map(String::from).collect());
 
-    let valid_file_types: Vec<&str> = vec!["regular", "all", "directories"];
+    let valid_file_types: Vec<&str> =
+        vec!["*", "all", "d", "dir", "directory", "r", "reg", "regular"];
 
     if let Some(file_types) = &file_types {
-        for ft in file_types {
-            if !valid_file_types.contains(&ft.as_str()) {
+        for t in file_types {
+            if !valid_file_types.contains(&t.as_str()) {
                 return Err(OptionsError::InvalidFileType(format!(
                     "Invalid file type: {}",
-                    ft
+                    t
                 )));
             }
         }
     }
+
+    let receive_address: Option<String> = options.value_of("receive").map(String::from);
+
+    let send_address: Option<String> = options.value_of("send").map(String::from);
 
     Ok(Options {
         file_extensions,
         file_types,
         list_directories,
         watch_directories,
+        receive_address,
+        send_address,
     })
 }
