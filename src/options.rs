@@ -99,7 +99,7 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
 
     if list_directories.is_some() && watch_directories.is_some() {
         return Err(OptionsError::ConflictingOptions(
-            "can't specify both list and watch".to_string(),
+            "can't specify both list and watch simultaneously".to_string(),
         ));
     }
 
@@ -197,9 +197,37 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_check_options() {
-        let args = vec!["tidybee", "--extension", "docx", "--list", "/tmp"];
-        let matches = clap_options().get_matches_from(args);
-        assert!(check_options(matches).is_ok());
+    fn test_easy_list_valid() {
+        let arguments: Vec<&str> = vec!["tidybee", "--list", "/usr"];
+        let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
+        assert!(check_options(options).is_ok());
+    }
+
+    #[test]
+    fn test_easy_watch_valid() {
+        let arguments: Vec<&str> = vec!["tidybee", "--watch", "/usr"];
+        let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
+        assert!(check_options(options).is_ok());
+    }
+
+    #[test]
+    fn test_easy_help() {
+        let arguments: Vec<&str> = vec!["tidybee", "--help"];
+        let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
+        assert!(check_options(options).is_ok());
+    }
+
+    #[test]
+    fn test_easy_version() {
+        let arguments: Vec<&str> = vec!["tidybee", "--version"];
+        let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
+        assert!(check_options(options).is_ok());
+    }
+
+    #[test]
+    fn test_easy_empty() {
+        let arguments: Vec<&str> = vec!["tidybee"];
+        let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
+        assert!(check_options(options).is_err());
     }
 }
