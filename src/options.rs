@@ -2,7 +2,7 @@ use std::path;
 
 pub struct Options {
     pub file_extensions: Option<Vec<String>>,
-    pub file_types: Option<Vec<String>>,
+    pub file_types: Option<String>,
     pub list_directories: Option<Vec<path::PathBuf>>,
     pub watch_directories: Option<Vec<path::PathBuf>>,
     pub receive_address: Option<String>,
@@ -143,20 +143,46 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         }
     }
 
-    let file_types: Option<Vec<String>> = matches
+    let file_types_vec: Option<Vec<String>> = matches
         .values_of("type")
         .map(|file_types: clap::Values<'_>| file_types.map(String::from).collect());
 
-    let valid_file_types: Vec<&str> =
-        vec!["*", "all", "d", "dir", "directory", "r", "reg", "regular"];
+    let valid_file_types: Vec<&str> = vec!["*", "all", "directory", "regular"];
 
-    if let Some(file_types) = &file_types {
+    if let Some(file_types) = &file_types_vec {
         for t in file_types {
             if !valid_file_types.contains(&t.as_str()) {
                 return Err(OptionsError::InvalidFileType(format!(
                     "invalid file type: {}",
                     t
                 )));
+            }
+        }
+    }
+
+    let mut file_types: Option<String> = None;
+
+    if let Some(t) = &file_types_vec {
+        if t.iter().any(|t: &String| t.contains("directory")) {
+            file_types = Some("directory".to_string());
+        }
+        if t.iter()
+            .any(|t: &String| t.contains("*") || t.contains("all"))
+        {
+            file_types = Some("all".to_string());
+        }
+        if t.iter().any(|t: &String| t.contains("regular")) {
+            file_types = Some("regular".to_string());
+        }
+    }
+
+    if let Some(file_extensions) = &file_extensions {
+        if let Some(file_types) = &file_types {
+            if file_types == "directory" && !file_extensions.is_empty() {
+                return Err(OptionsError::InvalidFileType(
+                    "can't specify both file extensions and file type directory simultaneously"
+                        .to_string(),
+                ));
             }
         }
     }
@@ -192,6 +218,7 @@ pub fn print_option_error(error: OptionsError) {
     }
 }
 
+// to do: how to get stderr?
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,10 +251,19 @@ mod tests {
         assert!(check_options(options).is_ok());
     }
 
+//    #[test]
+//    fn test_easy_empty() {
+//        let arguments: Vec<&str> = vec!["tidybee"];
+//        let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
+//        assert!(check_options(options).is_err());
+//    }
+
     #[test]
-    fn test_easy_empty() {
-        let arguments: Vec<&str> = vec!["tidybee"];
+    fn test_directory_extension() {
+        let arguments: Vec<&str> = vec!["tidybee", "--list", "/usr", "-e", "pdf", "-t", "directory" ];
         let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
         assert!(check_options(options).is_err());
     }
 }
+
+

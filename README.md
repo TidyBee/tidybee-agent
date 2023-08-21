@@ -28,6 +28,11 @@ EXAMPLE:
 cargo build
 ```
 
+## Run the test suite
+```
+cargo test
+```
+
 ## Specifications
 Here to keep a track of the different technologies the backend is using.
 
