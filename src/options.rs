@@ -17,10 +17,14 @@ pub enum OptionsError {
 }
 
 pub fn get_options() -> Result<Options, OptionsError> {
-    let options: clap::ArgMatches<'_> = clap::App::new("TidyBee Core")
+    check_options(clap_options().get_matches())
+}
+
+fn clap_options() -> clap::App<'static, 'static> {
+    let options: clap::App<'_, '_> = clap::App::new("TidyBee Watch & List")
         .version("0.0.1")
         .author("majent4")
-        .about("Watch for changes in directories, recursively list directories")
+        .about("Watch for changes in directories and recursively list directories")
         .arg(
             clap::Arg::with_name("extension")
                 .short("e")
@@ -29,7 +33,7 @@ pub fn get_options() -> Result<Options, OptionsError> {
                 .multiple(true)
                 .use_delimiter(true)
                 .takes_value(true)
-                .help("Specify extensions"),
+                .help("Specify file extensions"),
         )
         .arg(
             clap::Arg::with_name("type")
@@ -39,7 +43,7 @@ pub fn get_options() -> Result<Options, OptionsError> {
                 .multiple(true)
                 .use_delimiter(true)
                 .takes_value(true)
-                .help("Specify types"),
+                .help("Specify file types"),
         )
         .arg(
             clap::Arg::with_name("list")
@@ -80,20 +84,22 @@ pub fn get_options() -> Result<Options, OptionsError> {
                 .value_name("ADDRESS")
                 .takes_value(true)
                 .help("Specify send address"),
-        )
-        .get_matches();
+        );
+    options
+}
 
-    let list_directories: Option<Vec<path::PathBuf>> = options
+fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError> {
+    let list_directories: Option<Vec<path::PathBuf>> = matches
         .values_of("list")
         .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect());
 
-    let watch_directories: Option<Vec<path::PathBuf>> = options
+    let watch_directories: Option<Vec<path::PathBuf>> = matches
         .values_of("watch")
         .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect());
 
     if list_directories.is_some() && watch_directories.is_some() {
         return Err(OptionsError::ConflictingOptions(
-            "Can't specify both list and watch".to_string(),
+            "can't specify both list and watch".to_string(),
         ));
     }
 
@@ -101,7 +107,7 @@ pub fn get_options() -> Result<Options, OptionsError> {
         for d in directories {
             if !d.is_dir() {
                 return Err(OptionsError::InvalidDirectory(format!(
-                    "Specified directory {:?} does not exists",
+                    "specified directory does not exists: {:?}",
                     d
                 )));
             }
@@ -112,14 +118,14 @@ pub fn get_options() -> Result<Options, OptionsError> {
         for d in directories {
             if !d.is_dir() {
                 return Err(OptionsError::InvalidDirectory(format!(
-                    "Specified directory {:?} does not exists",
+                    "specified directory does not exists: {:?}",
                     d
                 )));
             }
         }
     }
 
-    let file_extensions: Option<Vec<String>> = options
+    let file_extensions: Option<Vec<String>> = matches
         .values_of("extension")
         .map(|exts: clap::Values<'_>| exts.map(String::from).collect());
 
@@ -130,14 +136,14 @@ pub fn get_options() -> Result<Options, OptionsError> {
         for e in file_extensions {
             if !valid_extensions.contains(&e.as_str()) {
                 return Err(OptionsError::InvalidFileExtension(format!(
-                    "Invalid file extension: {}",
+                    "invalid file extension: {}",
                     e
                 )));
             }
         }
     }
 
-    let file_types: Option<Vec<String>> = options
+    let file_types: Option<Vec<String>> = matches
         .values_of("type")
         .map(|file_types: clap::Values<'_>| file_types.map(String::from).collect());
 
@@ -148,16 +154,16 @@ pub fn get_options() -> Result<Options, OptionsError> {
         for t in file_types {
             if !valid_file_types.contains(&t.as_str()) {
                 return Err(OptionsError::InvalidFileType(format!(
-                    "Invalid file type: {}",
+                    "invalid file type: {}",
                     t
                 )));
             }
         }
     }
 
-    let receive_address: Option<String> = options.value_of("receive").map(String::from);
+    let receive_address: Option<String> = matches.value_of("receive").map(String::from);
 
-    let send_address: Option<String> = options.value_of("send").map(String::from);
+    let send_address: Option<String> = matches.value_of("send").map(String::from);
 
     Ok(Options {
         file_extensions,
@@ -167,4 +173,33 @@ pub fn get_options() -> Result<Options, OptionsError> {
         receive_address,
         send_address,
     })
+}
+
+pub fn print_option_error(error: OptionsError) {
+    match error {
+        OptionsError::ConflictingOptions(e) => {
+            eprintln!("tidybee: error: {}", e);
+        }
+        OptionsError::InvalidDirectory(e) => {
+            eprintln!("tidybee: error: {}", e);
+        }
+        OptionsError::InvalidFileType(e) => {
+            eprintln!("tidybee: error: {}", e);
+        }
+        OptionsError::InvalidFileExtension(e) => {
+            eprintln!("tidybee: error: {}", e);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_check_options() {
+        let args = vec!["tidybee", "--extension", "docx", "--list", "/tmp"];
+        let matches = clap_options().get_matches_from(args);
+        assert!(check_options(matches).is_ok());
+    }
 }

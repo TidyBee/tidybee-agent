@@ -1,23 +1,24 @@
 # tidybee-backend
-[TidyBee](https://github.com/tidybee)'s backend repository.
+[TidyBee](https://github.com/tidybee)'s backend repository. Watch for changes in directories and recursively list directories.
 
 ## Usage
 ```
-Usage: tidybee <ARGUMENTS>
+USAGE:
+    tidybee [OPTIONS] --list <DIRECTORIES>... --watch <DIRECTORIES>...
 
-Arguments:
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
 
-  REQUIRED ARGUMENTS
-    -l, --list <dir>          Recursively list directory
-    -w, --watch <dir>         Watch for changes in directory
+OPTIONS:
+    -e, --extension <EXTENSIONS>...    Specify file extensions
+    -l, --list <DIRECTORIES>...        Specify directories for listing
+    -r, --receive <ADDRESS>            Specify receive address
+    -s, --send <ADDRESS>               Specify send address
+    -t, --type <TYPES>...              Specify file types
+    -w, --watch <DIRECTORIES>...       Specify directories for watching
 
-  OPTIONAL ARGUMENTS
-    -r, --receive <port>      Receive file system actions in JSON format (default: 8079)
-    -s, --send <addr>         Send listing or events in JSON format (default: localhost:8080)
-    -t, --type <type>         List or watch only these file types: all, directory, regular (it defaults to all)
-
-Example:
-
+EXAMPLE:
     tidybee -w /Users/john/Desktop,/Users/john/Documents -e pdf,docx
     tidybee -l "$HOME" -t regular -s tbfront:80
 ```
