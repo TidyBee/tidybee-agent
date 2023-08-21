@@ -1,16 +1,31 @@
 # tidybee-backend
 [TidyBee](https://github.com/tidybee)'s backend repository.
 
-## Features
-### FS Events Watcher
-1. Watch for file events inside a given directory.
-2. Decide whether or not it is a pertinent information.
-3. Send the data to the front client.
+## Usage
+```
+Usage: tidybee <ARGUMENTS>
 
-### Directory Listing
-1. .
-2. .
-3. .
+Arguments:
+
+  REQUIRED ARGUMENTS
+    -l, --list <dir>          Recursively list directory
+    -w, --watch <dir>         Watch for changes in directory
+
+  OPTIONAL ARGUMENTS
+    -r, --receive <port>      Receive file system actions in JSON format (default: 8079)
+    -s, --send <addr>         Send listing or events in JSON format (default: localhost:8080)
+    -t, --type <type>         List or watch only these file types: all, directory, regular (it defaults to all)
+
+Example:
+
+    tidybee -w /Users/john/Desktop,/Users/john/Documents -e pdf,docx
+    tidybee -l "$HOME" -t regular -s tbfront:80
+```
+
+## Build
+```
+cargo build
+```
 
 ## Specifications
 Here to keep a track of the different technologies the backend is using.
