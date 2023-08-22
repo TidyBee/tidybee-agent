@@ -1,9 +1,8 @@
 mod options;
 mod watcher;
 
-use notify::{RecursiveMode, Watcher};
-use notify_debouncer_full::new_debouncer;
-use std::{process, time::Duration};
+use std::process;
+use std::thread;
 
 fn list_directories(
     directories: Vec<std::path::PathBuf>,
@@ -21,55 +20,6 @@ fn list_directories(
     }
 }
 
-fn watch_directories(
-    directories: Vec<std::path::PathBuf>,
-    file_extensions_args: Option<Vec<String>>,
-    file_types_args: Option<String>,
-) {
-    println!("watch directories: {:?}", directories);
-
-    if let Some(e) = file_extensions_args {
-        println!("file extensions: {:?}", e);
-    }
-
-    if let Some(t) = file_types_args {
-        println!("file types: {:?}", t);
-    }
-
-    let (tx, rx) = std::sync::mpsc::channel();
-
-    let mut debouncer: notify_debouncer_full::Debouncer<
-        notify::FsEventWatcher,
-        notify_debouncer_full::FileIdMap,
-    > = match new_debouncer(Duration::from_secs(2), None, tx) {
-        Ok(debouncer) => debouncer,
-        Err(err) => {
-            eprintln!("Error creating debouncer: {:?}", err);
-            return;
-        }
-    };
-
-    for dir in directories {
-        if let Err(err) = debouncer.watcher().watch(&dir, RecursiveMode::Recursive) {
-            eprintln!("Error watching directory {:?}: {:?}", dir, err);
-        } else {
-            debouncer.cache().add_root(&dir, RecursiveMode::Recursive);
-        }
-    }
-
-    for result in rx {
-        match result {
-            Ok(events) => events
-                .iter()
-                .for_each(|event: &notify_debouncer_full::DebouncedEvent| println!("{event:?}")),
-            Err(errors) => errors
-                .iter()
-                .for_each(|error: &notify::Error| println!("{error:?}")),
-        }
-        println!();
-    }
-}
-
 fn main() {
     let options: Result<options::Options, options::OptionsError> = options::get_options();
 
@@ -78,7 +28,19 @@ fn main() {
             if let Some(directories) = opts.directories_list_args {
                 list_directories(directories, opts.file_extensions_args, opts.file_types_args);
             } else if let Some(directories) = opts.directories_watch_args {
-                watch_directories(directories, opts.file_extensions_args, opts.file_types_args);
+                let (sender, receiver) = crossbeam_channel::unbounded();
+                let watch_directories_thread: thread::JoinHandle<()> = thread::spawn(move || {
+                    watcher::watch_directories(
+                        directories.clone(),
+                        opts.file_extensions_args.clone(),
+                        opts.file_types_args.clone(),
+                        sender,
+                    );
+                });
+                for event in receiver {
+                    println!("{event:?}");
+                }
+                watch_directories_thread.join().unwrap();
             }
         }
         Err(error) => {
