@@ -1,12 +1,12 @@
 use std::path;
 
 pub struct Options {
-    pub file_extensions: Option<Vec<String>>,
-    pub file_types: Option<String>,
-    pub list_directories: Option<Vec<path::PathBuf>>,
-    pub watch_directories: Option<Vec<path::PathBuf>>,
-    pub receive_address: Option<String>,
-    pub send_address: Option<String>,
+    pub file_extensions_args: Option<Vec<String>>,
+    pub file_types_args: Option<String>,
+    pub directories_list_args: Option<Vec<path::PathBuf>>,
+    pub directories_watch_args: Option<Vec<path::PathBuf>>,
+    pub receive_address_arg: Option<String>,
+    pub send_address_arg: Option<String>,
 }
 
 pub enum OptionsError {
@@ -89,21 +89,21 @@ fn clap_options() -> clap::App<'static, 'static> {
 }
 
 fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError> {
-    let list_directories: Option<Vec<path::PathBuf>> = matches
+    let directories_list_args: Option<Vec<path::PathBuf>> = matches
         .values_of("list")
         .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect());
 
-    let watch_directories: Option<Vec<path::PathBuf>> = matches
+    let directories_watch_args: Option<Vec<path::PathBuf>> = matches
         .values_of("watch")
         .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect());
 
-    if list_directories.is_some() && watch_directories.is_some() {
+    if directories_list_args.is_some() && directories_watch_args.is_some() {
         return Err(OptionsError::ConflictingOptions(
             "can't specify both list and watch simultaneously".to_string(),
         ));
     }
 
-    if let Some(directories) = &list_directories {
+    if let Some(directories) = &directories_list_args {
         for d in directories {
             if !d.is_dir() {
                 return Err(OptionsError::InvalidDirectory(format!(
@@ -114,7 +114,7 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         }
     }
 
-    if let Some(directories) = &watch_directories {
+    if let Some(directories) = &directories_watch_args {
         for d in directories {
             if !d.is_dir() {
                 return Err(OptionsError::InvalidDirectory(format!(
@@ -125,15 +125,15 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         }
     }
 
-    let file_extensions: Option<Vec<String>> = matches
+    let file_extensions_args: Option<Vec<String>> = matches
         .values_of("extension")
         .map(|exts: clap::Values<'_>| exts.map(String::from).collect());
 
     let valid_extensions: Vec<&str> =
         vec!["docx", "jpeg", "jpg", "mp3", "mp4", "pdf", "png", "xlsx"];
 
-    if let Some(file_extensions) = &file_extensions {
-        for e in file_extensions {
+    if let Some(file_extensions_args) = &file_extensions_args {
+        for e in file_extensions_args {
             if !valid_extensions.contains(&e.as_str()) {
                 return Err(OptionsError::InvalidFileExtension(format!(
                     "invalid file extension: {}",
@@ -143,15 +143,15 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         }
     }
 
-    let file_types_vec: Option<Vec<String>> = matches
+    let file_types_args_vec: Option<Vec<String>> = matches
         .values_of("type")
-        .map(|file_types: clap::Values<'_>| file_types.map(String::from).collect());
+        .map(|file_types_args: clap::Values<'_>| file_types_args.map(String::from).collect());
 
-    let valid_file_types: Vec<&str> = vec!["*", "all", "directory", "regular"];
+    let valid_file_types_args: Vec<&str> = vec!["*", "all", "directory", "regular"];
 
-    if let Some(file_types) = &file_types_vec {
-        for t in file_types {
-            if !valid_file_types.contains(&t.as_str()) {
+    if let Some(file_types_args) = &file_types_args_vec {
+        for t in file_types_args {
+            if !valid_file_types_args.contains(&t.as_str()) {
                 return Err(OptionsError::InvalidFileType(format!(
                     "invalid file type: {}",
                     t
@@ -160,25 +160,25 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         }
     }
 
-    let mut file_types: Option<String> = None;
+    let mut file_types_args: Option<String> = None;
 
-    if let Some(t) = &file_types_vec {
+    if let Some(t) = &file_types_args_vec {
         if t.iter().any(|t: &String| t.contains("directory")) {
-            file_types = Some("directory".to_string());
+            file_types_args = Some("directory".to_string());
         }
         if t.iter()
             .any(|t: &String| t.contains("*") || t.contains("all"))
         {
-            file_types = Some("all".to_string());
+            file_types_args = Some("all".to_string());
         }
         if t.iter().any(|t: &String| t.contains("regular")) {
-            file_types = Some("regular".to_string());
+            file_types_args = Some("regular".to_string());
         }
     }
 
-    if let Some(file_extensions) = &file_extensions {
-        if let Some(file_types) = &file_types {
-            if file_types == "directory" && !file_extensions.is_empty() {
+    if let Some(file_extensions_args) = &file_extensions_args {
+        if let Some(file_types_args) = &file_types_args {
+            if file_types_args == "directory" && !file_extensions_args.is_empty() {
                 return Err(OptionsError::InvalidFileType(
                     "can't specify both file extensions and file type directory simultaneously"
                         .to_string(),
@@ -187,17 +187,17 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         }
     }
 
-    let receive_address: Option<String> = matches.value_of("receive").map(String::from);
+    let receive_address_arg: Option<String> = matches.value_of("receive").map(String::from);
 
-    let send_address: Option<String> = matches.value_of("send").map(String::from);
+    let send_address_arg: Option<String> = matches.value_of("send").map(String::from);
 
     Ok(Options {
-        file_extensions,
-        file_types,
-        list_directories,
-        watch_directories,
-        receive_address,
-        send_address,
+        file_extensions_args,
+        file_types_args,
+        directories_list_args,
+        directories_watch_args,
+        receive_address_arg,
+        send_address_arg,
     })
 }
 
@@ -251,19 +251,18 @@ mod tests {
         assert!(check_options(options).is_ok());
     }
 
-//    #[test]
-//    fn test_easy_empty() {
-//        let arguments: Vec<&str> = vec!["tidybee"];
-//        let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
-//        assert!(check_options(options).is_err());
-//    }
+    //#[test]
+    //fn test_easy_empty() {
+    //    let arguments: Vec<&str> = vec!["tidybee"];
+    //    let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
+    //    assert!(check_options(options).is_err());
+    //}
 
     #[test]
     fn test_directory_extension() {
-        let arguments: Vec<&str> = vec!["tidybee", "--list", "/usr", "-e", "pdf", "-t", "directory" ];
+        let arguments: Vec<&str> =
+            vec!["tidybee", "--list", "/usr", "-e", "pdf", "-t", "directory"];
         let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
         assert!(check_options(options).is_err());
     }
 }
-
-
