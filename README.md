@@ -47,3 +47,9 @@ Here to keep a track of the different technologies the backend is using.
 | Platform | Processor | Rust version |
 | - | - | - |
 | macOS | arm | 1.71.1 |
+
+## Known issues
+### file listing
+- does not handle bad permissions
+### file event watcher
+- does not handle bad permissions
