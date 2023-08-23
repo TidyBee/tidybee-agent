@@ -12,8 +12,8 @@ pub struct Options {
 pub enum OptionsError {
     ConflictingOptions(String),
     InvalidDirectory(String),
-    InvalidFileType(String),
     InvalidFileExtension(String),
+    InvalidFileType(String),
 }
 
 pub fn get_options() -> Result<Options, OptionsError> {
@@ -21,7 +21,7 @@ pub fn get_options() -> Result<Options, OptionsError> {
 }
 
 fn clap_options() -> clap::App<'static, 'static> {
-    let options: clap::App<'_, '_> = clap::App::new("TidyBee Watch & List")
+    let options: clap::App<'_, '_> = clap::App::new("TidyBee")
         .version("0.0.1")
         .author("majent4")
         .about("Watch for changes in directories and recursively list directories")
@@ -33,7 +33,7 @@ fn clap_options() -> clap::App<'static, 'static> {
                 .multiple(true)
                 .use_delimiter(true)
                 .takes_value(true)
-                .help("Specify file extensions"),
+                .help("Specify file extensions to watch/list:\ndocx, jpeg, jpg, mp3, mp4, pdf, png and xlsx (default is all)"),
         )
         .arg(
             clap::Arg::with_name("type")
@@ -43,7 +43,7 @@ fn clap_options() -> clap::App<'static, 'static> {
                 .multiple(true)
                 .use_delimiter(true)
                 .takes_value(true)
-                .help("Specify file types"),
+                .help("Specify file types to watch/list:\nall, directory and regular (default is all)"),
         )
         .arg(
             clap::Arg::with_name("list")
@@ -75,7 +75,7 @@ fn clap_options() -> clap::App<'static, 'static> {
                 .long("receive")
                 .value_name("ADDRESS")
                 .takes_value(true)
-                .help("Specify receive address"),
+                .help("Specify address for receiving data from the UI"),
         )
         .arg(
             clap::Arg::with_name("send")
@@ -83,7 +83,7 @@ fn clap_options() -> clap::App<'static, 'static> {
                 .long("send")
                 .value_name("ADDRESS")
                 .takes_value(true)
-                .help("Specify send address"),
+                .help("Specify address for sending data to the UI"),
         );
     options
 }
@@ -192,10 +192,10 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
     let send_address_arg: Option<String> = matches.value_of("send").map(String::from);
 
     Ok(Options {
-        file_extensions_args,
-        file_types_args,
         directories_list_args,
         directories_watch_args,
+        file_extensions_args,
+        file_types_args,
         receive_address_arg,
         send_address_arg,
     })
@@ -209,16 +209,15 @@ pub fn print_option_error(error: OptionsError) {
         OptionsError::InvalidDirectory(e) => {
             eprintln!("tidybee: error: {}", e);
         }
-        OptionsError::InvalidFileType(e) => {
+        OptionsError::InvalidFileExtension(e) => {
             eprintln!("tidybee: error: {}", e);
         }
-        OptionsError::InvalidFileExtension(e) => {
+        OptionsError::InvalidFileType(e) => {
             eprintln!("tidybee: error: {}", e);
         }
     }
 }
 
-// to do: how to get stderr?
 #[cfg(test)]
 mod tests {
     use super::*;
