@@ -20,7 +20,7 @@ pub fn watch_directories(
     let (tx, rx) = std::sync::mpsc::channel();
 
     let mut debouncer: notify_debouncer_full::Debouncer<
-        notify::FsEventWatcher,
+        notify::RecommendedWatcher,
         notify_debouncer_full::FileIdMap,
     > = match notify_debouncer_full::new_debouncer(time::Duration::from_secs(2), None, tx) {
         Ok(debouncer) => debouncer,

@@ -9,7 +9,7 @@ use tokio::net::TcpStream;
 
 #[tokio::main]
 async fn main() {
-    let mut stream = match TcpStream::connect("localhost:8080").await {
+    let mut stream: TcpStream = match TcpStream::connect("localhost:8080").await {
         Ok(stream) => stream,
         Err(e) => {
             eprintln!("tidybee: error: {}", e);
@@ -28,7 +28,7 @@ async fn main() {
             if let Some(directories) = opts.directories_list_args {
                 match listing::list_directories(directories) {
                     Ok(files) => {
-                        let json_data = serde_json::to_string_pretty(&files).unwrap();
+                        let json_data: String = serde_json::to_string_pretty(&files).unwrap();
                         if let Err(e) = send_this(&mut stream, &json_data).await {
                             eprintln!("tidybee: error: {}", e);
                         }
