@@ -489,7 +489,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tidybee"
+name = "tidybee-agent"
 version = "0.1.0"
 dependencies = [
  "clap",

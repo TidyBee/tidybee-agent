@@ -4,22 +4,23 @@ mod watcher;
 
 use std::process;
 use std::thread;
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpStream;
+//use tokio::io::AsyncWriteExt;
+//use tokio::net::TcpStream;
 
-#[tokio::main]
-async fn main() {
-    let mut stream: TcpStream = match TcpStream::connect("localhost:8080").await {
-        Ok(stream) => stream,
-        Err(e) => {
-            eprintln!("tidybee: error: {}", e);
-            process::exit(1);
-        }
-    };
+//#[tokio::main]
+fn main() {
+//async fn main() {
+//    let mut stream: TcpStream = match TcpStream::connect("localhost:8080").await {
+//        Ok(stream) => stream,
+//        Err(e) => {
+//            eprintln!("tidybee: error: {}", e);
+//            process::exit(1);
+//        }
+//    };
 
-    if let Err(e) = send_this(&mut stream, "hiiii").await {
-        eprintln!("tidybee: error: {}", e);
-    }
+//    if let Err(e) = send_this(&mut stream, "hiiii").await {
+//        eprintln!("tidybee: error: {}", e);
+//    }
 
     let options: Result<options::Options, options::OptionsError> = options::get_options();
 
@@ -28,10 +29,10 @@ async fn main() {
             if let Some(directories) = opts.directories_list_args {
                 match listing::list_directories(directories) {
                     Ok(files) => {
-                        let json_data: String = serde_json::to_string_pretty(&files).unwrap();
-                        if let Err(e) = send_this(&mut stream, &json_data).await {
-                            eprintln!("tidybee: error: {}", e);
-                        }
+//                        let json_data: String = serde_json::to_string_pretty(&files).unwrap();
+//                        if let Err(e) = send_this(&mut stream, &json_data).await {
+//                            eprintln!("tidybee: error: {}", e);
+//                        }
                     }
                     Err(error) => {
                         eprintln!("tidybee: error: {}", error);
@@ -59,16 +60,16 @@ async fn main() {
         }
     }
 
-    if let Err(e) = send_this(&mut stream, "byeee").await {
-        eprintln!("tidybee: error: {}", e);
-    }
+//    if let Err(e) = send_this(&mut stream, "byeee").await {
+//        eprintln!("tidybee: error: {}", e);
+//    }
 }
 
-async fn send_this(
-    stream: &mut TcpStream,
-    message: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    stream.write_all(message.as_bytes()).await?;
-    stream.flush().await?;
-    Ok(())
-}
+//async fn send_this(
+//    stream: &mut TcpStream,
+//    message: &str,
+//) -> Result<(), Box<dyn std::error::Error>> {
+//    stream.write_all(message.as_bytes()).await?;
+//    stream.flush().await?;
+//    Ok(())
+//}

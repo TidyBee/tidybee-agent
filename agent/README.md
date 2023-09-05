@@ -1,4 +1,4 @@
-# tidybee-backend-rust
+# tidybee-agent
 Watch for changes in directories and recursively list directories.
 
 ## Tools
