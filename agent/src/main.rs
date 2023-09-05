@@ -1,5 +1,5 @@
-mod listing;
-mod options;
+mod lister;
+mod options_parser;
 mod watcher;
 
 use std::process;
@@ -9,30 +9,31 @@ use std::thread;
 
 //#[tokio::main]
 fn main() {
-//async fn main() {
-//    let mut stream: TcpStream = match TcpStream::connect("localhost:8080").await {
-//        Ok(stream) => stream,
-//        Err(e) => {
-//            eprintln!("tidybee: error: {}", e);
-//            process::exit(1);
-//        }
-//    };
+    //async fn main() {
+    //    let mut stream: TcpStream = match TcpStream::connect("localhost:8080").await {
+    //        Ok(stream) => stream,
+    //        Err(e) => {
+    //            eprintln!("tidybee: error: {}", e);
+    //            process::exit(1);
+    //        }
+    //    };
 
-//    if let Err(e) = send_this(&mut stream, "hiiii").await {
-//        eprintln!("tidybee: error: {}", e);
-//    }
+    //    if let Err(e) = send_this(&mut stream, "hiiii").await {
+    //        eprintln!("tidybee: error: {}", e);
+    //    }
 
-    let options: Result<options::Options, options::OptionsError> = options::get_options();
+    let options: Result<options_parser::Options, options_parser::OptionsError> =
+        options_parser::get_options();
 
     match options {
         Ok(opts) => {
             if let Some(directories) = opts.directories_list_args {
-                match listing::list_directories(directories) {
+                match lister::list_directories(directories) {
                     Ok(files) => {
-//                        let json_data: String = serde_json::to_string_pretty(&files).unwrap();
-//                        if let Err(e) = send_this(&mut stream, &json_data).await {
-//                            eprintln!("tidybee: error: {}", e);
-//                        }
+                        //                        let json_data: String = serde_json::to_string_pretty(&files).unwrap();
+                        //                        if let Err(e) = send_this(&mut stream, &json_data).await {
+                        //                            eprintln!("tidybee: error: {}", e);
+                        //                        }
                     }
                     Err(error) => {
                         eprintln!("tidybee: error: {}", error);
@@ -55,14 +56,14 @@ fn main() {
             }
         }
         Err(error) => {
-            options::print_option_error(error);
+            options_parser::print_option_error(error);
             process::exit(1);
         }
     }
 
-//    if let Err(e) = send_this(&mut stream, "byeee").await {
-//        eprintln!("tidybee: error: {}", e);
-//    }
+    //    if let Err(e) = send_this(&mut stream, "byeee").await {
+    //        eprintln!("tidybee: error: {}", e);
+    //    }
 }
 
 //async fn send_this(
