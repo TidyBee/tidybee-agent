@@ -3,20 +3,10 @@ use std::time;
 
 pub fn watch_directories(
     directories: Vec<std::path::PathBuf>,
-    file_extensions_args: Option<Vec<String>>,
-    file_types_args: Option<String>,
+    _file_extensions_args: Option<Vec<String>>,
+    _file_types_args: Option<String>,
     sender: crossbeam_channel::Sender<notify_debouncer_full::DebouncedEvent>,
 ) {
-    println!("watch directories: {:?}", directories);
-
-    if let Some(e) = file_extensions_args {
-        println!("file extensions: {:?}", e);
-    }
-
-    if let Some(t) = file_types_args {
-        println!("file types: {:?}", t);
-    }
-
     let (tx, rx) = std::sync::mpsc::channel();
 
     let mut debouncer: notify_debouncer_full::Debouncer<
@@ -25,21 +15,21 @@ pub fn watch_directories(
     > = match notify_debouncer_full::new_debouncer(time::Duration::from_secs(2), None, tx) {
         Ok(debouncer) => debouncer,
         Err(err) => {
-            eprintln!("tidybee: error: {:?}", err);
+            eprintln!("tidybee-agent: error: {:?}", err);
             return;
         }
     };
 
-    for dir in directories {
+    for directory in directories {
         if let Err(err) = debouncer
             .watcher()
-            .watch(&dir, notify::RecursiveMode::Recursive)
+            .watch(&directory, notify::RecursiveMode::Recursive)
         {
-            eprintln!("tidybee: error: {:?}: {:?}", dir, err);
+            eprintln!("tidybee-agent: error: {:?}: {:?}", directory, err);
         } else {
             debouncer
                 .cache()
-                .add_root(&dir, notify::RecursiveMode::Recursive);
+                .add_root(&directory, notify::RecursiveMode::Recursive);
         }
     }
 
@@ -52,7 +42,7 @@ pub fn watch_directories(
             }
             Err(errors) => {
                 for error in &errors {
-                    println!("{error:?}");
+                    eprintln!("tidybee-agent: error: {error:?}");
                 }
             }
         }

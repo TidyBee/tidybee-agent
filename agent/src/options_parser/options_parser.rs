@@ -10,7 +10,7 @@ pub struct Options {
 }
 
 pub enum OptionsError {
-    ConflictingOptions(String),
+    //ConflictingOptions(String),
     InvalidDirectory(String),
     InvalidFileExtension(String),
     InvalidFileType(String),
@@ -53,8 +53,8 @@ fn clap_options() -> clap::App<'static, 'static> {
                 .multiple(true)
                 .use_delimiter(true)
                 .takes_value(true)
-                .required_unless("watch")
-                .conflicts_with("watch")
+                //.required_unless("watch")
+                //.conflicts_with("watch")
                 .help("Specify directories for listing"),
         )
         .arg(
@@ -64,8 +64,8 @@ fn clap_options() -> clap::App<'static, 'static> {
                 .value_name("DIRECTORIES")
                 .multiple(true)
                 .use_delimiter(true)
-                .required_unless("list")
-                .conflicts_with("list")
+                //.required_unless("list")
+                //.conflicts_with("list")
                 .takes_value(true)
                 .help("Specify directories for watching"),
         )
@@ -97,29 +97,29 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         .values_of("watch")
         .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect());
 
-    if directories_list_args.is_some() && directories_watch_args.is_some() {
-        return Err(OptionsError::ConflictingOptions(
-            "can't specify both list and watch simultaneously".to_string(),
-        ));
-    }
+    //if directories_list_args.is_some() && directories_watch_args.is_some() {
+    //    return Err(OptionsError::ConflictingOptions(
+    //        "can't specify both list and watch simultaneously".to_string(),
+    //    ));
+    //}
 
     if let Some(directories) = &directories_list_args {
-        for d in directories {
-            if !d.is_dir() {
+        for directory in directories {
+            if !directory.is_dir() {
                 return Err(OptionsError::InvalidDirectory(format!(
                     "specified directory does not exists: {:?}",
-                    d
+                    directory
                 )));
             }
         }
     }
 
     if let Some(directories) = &directories_watch_args {
-        for d in directories {
-            if !d.is_dir() {
+        for directory in directories {
+            if !directory.is_dir() {
                 return Err(OptionsError::InvalidDirectory(format!(
                     "specified directory does not exists: {:?}",
-                    d
+                    directory
                 )));
             }
         }
@@ -203,17 +203,17 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
 
 pub fn print_option_error(error: OptionsError) {
     match error {
-        OptionsError::ConflictingOptions(e) => {
-            eprintln!("tidybee: error: {}", e);
-        }
+        //OptionsError::ConflictingOptions(e) => {
+        //    eprintln!("tidybee-agent: error: {}", e);
+        //}
         OptionsError::InvalidDirectory(e) => {
-            eprintln!("tidybee: error: {}", e);
+            eprintln!("tidybee-agent: error: {}", e);
         }
         OptionsError::InvalidFileExtension(e) => {
-            eprintln!("tidybee: error: {}", e);
+            eprintln!("tidybee-agent: error: {}", e);
         }
         OptionsError::InvalidFileType(e) => {
-            eprintln!("tidybee: error: {}", e);
+            eprintln!("tidybee-agent: error: {}", e);
         }
     }
 }

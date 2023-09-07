@@ -11,9 +11,9 @@ pub struct File {
 pub fn list_directories(directories: Vec<path::PathBuf>) -> Result<Vec<File>, std::io::Error> {
     let mut files: Vec<File> = Vec::new();
 
-    for d in directories {
-        if d.is_dir() {
-            for entry in fs::read_dir(&d)? {
+    for directory in directories {
+        if directory.is_dir() {
+            for entry in fs::read_dir(&directory)? {
                 let entry: fs::DirEntry = entry?;
                 let path: path::PathBuf = entry.path();
 
