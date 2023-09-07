@@ -10,7 +10,7 @@ pub struct Options {
 }
 
 pub enum OptionsError {
-    //ConflictingOptions(String),
+    MissingCommand(String),
     InvalidDirectory(String),
     InvalidFileExtension(String),
     InvalidFileType(String),
@@ -53,8 +53,7 @@ fn clap_options() -> clap::App<'static, 'static> {
                 .multiple(true)
                 .use_delimiter(true)
                 .takes_value(true)
-                //.required_unless("watch")
-                //.conflicts_with("watch")
+                .required(true)
                 .help("Specify directories for listing"),
         )
         .arg(
@@ -64,9 +63,8 @@ fn clap_options() -> clap::App<'static, 'static> {
                 .value_name("DIRECTORIES")
                 .multiple(true)
                 .use_delimiter(true)
-                //.required_unless("list")
-                //.conflicts_with("list")
                 .takes_value(true)
+                .required(true)
                 .help("Specify directories for watching"),
         )
         .arg(
@@ -97,11 +95,9 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         .values_of("watch")
         .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect());
 
-    //if directories_list_args.is_some() && directories_watch_args.is_some() {
-    //    return Err(OptionsError::ConflictingOptions(
-    //        "can't specify both list and watch simultaneously".to_string(),
-    //    ));
-    //}
+    if !directories_list_args.is_some() || !directories_watch_args.is_some() {
+        return Err(OptionsError::MissingCommand("xoxo".to_string()));
+    }
 
     if let Some(directories) = &directories_list_args {
         for directory in directories {
@@ -203,9 +199,9 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
 
 pub fn print_option_error(error: OptionsError) {
     match error {
-        //OptionsError::ConflictingOptions(e) => {
-        //    eprintln!("tidybee-agent: error: {}", e);
-        //}
+        OptionsError::MissingCommand(e) => {
+            eprintln!("tidybee-agent: error: {}", e);
+        }
         OptionsError::InvalidDirectory(e) => {
             eprintln!("tidybee-agent: error: {}", e);
         }
@@ -223,36 +219,43 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_easy_list_valid() {
-        let arguments: Vec<&str> = vec!["tidybee", "--list", "/usr"];
+    fn test_easy_missing_watch() {
+        let arguments: Vec<&str> = vec!["tidybee-agent", "--list", "/usr"];
         let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
-        assert!(check_options(options).is_ok());
+        assert!(check_options(options).is_err());
     }
 
     #[test]
-    fn test_easy_watch_valid() {
-        let arguments: Vec<&str> = vec!["tidybee", "--watch", "/usr"];
+    fn test_easy_missing_list() {
+        let arguments: Vec<&str> = vec!["tidybee-agent", "--watch", "/usr"];
+        let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
+        assert!(check_options(options).is_err());
+    }
+
+    #[test]
+    fn test_easy_valid() {
+        let arguments: Vec<&str> = vec!["tidybee-agent", "--watch", "/tmp", "--list", "/tmp"];
         let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
         assert!(check_options(options).is_ok());
     }
 
     #[test]
     fn test_easy_help() {
-        let arguments: Vec<&str> = vec!["tidybee", "--help"];
+        let arguments: Vec<&str> = vec!["tidybee-agent", "--help"];
         let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
         assert!(check_options(options).is_ok());
     }
 
     #[test]
     fn test_easy_version() {
-        let arguments: Vec<&str> = vec!["tidybee", "--version"];
+        let arguments: Vec<&str> = vec!["tidybee-agent", "--version"];
         let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
         assert!(check_options(options).is_ok());
     }
 
     //#[test]
     //fn test_easy_empty() {
-    //    let arguments: Vec<&str> = vec!["tidybee"];
+    //    let arguments: Vec<&str> = vec!["tidybee-agent"];
     //    let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
     //    assert!(check_options(options).is_err());
     //}
@@ -260,8 +263,16 @@ mod tests {
     #[test]
     fn test_directory_extension() {
         let arguments: Vec<&str> =
-            vec!["tidybee", "--list", "/usr", "-e", "pdf", "-t", "directory"];
+            vec!["tidybee-agent", "--watch", "/usr", "--list", "/usr", "-e", "pdf", "-t", "directory"];
         let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
         assert!(check_options(options).is_err());
+    }
+
+    #[test]
+    fn test_file_extension() {
+        let arguments: Vec<&str> =
+            vec!["tidybee-agent", "--watch", "/usr", "--list", "/usr", "-e", "pdf", "-t", "file"];
+        let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
+        assert!(check_options(options).is_ok());
     }
 }
