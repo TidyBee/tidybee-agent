@@ -193,6 +193,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "file_into_string"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96367a7108117d9d8a0bb9ec383a49a137c030323094255a96d8e305eec24e69"
+
+[[package]]
 name = "filetime"
 version = "0.2.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -370,6 +376,12 @@ name = "itoa"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af150ab688ff2122fcef229be89cb50dd66af9e01a4ff320cc137eecc9bacc38"
+
+[[package]]
+name = "json"
+version = "0.12.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "078e285eafdfb6c4b434e0d31e8cfcb5115b651496faca5749b88fafd4f23bfd"
 
 [[package]]
 name = "kqueue"
@@ -742,6 +754,8 @@ dependencies = [
  "axum",
  "clap",
  "crossbeam-channel",
+ "file_into_string",
+ "json",
  "notify",
  "notify-debouncer-full",
  "serde",
