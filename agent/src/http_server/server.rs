@@ -4,18 +4,20 @@ use axum::{
 };
 
 pub async fn server_start (host: String, port: String) {
-    init_server_configuration(host, port).await;
-}
+    let (app, addr) = init_server_configuration(host, port).await;
 
-async fn init_server_configuration(host: String, port: String) {
-    let app = init_basic_routes();
-    let addr = format!("{}:{}", host, port);
-
-    println!("Starting server at {}", addr);
     axum::Server::bind(&addr.parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+async fn init_server_configuration(host: String, port: String) -> (Router, String) {
+    let app = init_basic_routes();
+    let addr = format!("{}:{}", host, port);
+
+    println!("Starting server at {}", addr);
+    return (app.clone(), addr)
 }
 
 fn init_basic_routes() -> Router {
