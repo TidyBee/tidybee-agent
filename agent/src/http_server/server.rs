@@ -1,20 +1,37 @@
-use axum::{prelude::*, Router};
-use std::net::SocketAddr;
+use axum::{
+    routing::get,
+    Router,
+};
 
-impl server {
-    async fn handle_request() -> String {
-        "Hello from rust".to_string()
-    }
+pub async fn server_start () {
+    init_server_configuration().await;
+}
 
-    pub async fn run_server() -> Result<(), std::io::Error> {
-        let app = Router::new().route("/", get(handle_request));
+async fn init_server_configuration() {
+    let app = init_basic_routes();
 
-        let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
-        println!("Server listening on http://{}", addr);
+    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
 
-        axum::Server::bind(&addr)
-            .serve(app.into_make_service())
-            .await
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
-    }
+fn init_basic_routes() -> Router {
+    let app = Router::new()
+        .route("/", get(root))
+        .route("/users", get(get_users))
+        .route("/heaviest_files", get(get_heaviest_files));
+    return app
+}
+
+async fn root() -> &'static str {
+    "Hello, World!"
+}
+
+async fn get_users() -> &'static str {
+    "Get Users"
+}
+
+async fn get_heaviest_files() -> &'static str {
+    "Get Heaviest Files"
 }
