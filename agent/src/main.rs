@@ -29,7 +29,7 @@ fn main() {
         Ok(opts) => {
             if let Some(directories) = opts.directories_list_args {
                 match lister::list_directories(directories) {
-                    Ok(files) => {
+                    Ok(_files) => {
                         //                        let json_data: String = serde_json::to_string_pretty(&files).unwrap();
                         //                        if let Err(e) = send_this(&mut stream, &json_data).await {
                         //                            eprintln!("tidybee: error: {}", e);
