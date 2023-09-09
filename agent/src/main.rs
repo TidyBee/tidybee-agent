@@ -9,19 +9,12 @@ use crate::parser::json_parser;
 
 #[tokio::main]
 async fn main() {
-    use tokio::runtime;
+    // Object configuration used to do config.get_host / config.get_port
+    let host = json_parser::read_value_from_file("config.json", "host".to_string()).unwrap().to_string();
+    let port = json_parser::read_value_from_file("config.json", "port".to_string()).unwrap().to_string();
+    let server = http_server::Server::new(host, port);
 
-    let _http_server_thread: thread::JoinHandle<()> = thread::spawn(move || {
-        let host = json_parser::read_value_from_file("config.json", "host".to_string()).unwrap().to_string();
-        let port = json_parser::read_value_from_file("config.json", "port".to_string()).unwrap().to_string();
-
-        let rt = runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
-
-        rt.block_on(http_server::server_start(host, port));
-    });
+    server.server_start().await;
 
     let options: Result<parser::Options, parser::OptionsError> =
         parser::get_options();
@@ -52,7 +45,7 @@ async fn main() {
                 );
             });
             for event in receiver {
-                println!("tidybee-agent: new event: {event:?}");
+                println!("Tidybee-agent: new event: {event:?}");
             }
             watch_directories_thread.join().unwrap();
         }
