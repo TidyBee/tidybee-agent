@@ -1,23 +1,18 @@
 mod lister;
-mod parser;
+mod options_parser;
 mod watcher;
 mod http_server;
 
 use std::process;
 use std::thread;
-use crate::parser::json_parser;
 
 #[tokio::main]
 async fn main() {
-    // Object configuration used to do config.get_host / config.get_port
-    let host = json_parser::read_value_from_file("config.json", "host".to_string()).unwrap().to_string();
-    let port = json_parser::read_value_from_file("config.json", "port".to_string()).unwrap().to_string();
-    let server = http_server::Server::new(host, port);
-
-    server.server_start().await;
-
-    let options: Result<parser::Options, parser::OptionsError> =
-        parser::get_options();
+    // Object configuration will be used to do config.get_host / config.get_port
+    // and then replace static string host & port
+    let server = http_server::Server::new("0.0.0.0".to_string(), "3000".to_string());
+    let options: Result<options_parser::Options, options_parser::OptionsError> =
+        options_parser::get_options();
 
     match options {
         Ok(opts) => {
@@ -50,8 +45,9 @@ async fn main() {
             watch_directories_thread.join().unwrap();
         }
         Err(error) => {
-            parser::print_option_error(error);
+            options_parser::print_option_error(error);
             process::exit(1);
         }
     }
+    server.server_start().await;
 }
