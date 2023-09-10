@@ -2,7 +2,7 @@
 name = "tidybee-agent"
 version = "0.1.0"
 edition = "2021"
-authors = ["majent4"]
+authors = ["majent4", "Cavonstavant", "Ju"]
 
 [dependencies]
 notify = "6.1.1"

@@ -16,7 +16,7 @@ cargo build
 Shorter:
 ```
 # build & run
-cargo run [<COMMANDS>]
+cargo run -- <COMMANDS>
 ```
 
 ## Optional commands

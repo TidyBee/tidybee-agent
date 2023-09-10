@@ -28,4 +28,3 @@ impl ConfigurationWrapper {
         self.config.get::<T>(key)
     }
 }
-
