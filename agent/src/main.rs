@@ -10,7 +10,7 @@ use std::thread;
 async fn main() {
     // Object configuration will be used to do config.get_host / config.get_port
     // and then replace static string host & port
-    let server = http_server::Server::new("0.0.0.0".to_string(), "3000".to_string());
+    let server = http_server::HttpServer::new("0.0.0.0".to_string(), "3000".to_string());
     let options: Result<options_parser::Options, options_parser::OptionsError> =
         options_parser::get_options();
 
@@ -40,7 +40,7 @@ async fn main() {
                 );
             });
             for event in receiver {
-                println!("Tidybee-agent: new event: {event:?}");
+                println!("tidybee-agent: new event: {event:?}");
             }
             watch_directories_thread.join().unwrap();
         }
