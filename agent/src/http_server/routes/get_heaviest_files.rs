@@ -1,12 +1,13 @@
+use axum::Json;
 use serde::Serialize;
 
 #[derive(Serialize)]
-struct FileInfo {
+pub struct FileInfo {
     path: String,
     size: u64,
 }
 
-async fn heaviest_files() -> Json<Vec<FileInfo>> {
+pub async fn get_heaviest_files() -> Json<Vec<FileInfo>> {
     let files: Vec<FileInfo> = vec![
         FileInfo {
             path: "/tmp/file1".to_string(),
