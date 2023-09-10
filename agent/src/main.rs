@@ -1,7 +1,7 @@
+mod http_server;
 mod lister;
 mod options_parser;
 mod watcher;
-mod http_server;
 
 use std::process;
 use std::thread;

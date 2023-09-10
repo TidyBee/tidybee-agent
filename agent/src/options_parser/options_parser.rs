@@ -53,7 +53,7 @@ fn clap_options() -> clap::App<'static, 'static> {
                 .multiple(true)
                 .use_delimiter(true)
                 .takes_value(true)
-                .required(true)
+                .required(false)
                 .help("Specify directories for listing"),
         )
         .arg(
@@ -64,7 +64,7 @@ fn clap_options() -> clap::App<'static, 'static> {
                 .multiple(true)
                 .use_delimiter(true)
                 .takes_value(true)
-                .required(true)
+                .required(false)
                 .help("Specify directories for watching"),
         )
         .arg(
@@ -89,14 +89,16 @@ fn clap_options() -> clap::App<'static, 'static> {
 fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError> {
     let directories_list_args: Option<Vec<path::PathBuf>> = matches
         .values_of("list")
-        .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect());
+        .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect())
+        .or(Some(vec![path::PathBuf::from(".")]));
 
     let directories_watch_args: Option<Vec<path::PathBuf>> = matches
         .values_of("watch")
-        .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect());
+        .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect())
+        .or(Some(vec![path::PathBuf::from(".")]));
 
     if !directories_list_args.is_some() || !directories_watch_args.is_some() {
-        return Err(OptionsError::MissingCommand("xoxo".to_string()));
+        return Err(OptionsError::MissingCommand("".to_string()));
     }
 
     if let Some(directories) = &directories_list_args {
@@ -262,16 +264,34 @@ mod tests {
 
     #[test]
     fn test_directory_extension() {
-        let arguments: Vec<&str> =
-            vec!["tidybee-agent", "--watch", "/usr", "--list", "/usr", "-e", "pdf", "-t", "directory"];
+        let arguments: Vec<&str> = vec![
+            "tidybee-agent",
+            "--watch",
+            "/usr",
+            "--list",
+            "/usr",
+            "-e",
+            "pdf",
+            "-t",
+            "directory",
+        ];
         let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
         assert!(check_options(options).is_err());
     }
 
     #[test]
     fn test_file_extension() {
-        let arguments: Vec<&str> =
-            vec!["tidybee-agent", "--watch", "/usr", "--list", "/usr", "-e", "pdf", "-t", "file"];
+        let arguments: Vec<&str> = vec![
+            "tidybee-agent",
+            "--watch",
+            "/usr",
+            "--list",
+            "/usr",
+            "-e",
+            "pdf",
+            "-t",
+            "file",
+        ];
         let options: clap::ArgMatches<'_> = clap_options().get_matches_from(arguments);
         assert!(check_options(options).is_ok());
     }

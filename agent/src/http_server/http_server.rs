@@ -1,7 +1,4 @@
-use axum::{
-    routing::get,
-    Router,
-};
+use axum::{routing::get, Router};
 
 use crate::http_server::routes;
 
@@ -12,12 +9,9 @@ pub struct HttpServer {
 
 impl HttpServer {
     pub fn new(host: String, port: String) -> HttpServer {
-        HttpServer {
-            host,
-            port,
-        }
+        HttpServer { host, port }
     }
-    pub async fn server_start (self) {
+    pub async fn server_start(self) {
         let (app, addr) = HttpServer::init_server_configuration(self).await;
 
         axum::Server::bind(&addr.parse().unwrap())
@@ -31,7 +25,7 @@ impl HttpServer {
         let addr = format!("{}:{}", self.host, self.port);
 
         println!("Starting server at {}", addr);
-        return (app.clone(), addr)
+        return (app.clone(), addr);
     }
 
     fn init_basic_routes() -> Router {
@@ -39,6 +33,6 @@ impl HttpServer {
             .route("/", get(routes::hello_world))
             .route("/users", get(routes::get_users))
             .route("/heaviest_files", get(routes::get_heaviest_files));
-        return app
+        return app;
     }
 }
