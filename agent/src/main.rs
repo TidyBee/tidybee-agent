@@ -1,10 +1,12 @@
+mod http_server;
 mod lister;
 mod options_parser;
 mod watcher;
-mod http_server;
+mod configuration_wrapper;
 
 use std::process;
 use std::thread;
+
 
 #[tokio::main]
 async fn main() {
@@ -13,6 +15,11 @@ async fn main() {
     let server = http_server::HttpServer::new("0.0.0.0".to_string(), "3000".to_string());
     let options: Result<options_parser::Options, options_parser::OptionsError> =
         options_parser::get_options();
+    let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
+        configuration_wrapper::ConfigurationWrapper::new().unwrap(); // unwrap should panic if the config fails to load
+
+    println!("tidyhub_address = {}", configuration_wrapper.bind::<String>("tidyhub_address").unwrap_or_default());
+    println!("tidyhub_port = {}", configuration_wrapper.bind::<String>("tidyhub_port").unwrap_or_default());
 
     match options {
         Ok(opts) => {
