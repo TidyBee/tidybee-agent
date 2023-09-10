@@ -1,10 +1,21 @@
-using System;
-using System.IO;
+var builder = WebApplication.CreateBuilder(args);
 
-class Program
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
 {
-    static void Main()
-    {
-        Console.WriteLine("hello from tidybee-hub");
-    }
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
