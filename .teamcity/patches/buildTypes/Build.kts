@@ -50,7 +50,6 @@ changeBuildType(RelativeId("Build")) {
             clearConditions()
             projects = "hub/tidybee-hub.csproj"
             configuration = "Release"
-            dockerImagePlatform = DotnetBuildStep.ImagePlatform.Linux
             param("verbosity", "")
         }
         items.removeAt(1)
