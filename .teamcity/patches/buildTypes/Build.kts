@@ -2,6 +2,7 @@ package patches.buildTypes
 
 import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.buildSteps.DotnetBuildStep
+import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.buildSteps.dotnetBuild
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.ui.*
@@ -51,6 +52,24 @@ changeBuildType(RelativeId("Build")) {
             clearConditions()
             projects = "hub/tidybee-hub.csproj"
         }
-        items.removeAt(1)
+        insert(1) {
+            dockerCommand {
+                commandType = build {
+                    source = file {
+                        path = "agent/Dockerfile"
+                    }
+                }
+            }
+        }
+        insert(2) {
+            dockerCommand {
+                commandType = build {
+                    source = file {
+                        path = "hub/Dockerfile"
+                    }
+                }
+            }
+        }
+        items.removeAt(3)
     }
 }
