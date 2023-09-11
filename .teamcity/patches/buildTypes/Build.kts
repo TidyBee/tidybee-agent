@@ -54,7 +54,6 @@ changeBuildType(RelativeId("Build")) {
     }
     steps {
         update<DotnetBuildStep>(0) {
-            name = ""
             clearConditions()
             projects = ""
             dockerImagePlatform = DotnetBuildStep.ImagePlatform.Linux
