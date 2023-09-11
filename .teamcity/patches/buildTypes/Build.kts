@@ -23,6 +23,11 @@ changeBuildType(RelativeId("Build")) {
     }
     publishArtifacts = PublishMode.SUCCESSFUL
 
+    vcs {
+        expectEntry(DslContext.settingsRoot.id!!)
+        root(DslContext.settingsRoot.id!!, "+:hub => .")
+    }
+
     expectSteps {
         dotnetBuild {
             name = "Build"
