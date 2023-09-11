@@ -1,6 +1,8 @@
 package patches.buildTypes
 
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildFeatures.CommitStatusPublisher
+import jetbrains.buildServer.configs.kotlin.buildFeatures.commitStatusPublisher
 import jetbrains.buildServer.configs.kotlin.buildSteps.DotnetBuildStep
 import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.buildSteps.dotnetBuild
@@ -63,5 +65,22 @@ changeBuildType(RelativeId("Build")) {
         }
         items.removeAt(1)
         items.removeAt(1)
+    }
+
+    features {
+        val feature1 = find<CommitStatusPublisher> {
+            commitStatusPublisher {
+                publisher = github {
+                    githubUrl = "https://api.github.com"
+                    authType = personalToken {
+                        token = "credentialsJSON:0f816045-3db7-4a38-893d-b59e0b71a889"
+                    }
+                }
+                param("github_oauth_user", "Cavonstavant")
+            }
+        }
+        feature1.apply {
+            param("github_oauth_user", "")
+        }
     }
 }
