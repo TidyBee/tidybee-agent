@@ -50,6 +50,7 @@ changeBuildType(RelativeId("Build")) {
             clearConditions()
             projects = "hub/tidybee-hub.csproj"
             configuration = "Release"
+            dockerImage = ""
             param("verbosity", "")
         }
         items.removeAt(1)
