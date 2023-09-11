@@ -1,6 +1,7 @@
 package patches.buildTypes
 
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildFeatures.CommitStatusPublisher
 import jetbrains.buildServer.configs.kotlin.buildFeatures.PullRequests
 import jetbrains.buildServer.configs.kotlin.buildFeatures.commitStatusPublisher
 import jetbrains.buildServer.configs.kotlin.buildFeatures.pullRequests
@@ -65,7 +66,7 @@ changeBuildType(RelativeId("Build")) {
                 }
             }
         }
-        remove {
+        val feature1 = find<CommitStatusPublisher> {
             commitStatusPublisher {
                 publisher = github {
                     githubUrl = "https://api.github.com"
@@ -75,6 +76,9 @@ changeBuildType(RelativeId("Build")) {
                 }
                 param("github_oauth_user", "Cavonstavant")
             }
+        }
+        feature1.apply {
+            param("github_oauth_user", "")
         }
     }
 }
