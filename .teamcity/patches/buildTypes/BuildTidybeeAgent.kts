@@ -3,6 +3,7 @@ package patches.buildTypes
 import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.BuildType
 import jetbrains.buildServer.configs.kotlin.buildFeatures.perfmon
+import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
 import jetbrains.buildServer.configs.kotlin.ui.*
 
@@ -17,6 +18,16 @@ create(DslContext.projectId, BuildType({
 
     vcs {
         root(RelativeId("HttpsGithubComTidyBeeTidybeeBackendRefsHeadsMain2"))
+    }
+
+    steps {
+        dockerCommand {
+            commandType = build {
+                source = file {
+                    path = "agent/Dockerfile"
+                }
+            }
+        }
     }
 
     triggers {
