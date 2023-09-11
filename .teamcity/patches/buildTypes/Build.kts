@@ -1,6 +1,9 @@
 package patches.buildTypes
 
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildSteps.DotnetBuildStep
+import jetbrains.buildServer.configs.kotlin.buildSteps.dotnetBuild
+import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.ui.*
 
 /*
@@ -18,4 +21,31 @@ changeBuildType(RelativeId("Build")) {
         "Unexpected option value: publishArtifacts = $publishArtifacts"
     }
     publishArtifacts = PublishMode.SUCCESSFUL
+
+    expectSteps {
+        dotnetBuild {
+            name = "Build"
+            projects = """
+                functionnalTests/*.csproj
+                unitaryTests/*.csproj
+            """.trimIndent()
+            logging = DotnetBuildStep.Verbosity.Normal
+            dockerImage = "mcr.microsoft.com/dotnet/sdk:7.0"
+            param("dotNetCoverage.dotCover.home.path", "%teamcity.tool.JetBrains.dotCover.CommandLineTools.DEFAULT%")
+        }
+        script {
+            name = "Tests"
+            scriptContent = """
+                cd functionnalTests
+                dotnet publish -o out
+                dotnet vstest out/TidyUpSoftware.xUnitTests.dll
+                cd ..
+                dotnet publish -o out
+                dotnet vstest out/TidyUpSoftware.nUnitTests.dll
+            """.trimIndent()
+        }
+    }
+    steps {
+        items.removeAt(1)
+    }
 }
