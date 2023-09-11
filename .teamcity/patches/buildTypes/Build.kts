@@ -57,7 +57,7 @@ changeBuildType(RelativeId("Build")) {
     }
 
     features {
-        remove {
+        val feature1 = find<PullRequests> {
             pullRequests {
                 provider = github {
                     authType = vcsRoot()
@@ -66,7 +66,20 @@ changeBuildType(RelativeId("Build")) {
                 }
             }
         }
-        val feature1 = find<CommitStatusPublisher> {
+        feature1.apply {
+            vcsRootExtId = "TidybeeHub_HttpsGithubComTidyBeeTidybeeBackendRefsHeadsMain1"
+            provider = github {
+                serverUrl = ""
+                authType = token {
+                    token = "credentialsJSON:0f816045-3db7-4a38-893d-b59e0b71a889"
+                }
+                filterSourceBranch = ""
+                filterTargetBranch = "+:refs/heads/main"
+                filterAuthorRole = PullRequests.GitHubRoleFilter.MEMBER
+                ignoreDrafts = true
+            }
+        }
+        val feature2 = find<CommitStatusPublisher> {
             commitStatusPublisher {
                 publisher = github {
                     githubUrl = "https://api.github.com"
@@ -77,7 +90,7 @@ changeBuildType(RelativeId("Build")) {
                 param("github_oauth_user", "Cavonstavant")
             }
         }
-        feature1.apply {
+        feature2.apply {
             param("github_oauth_user", "")
         }
     }
