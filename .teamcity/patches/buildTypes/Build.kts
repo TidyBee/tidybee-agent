@@ -16,10 +16,6 @@ To apply the patch, change the buildType with id = 'Build'
 accordingly, and delete the patch script.
 */
 changeBuildType(RelativeId("Build")) {
-    vcs {
-        remove(DslContext.settingsRoot.id!!)
-    }
-
     expectSteps {
         dotnetBuild {
             name = "Build"
