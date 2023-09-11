@@ -44,8 +44,15 @@ changeBuildType(RelativeId("Build")) {
         }
     }
     steps {
-        items.removeAt(0)
-        items.removeAt(0)
+        update<DotnetBuildStep>(0) {
+            name = "build tidybee-hub"
+            clearConditions()
+            projects = "hub/tidybee-hub.csproj"
+            configuration = "Release"
+            dockerImagePlatform = DotnetBuildStep.ImagePlatform.Linux
+            param("verbosity", "")
+        }
+        items.removeAt(1)
     }
 
     features {
