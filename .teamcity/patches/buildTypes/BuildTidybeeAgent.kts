@@ -17,7 +17,7 @@ create(DslContext.projectId, BuildType({
     name = "build tidybee-agent"
 
     vcs {
-        root(RelativeId("HttpsGithubComTidyBeeTidybeeBackendRefsHeadsMain2"))
+        root(RelativeId("HttpsGithubComTidyBeeTidybeeBackendRefsHeadsMain2"), "-:.", "+:agent")
     }
 
     steps {
