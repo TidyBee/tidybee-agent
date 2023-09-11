@@ -16,7 +16,7 @@ changeBuildType(RelativeId("Build")) {
     check(name == "Build") {
         "Unexpected name: '$name'"
     }
-    name = "Build tidybee-agent"
+    name = "Build tidybee-hub"
 
     check(publishArtifacts == PublishMode.NORMALLY_FINISHED) {
         "Unexpected option value: publishArtifacts = $publishArtifacts"
