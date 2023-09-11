@@ -4,7 +4,6 @@ import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.buildFeatures.CommitStatusPublisher
 import jetbrains.buildServer.configs.kotlin.buildFeatures.commitStatusPublisher
 import jetbrains.buildServer.configs.kotlin.buildSteps.DotnetBuildStep
-import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.buildSteps.dotnetBuild
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.ui.*
@@ -54,16 +53,13 @@ changeBuildType(RelativeId("Build")) {
         }
     }
     steps {
-        insert(0) {
-            dockerCommand {
-                commandType = build {
-                    source = file {
-                        path = "agent/Dockerfile"
-                    }
-                }
-            }
+        update<DotnetBuildStep>(0) {
+            name = ""
+            clearConditions()
+            projects = ""
+            dockerImagePlatform = DotnetBuildStep.ImagePlatform.Linux
+            param("verbosity", "")
         }
-        items.removeAt(1)
         items.removeAt(1)
     }
 
