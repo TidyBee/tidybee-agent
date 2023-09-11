@@ -14,10 +14,7 @@ create(DslContext.projectId, GitVcsRoot({
     name = "https://github.com/TidyBee/tidybee-backend#refs/heads/main (1)"
     url = "https://github.com/TidyBee/tidybee-backend"
     branch = "refs/heads/main"
-    branchSpec = """
-        refs/heads/*
-        refs/pull/*
-    """.trimIndent()
+    branchSpec = "refs/heads/*"
     authMethod = password {
         userName = "Cavonstavant"
         password = "credentialsJSON:c1633f86-9483-42f9-b41a-46ab8cf6c21b"
