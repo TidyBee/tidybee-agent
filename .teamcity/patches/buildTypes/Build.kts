@@ -18,7 +18,7 @@ accordingly, and delete the patch script.
 changeBuildType(RelativeId("Build")) {
     vcs {
         expectEntry(DslContext.settingsRoot.id!!)
-        root(DslContext.settingsRoot.id!!, "+:hub => .")
+        root(DslContext.settingsRoot.id!!, "-:.", "+:hub")
     }
 
     expectSteps {
