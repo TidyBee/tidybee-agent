@@ -46,6 +46,11 @@ changeBuildType(RelativeId("Build")) {
         }
     }
     steps {
+        update<DotnetBuildStep>(0) {
+            name = "build tidybee-hub"
+            clearConditions()
+            projects = "hub/tidybee-hub.csproj"
+        }
         items.removeAt(1)
     }
 }
