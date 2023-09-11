@@ -67,7 +67,7 @@ changeBuildType(RelativeId("Build")) {
             }
         }
         feature1.apply {
-            vcsRootExtId = "TidybeeHub_HttpsGithubComTidyBeeTidybeeBackendRefsHeadsMain1"
+            vcsRootExtId = "${DslContext.settingsRoot.id}"
             provider = github {
                 serverUrl = ""
                 authType = token {
