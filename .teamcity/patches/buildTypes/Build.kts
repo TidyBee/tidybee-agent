@@ -52,12 +52,7 @@ changeBuildType(RelativeId("Build")) {
         }
     }
     steps {
-        update<DotnetBuildStep>(0) {
-            name = "build tidybee-hub"
-            clearConditions()
-            projects = "hub/tidybee-hub.csproj"
-        }
-        insert(1) {
+        insert(0) {
             dockerCommand {
                 commandType = build {
                     source = file {
@@ -66,6 +61,7 @@ changeBuildType(RelativeId("Build")) {
                 }
             }
         }
-        items.removeAt(2)
+        items.removeAt(1)
+        items.removeAt(1)
     }
 }
