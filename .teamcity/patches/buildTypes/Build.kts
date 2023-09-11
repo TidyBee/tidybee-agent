@@ -61,15 +61,6 @@ changeBuildType(RelativeId("Build")) {
                 }
             }
         }
-        insert(2) {
-            dockerCommand {
-                commandType = build {
-                    source = file {
-                        path = "hub/Dockerfile"
-                    }
-                }
-            }
-        }
-        items.removeAt(3)
+        items.removeAt(2)
     }
 }
