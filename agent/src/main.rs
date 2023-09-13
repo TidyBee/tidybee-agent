@@ -56,6 +56,11 @@ async fn main() {
             for event in receiver {
                 println!("tidybee-agent: new event: {event:?}");
             }
+
+            tokio::spawn(async move {
+                server.server_start().await;
+            });
+
             watch_directories_thread.join().unwrap();
         }
         Err(error) => {
@@ -63,5 +68,4 @@ async fn main() {
             process::exit(1);
         }
     }
-    server.server_start().await;
 }
