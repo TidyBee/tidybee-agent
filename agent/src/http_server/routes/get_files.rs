@@ -65,6 +65,7 @@ fn get_files_that_match_path(files: Vec<FileInfo>, path: String) -> Vec<FileInfo
 }
 
 pub async fn get_files() -> Json<Vec<FileInfo>> {
+
     let files: Vec<FileInfo> = vec![
     ];
 
