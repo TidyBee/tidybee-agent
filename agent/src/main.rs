@@ -44,6 +44,10 @@ async fn main() {
                 }
             }
 
+            tokio::spawn(async move {
+                server.server_start().await;
+            });
+
             let (sender, receiver) = crossbeam_channel::unbounded();
             let watch_directories_thread: thread::JoinHandle<()> = thread::spawn(move || {
                 watcher::watch_directories(
@@ -56,6 +60,7 @@ async fn main() {
             for event in receiver {
                 println!("tidybee-agent: new event: {event:?}");
             }
+
             watch_directories_thread.join().unwrap();
         }
         Err(error) => {
@@ -63,5 +68,4 @@ async fn main() {
             process::exit(1);
         }
     }
-    server.server_start().await;
 }
