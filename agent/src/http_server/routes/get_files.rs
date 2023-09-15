@@ -1,5 +1,4 @@
 use axum::Json;
-use axum::handler;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
@@ -29,12 +28,23 @@ pub struct FileInfo {
 //     }
 // }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Params {
     amount: u32,
     sort: String,
     match_string: String,
     match_path: String,
+}
+
+impl Default for Params {
+    fn default() -> Self {
+        Params {
+            amount: 0,
+            sort: "".to_string(),
+            match_string: "".to_string(),
+            match_path: "".to_string(),
+        }
+    }
 }
 
 
@@ -74,7 +84,7 @@ fn get_files_that_match_path(files: Vec<FileInfo>, path: String) -> Vec<FileInfo
     return files;
 }
 
-pub async fn get_files(Json(payload): Json<Params>) -> Json<Vec<FileInfo>> {
+pub async fn get_files(Json(_payload): Json<Params>) -> Json<Vec<FileInfo>> {
 
     let files: Vec<FileInfo> = vec![
     ];
