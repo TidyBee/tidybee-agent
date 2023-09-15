@@ -1,5 +1,6 @@
 use axum::Json;
-use serde::Serialize;
+use axum::handler;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
 pub struct FileInfo {
@@ -8,25 +9,34 @@ pub struct FileInfo {
     last_access: u64,
 }
 
-pub struct Params{
-    amount: fn(files: Vec<FileInfo>, amount: usize) -> Vec<FileInfo>,             //  used to return a certain amount of files
-    heaviest: fn(files: Vec<FileInfo>) -> Vec<FileInfo>,                          //  used to return the heaviest files
-    oldest: fn(files: Vec<FileInfo>) -> Vec<FileInfo>,                            //  used to return the oldest files
-    match_string: fn(files: Vec<FileInfo>, string: String) -> Vec<FileInfo>,      //  used to return files that match a string
-    match_path: fn(files: Vec<FileInfo>, path: String) -> Vec<FileInfo>,          //  used to return files that match a path
+// pub struct Params{
+//     amount: fn(files: Vec<FileInfo>, amount: usize) -> Vec<FileInfo>,             //  used to return a certain amount of files
+//     heaviest: fn(files: Vec<FileInfo>) -> Vec<FileInfo>,                          //  used to return the heaviest files
+//     oldest: fn(files: Vec<FileInfo>) -> Vec<FileInfo>,                            //  used to return the oldest files
+//     match_string: fn(files: Vec<FileInfo>, string: String) -> Vec<FileInfo>,      //  used to return files that match a string
+//     match_path: fn(files: Vec<FileInfo>, path: String) -> Vec<FileInfo>,          //  used to return files that match a path
+// }
+
+// impl Params{
+//     pub fn new() -> Params{
+//         Params{
+//             amount: get_amount_files_from_vec,
+//             heaviest: get_heaviest_files_from_vec,
+//             oldest: get_oldest_files_from_vec,
+//             match_string: get_files_that_match_string,
+//             match_path: get_files_that_match_path,
+//         }
+//     }
+// }
+
+#[derive(Serialize, Deserialize)]
+pub struct Params {
+    amount: u32,
+    sort: String,
+    match_string: String,
+    match_path: String,
 }
 
-impl Params{
-    pub fn new() -> Params{
-        Params{
-            amount: get_amount_files_from_vec,
-            heaviest: get_heaviest_files_from_vec,
-            oldest: get_oldest_files_from_vec,
-            match_string: get_files_that_match_string,
-            match_path: get_files_that_match_path,
-        }
-    }
-}
 
 fn get_oldest_files_from_vec(files: Vec<FileInfo>) -> Vec<FileInfo>{
     let mut files: Vec<FileInfo> = files;
@@ -64,7 +74,7 @@ fn get_files_that_match_path(files: Vec<FileInfo>, path: String) -> Vec<FileInfo
     return files;
 }
 
-pub async fn get_files() -> Json<Vec<FileInfo>> {
+pub async fn get_files(Json(payload): Json<Params>) -> Json<Vec<FileInfo>> {
 
     let files: Vec<FileInfo> = vec![
     ];

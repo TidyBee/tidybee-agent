@@ -1,4 +1,5 @@
 use axum::{routing::get, Router};
+use axum::routing::post;
 
 use crate::http_server::routes;
 
@@ -33,7 +34,7 @@ impl HttpServer {
             .route("/", get(routes::hello_world))
             .route("/users", get(routes::get_users))
             .route("/heaviest_files", get(routes::get_heaviest_files))
-            .route("/getFiles", get(routes::get_files));
+            .route("/getFiles", post(routes::get_files));
         return app;
     }
 }
