@@ -1,15 +1,9 @@
-use serde::{Deserialize, Serialize};
+use crate::tidyalgo::FileInfo;
 use std::fs;
 use std::path;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct File {
-    pub name: String,
-    pub size: u64,
-}
-
-pub fn list_directories(directories: Vec<path::PathBuf>) -> Result<Vec<File>, std::io::Error> {
-    let mut files: Vec<File> = Vec::new();
+pub fn list_directories(directories: Vec<path::PathBuf>) -> Result<Vec<FileInfo>, std::io::Error> {
+    let mut files: Vec<FileInfo> = Vec::new();
 
     for directory in directories {
         if directory.is_dir() {
@@ -23,9 +17,10 @@ pub fn list_directories(directories: Vec<path::PathBuf>) -> Result<Vec<File>, st
                     if let Some(file) = path.to_str() {
                         let md: fs::Metadata = fs::metadata(&path)?;
                         let size: u64 = md.len();
-                        files.push(File {
+                        files.push(FileInfo {
                             name: file.to_string(),
                             size,
+                            ..Default::default()
                         });
                     }
                 }
