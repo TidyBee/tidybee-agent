@@ -4,24 +4,30 @@ mod lister;
 mod options_parser;
 mod watcher;
 
+use log::{debug, error, info, trace};
 use std::process;
 use std::thread;
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     let server = http_server::HttpServer::new("0.0.0.0".to_string(), "3000".to_string());
+    info!("HTTP Server Created");
     let options: Result<options_parser::Options, options_parser::OptionsError> =
         options_parser::get_options();
+    info!("Command-line Arguments Parsed");
     let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
         configuration_wrapper::ConfigurationWrapper::new().unwrap(); // unwrap should panic if the config fails to load
+    info!("Configuration File Parsed");
 
-    println!(
+    debug!(
         "tidyhub_address = {}",
         configuration_wrapper
             .bind::<String>("tidyhub_address")
             .unwrap_or_default()
     );
-    println!(
+    debug!(
         "tidyhub_port = {}",
         configuration_wrapper
             .bind::<String>("tidyhub_port")
@@ -34,19 +40,23 @@ async fn main() {
                 opts.directories_list_args.unwrap_or_default();
             let directories_watch_args: Vec<std::path::PathBuf> =
                 opts.directories_watch_args.unwrap_or_default();
+            debug!("directories_list_args = {:?}", directories_list_args);
+            debug!("directories_watch_args = {:?}", directories_watch_args);
 
             match lister::list_directories(directories_list_args) {
                 Ok(_files_vec) => {
-                    println!("Files: {:?}", _files_vec);
+                    //debug!("{:?}", _files_vec);
                 }
                 Err(error) => {
-                    eprintln!("tidybee-agent: error: {}", error);
+                    error!("{}", error);
                 }
             }
+            info!("Directory Successfully Listed");
 
             tokio::spawn(async move {
                 server.server_start().await;
             });
+            info!("HTTP Server Started");
 
             let (sender, receiver) = crossbeam_channel::unbounded();
             let watch_directories_thread: thread::JoinHandle<()> = thread::spawn(move || {
@@ -57,8 +67,9 @@ async fn main() {
                     sender,
                 );
             });
+            info!("File Events Watcher Started");
             for event in receiver {
-                println!("tidybee-agent: new event: {event:?}");
+                trace!("{:?}", event);
             }
 
             watch_directories_thread.join().unwrap();
