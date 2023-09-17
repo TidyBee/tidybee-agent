@@ -34,3 +34,29 @@ Optional commands are parsed in the configuration module, but not implemented!
 ```
 cargo test
 ```
+
+## Logger
+### Usage
+The logger is configured via environment variables using [env_logger](https://docs.rs/env_logger/latest/env_logger/) crate. ```error!``` macro is the highest-priority and ```trace!``` the lowest, if no log level is provided if defaults to ```error```. [Filters](https://docs.rs/env_logger/latest/env_logger/#filtering-results) may be used to turn off the logging in a specific crate for example.
+
+```shell
+RUST_LOG=warn ./target/debug/tidybee-agent
+```
+
+### [Log macros](https://docs.rs/log/0.4.20/log/#macros) conventions
+```rust
+// log states of variables
+debug!("server_port: {}", server_port)
+
+// log features as they are executed
+trace!("Starting server")
+
+// log successfully executed features
+info!("Server started")
+
+// log non-fatal behaviours
+warn!("Cannot start the server, retrying")
+
+// log fatal errors
+error!("Could not start the server")
+```
