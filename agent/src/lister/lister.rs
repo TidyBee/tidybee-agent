@@ -1,4 +1,4 @@
-use crate::tidyalgo::FileInfo;
+use crate::file_info::FileInfo;
 use std::fs;
 use std::path;
 

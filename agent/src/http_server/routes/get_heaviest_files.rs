@@ -1,4 +1,4 @@
-use crate::tidyalgo::FileInfo;
+use crate::file_info::FileInfo;
 use axum::Json;
 
 pub async fn get_heaviest_files() -> Json<Vec<FileInfo>> {

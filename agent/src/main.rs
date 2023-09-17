@@ -2,7 +2,7 @@ mod configuration_wrapper;
 mod http_server;
 mod lister;
 mod options_parser;
-mod tidyalgo;
+mod file_info;
 mod watcher;
 
 use serde::{Deserialize, Serialize};
