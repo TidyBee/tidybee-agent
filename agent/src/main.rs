@@ -4,7 +4,7 @@ mod lister;
 mod options_parser;
 mod watcher;
 
-use log::{debug, error, info, trace};
+use log::{debug, error, info};
 use std::process;
 use std::thread;
 
@@ -69,7 +69,7 @@ async fn main() {
             });
             info!("File Events Watcher Started");
             for event in receiver {
-                trace!("{:?}", event);
+                debug!("{:?}", event);
             }
 
             watch_directories_thread.join().unwrap();

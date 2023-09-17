@@ -46,17 +46,17 @@ RUST_LOG=warn ./target/debug/tidybee-agent
 ### [Log macros](https://docs.rs/log/0.4.20/log/#macros) conventions
 ```rust
 // log states of variables
-debug!("server_port: {}", server_port)
+debug!("server_port: {}", server_port);
 
 // log features as they are executed
-trace!("Starting server")
+trace!("Starting server");
 
 // log successfully executed features
-info!("Server started")
+info!("Server started");
 
 // log non-fatal behaviours
-warn!("Cannot start the server, retrying")
+warn!("Cannot start the server, retrying");
 
 // log fatal errors
-error!("Could not start the server")
+error!("Could not start the server");
 ```
