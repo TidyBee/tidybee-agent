@@ -1,21 +1,19 @@
+use crate::file_info::FileInfo;
 use axum::Json;
-use serde::Serialize;
-
-#[derive(Serialize)]
-pub struct FileInfo {
-    path: String,
-    size: u64,
-}
 
 pub async fn get_heaviest_files() -> Json<Vec<FileInfo>> {
     let files: Vec<FileInfo> = vec![
         FileInfo {
-            path: "/tmp/file1".to_string(),
+            path: std::path::Path::new("/tmp/file1").to_owned(),
+            name: "file1".to_string(),
             size: 19990,
+            ..Default::default()
         },
         FileInfo {
-            path: "/tmp/file2".to_string(),
+            path: std::path::Path::new("/tmp/file2").to_owned(),
+            name: "file2".to_string(),
             size: 19000,
+            ..Default::default()
         },
     ];
     Json(files)
