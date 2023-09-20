@@ -497,3 +497,5 @@ MigrationBackup/
 
 # End of https://www.toptal.com/developers/gitignore/api/rust,rust-analyzer,dotnetcore,dotenv,intellij+all,vs,visualstudiocode
 /agent/my_files.db
+
+agent/my_files.db-journal

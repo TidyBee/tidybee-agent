@@ -17,9 +17,11 @@ pub fn list_directories(directories: Vec<path::PathBuf>) -> Result<Vec<FileInfo>
                     if let Some(file) = path.to_str() {
                         let md: fs::Metadata = fs::metadata(&path)?;
                         let size: u64 = md.len();
+                        let last_modified: std::time::SystemTime = md.accessed()?;
                         files.push(FileInfo {
-                            name: file.to_string(),
+                            path: file.to_string().parse().unwrap(),
                             size,
+                            last_modified,
                             ..Default::default()
                         });
                     }
