@@ -1,8 +1,9 @@
 mod configuration_wrapper;
+mod file_info;
 mod http_server;
 mod lister;
+mod my_files;
 mod options_parser;
-mod file_info;
 mod watcher;
 
 use serde::{Deserialize, Serialize};
@@ -27,6 +28,9 @@ async fn main() {
         .unwrap_or_default();
     let server = http_server::HttpServer::new(http_server_config.host, http_server_config.port);
 
+    let my_files = my_files::MyFiles::new(configuration_wrapper).unwrap();
+    my_files.init_db().unwrap();
+
     match options {
         Ok(opts) => {
             let directories_list_args: Vec<std::path::PathBuf> =
@@ -36,7 +40,13 @@ async fn main() {
 
             match lister::list_directories(directories_list_args) {
                 Ok(_files_vec) => {
-                    println!("Files: {:?}", _files_vec);
+                    for file in _files_vec {
+                        match my_files.add_file_to_db(&file) {
+                            Ok(_) => { println!("new file inserted in my_file: {:?}", file) }
+                            Err(err) => { eprintln!("tidybee-agent: error: {}", err) }
+                        };
+                    }
+                    // println!("Files: {:?}", _files_vec);
                 }
                 Err(error) => {
                     eprintln!("tidybee-agent: error: {}", error);
