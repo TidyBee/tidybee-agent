@@ -5,6 +5,7 @@ import jetbrains.buildServer.configs.kotlin.buildFeatures.PullRequests
 import jetbrains.buildServer.configs.kotlin.buildFeatures.commitStatusPublisher
 import jetbrains.buildServer.configs.kotlin.buildFeatures.pullRequests
 import jetbrains.buildServer.configs.kotlin.buildSteps.DotnetBuildStep
+import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.buildSteps.dotnetBuild
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.ui.*
@@ -44,8 +45,17 @@ changeBuildType(RelativeId("Build")) {
         }
     }
     steps {
-        items.removeAt(0)
-        items.removeAt(0)
+        insert(0) {
+            dockerCommand {
+                commandType = build {
+                    source = file {
+                        path = "Dockerfile"
+                    }
+                }
+            }
+        }
+        items.removeAt(1)
+        items.removeAt(1)
     }
 
     features {
