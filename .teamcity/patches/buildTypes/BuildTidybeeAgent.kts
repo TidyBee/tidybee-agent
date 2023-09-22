@@ -24,7 +24,7 @@ create(DslContext.projectId, BuildType({
         dockerCommand {
             commandType = build {
                 source = file {
-                    path = "agent/Dockerfile"
+                    path = "Dockerfile"
                 }
             }
         }
