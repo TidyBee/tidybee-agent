@@ -78,8 +78,8 @@ changeBuildType(RelativeId("Build")) {
                 filterSourceBranch = ""
                 filterTargetBranch = ""
                 filterAuthorRole = PullRequests.GitHubRoleFilter.MEMBER
+                ignoreDrafts = true
             }
-            param("ignoreDrafts", "")
         }
         remove {
             commitStatusPublisher {
