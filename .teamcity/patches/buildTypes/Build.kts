@@ -59,7 +59,7 @@ changeBuildType(RelativeId("Build")) {
     }
 
     features {
-        remove {
+        val feature1 = find<PullRequests> {
             pullRequests {
                 provider = github {
                     authType = vcsRoot()
@@ -67,6 +67,19 @@ changeBuildType(RelativeId("Build")) {
                     ignoreDrafts = true
                 }
             }
+        }
+        feature1.apply {
+            vcsRootExtId = "TidybeeBackend_HttpsGithubComTidyBeeTidybeeBackendRefsHeadsMain3"
+            provider = github {
+                serverUrl = ""
+                authType = token {
+                    token = "credentialsJSON:c1633f86-9483-42f9-b41a-46ab8cf6c21b"
+                }
+                filterSourceBranch = ""
+                filterTargetBranch = ""
+                filterAuthorRole = PullRequests.GitHubRoleFilter.MEMBER
+            }
+            param("ignoreDrafts", "")
         }
         remove {
             commitStatusPublisher {
