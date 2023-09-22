@@ -1,7 +1,7 @@
 use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::FileInfo;
 use chrono::{DateTime, Utc};
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params, Connection, Result, ToSql};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Default)]
@@ -117,5 +117,8 @@ impl MyFiles {
             Ok(_) => Ok(()),
             Err(error) => Err(error),
         }
+    }
+    pub fn raw_query(&self, query: String, params: &[&dyn ToSql]) -> Result<usize> {
+        self.connection.execute(query.as_str(), params)
     }
 }
