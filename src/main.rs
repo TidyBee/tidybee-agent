@@ -1,9 +1,10 @@
 mod configuration_wrapper;
+mod file_info;
 mod http_server;
 mod lister;
 mod options_parser;
-mod file_info;
 mod watcher;
+mod logger;
 
 use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
@@ -18,16 +19,18 @@ struct HttpServerConfig {
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
-
-    let server = http_server::HttpServer::new("0.0.0.0".to_string(), "3000".to_string());
-    info!("HTTP Server Created");
-    let options: Result<options_parser::Options, options_parser::OptionsError> =
-        options_parser::get_options();
-    info!("Command-line Arguments Parsed");
+    logger::init_logger();
     let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
         configuration_wrapper::ConfigurationWrapper::new().unwrap(); // unwrap should panic if the config fails to load
     info!("Configuration File Parsed");
+    let options: Result<options_parser::Options, options_parser::OptionsError> =
+        options_parser::get_options();
+    info!("Command-line Arguments Parsed");
+    let http_server_config: HttpServerConfig = configuration_wrapper
+        .bind::<HttpServerConfig>("http_server")
+        .unwrap_or_default();
+    let server = http_server::HttpServer::new(http_server_config.host, http_server_config.port);
+    info!("HTTP Server Created");
 
     debug!(
         "tidyhub_address = {}",
@@ -53,7 +56,7 @@ async fn main() {
 
             match lister::list_directories(directories_list_args) {
                 Ok(_files_vec) => {
-                    //debug!("{:?}", _files_vec);
+                    debug!("{:?}", _files_vec);
                 }
                 Err(error) => {
                     error!("{}", error);
