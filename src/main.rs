@@ -2,11 +2,19 @@ mod configuration_wrapper;
 mod http_server;
 mod lister;
 mod options_parser;
+mod file_info;
 mod watcher;
 
 use log::{debug, error, info};
+use serde::{Deserialize, Serialize};
 use std::process;
 use std::thread;
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+struct HttpServerConfig {
+    host: String,
+    port: String,
+}
 
 #[tokio::main]
 async fn main() {
