@@ -34,3 +34,24 @@ Optional commands are parsed in the configuration module, but not implemented!
 ```
 cargo test
 ```
+
+## Logger
+```error!``` macro is the highest-priority and ```trace!``` the lowest, if no log level is provided if defaults to ```LevelFilter::Warn``` for the terminal and ```LevelFilter::Info``` for the log file.
+
+### [Log macros](https://docs.rs/log/0.4.20/log/#macros) conventions
+```rust
+// log features as they are executed
+trace!("Starting server");
+
+// log states of variables
+debug!("server_port: {}", server_port);
+
+// log successfully executed features
+info!("Server started");
+
+// log non-fatal behaviours
+warn!("Cannot start the server, retrying");
+
+// log fatal errors
+error!("Could not start the server");
+```

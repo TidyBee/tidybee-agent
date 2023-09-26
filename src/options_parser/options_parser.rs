@@ -1,3 +1,4 @@
+use log::error;
 use std::path;
 
 pub struct Options {
@@ -105,7 +106,7 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         for directory in directories {
             if !directory.is_dir() {
                 return Err(OptionsError::InvalidDirectory(format!(
-                    "specified directory does not exists: {:?}",
+                    "Specified directory does not exists: {:?}",
                     directory
                 )));
             }
@@ -116,7 +117,7 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         for directory in directories {
             if !directory.is_dir() {
                 return Err(OptionsError::InvalidDirectory(format!(
-                    "specified directory does not exists: {:?}",
+                    "Specified directory does not exists: {:?}",
                     directory
                 )));
             }
@@ -134,7 +135,7 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         for e in file_extensions_args {
             if !valid_extensions.contains(&e.as_str()) {
                 return Err(OptionsError::InvalidFileExtension(format!(
-                    "invalid file extension: {}",
+                    "Invalid file extension: {}",
                     e
                 )));
             }
@@ -151,7 +152,7 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         for t in file_types_args {
             if !valid_file_types_args.contains(&t.as_str()) {
                 return Err(OptionsError::InvalidFileType(format!(
-                    "invalid file type: {}",
+                    "Invalid file type: {}",
                     t
                 )));
             }
@@ -178,7 +179,7 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         if let Some(file_types_args) = &file_types_args {
             if file_types_args == "directory" && !file_extensions_args.is_empty() {
                 return Err(OptionsError::InvalidFileType(
-                    "can't specify both file extensions and file type directory simultaneously"
+                    "Can't specify both file extensions and file type directory simultaneously"
                         .to_string(),
                 ));
             }
@@ -202,16 +203,16 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
 pub fn print_option_error(error: OptionsError) {
     match error {
         OptionsError::MissingCommand(e) => {
-            eprintln!("tidybee-agent: error: {}", e);
+            error!("{}", e);
         }
         OptionsError::InvalidDirectory(e) => {
-            eprintln!("tidybee-agent: error: {}", e);
+            error!("{}", e);
         }
         OptionsError::InvalidFileExtension(e) => {
-            eprintln!("tidybee-agent: error: {}", e);
+            error!("{}", e);
         }
         OptionsError::InvalidFileType(e) => {
-            eprintln!("tidybee-agent: error: {}", e);
+            error!("{}", e);
         }
     }
 }

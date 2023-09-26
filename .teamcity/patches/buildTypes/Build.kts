@@ -1,6 +1,7 @@
 package patches.buildTypes
 
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildFeatures.CommitStatusPublisher
 import jetbrains.buildServer.configs.kotlin.buildFeatures.PullRequests
 import jetbrains.buildServer.configs.kotlin.buildFeatures.commitStatusPublisher
 import jetbrains.buildServer.configs.kotlin.buildFeatures.pullRequests
@@ -81,7 +82,7 @@ changeBuildType(RelativeId("Build")) {
                 ignoreDrafts = true
             }
         }
-        remove {
+        val feature2 = find<CommitStatusPublisher> {
             commitStatusPublisher {
                 publisher = github {
                     githubUrl = "https://api.github.com"
@@ -91,6 +92,16 @@ changeBuildType(RelativeId("Build")) {
                 }
                 param("github_oauth_user", "Cavonstavant")
             }
+        }
+        feature2.apply {
+            vcsRootExtId = "TidybeeBackend_HttpsGithubComTidyBeeTidybeeBackendRefsHeadsMain3"
+            publisher = github {
+                githubUrl = "https://api.github.com"
+                authType = personalToken {
+                    token = "credentialsJSON:c1633f86-9483-42f9-b41a-46ab8cf6c21b"
+                }
+            }
+            param("github_oauth_user", "")
         }
     }
 }

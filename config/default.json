@@ -6,5 +6,9 @@
   "my_files_database_configuration": {
     "db_path": "./my_files.db",
     "drop_db_on_start": true
+  },
+  "log_level": {
+    "term": "warn",
+    "file": "info"
   }
 }
