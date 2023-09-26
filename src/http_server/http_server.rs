@@ -24,7 +24,6 @@ impl HttpServer {
         let app = HttpServer::init_basic_routes();
         let addr = format!("{}:{}", self.host, self.port);
 
-        println!("Starting server at {}", addr);
         return (app.clone(), addr);
     }
 

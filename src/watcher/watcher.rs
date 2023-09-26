@@ -1,3 +1,4 @@
+use log::error;
 use notify::Watcher;
 use std::time;
 
@@ -15,7 +16,7 @@ pub fn watch_directories(
     > = match notify_debouncer_full::new_debouncer(time::Duration::from_secs(2), None, tx) {
         Ok(debouncer) => debouncer,
         Err(err) => {
-            eprintln!("tidybee-agent: error: {:?}", err);
+            error!("{:?}", err);
             return;
         }
     };
@@ -25,7 +26,7 @@ pub fn watch_directories(
             .watcher()
             .watch(&directory, notify::RecursiveMode::Recursive)
         {
-            eprintln!("tidybee-agent: error: {:?}: {:?}", directory, err);
+            error!("{:?}: {:?}", directory, err);
         } else {
             debouncer
                 .cache()
@@ -42,7 +43,7 @@ pub fn watch_directories(
             }
             Err(errors) => {
                 for error in &errors {
-                    eprintln!("tidybee-agent: error: {error:?}");
+                    error!("{error:?}");
                 }
             }
         }
