@@ -3,6 +3,8 @@ mod file_info;
 mod http_server;
 mod lister;
 mod options_parser;
+mod my_files;
+mod logger;
 mod watcher;
 
 use log::{debug, error, info};
@@ -46,7 +48,14 @@ async fn main() {
 
             match lister::list_directories(directories_list_args) {
                 Ok(_files_vec) => {
-                    debug!("{:?}", _files_vec);
+                    for file in _files_vec.iter() {
+                        match my_files.add_file_to_db(file) {
+                            Ok(_) => {}
+                            Err(error) => {
+                                error!("{}", error);
+                            }
+                        }
+                    }
                 }
                 Err(error) => {
                     error!("{}", error);

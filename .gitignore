@@ -495,3 +495,7 @@ MigrationBackup/
 /agent/my_files.db
 
 agent/my_files.db-journal
+
+my_files.db
+
+my_files.db-journal

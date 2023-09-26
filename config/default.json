@@ -8,7 +8,7 @@
     "drop_db_on_start": true
   },
   "log_level": {
-    "term": "warn",
-    "file": "info"
+    "term": "info",
+    "file": "warn"
   }
 }

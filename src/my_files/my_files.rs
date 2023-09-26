@@ -1,6 +1,7 @@
 use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::FileInfo;
 use chrono::{DateTime, Utc};
+use log::{error, info};
 use rusqlite::{params, Connection, Result, ToSql};
 use serde::{Deserialize, Serialize};
 
@@ -12,7 +13,7 @@ struct MyFilesDatabaseConfiguration {
 
 pub struct MyFiles {
     connection: Connection,
-    configuration: MyFilesDatabaseConfiguration
+    configuration: MyFilesDatabaseConfiguration,
 }
 
 impl MyFiles {
@@ -35,15 +36,14 @@ impl MyFiles {
                 DROP TABLE IF EXISTS duplicates_associative_table;
                 COMMIT;",
             ) {
-                Ok(_) => Ok(println!("Database dropped")),
+                Ok(_) => Ok(info!("Database dropped")),
                 Err(error) => {
-                    eprintln!("Error dropping database: {}", error);
+                    error!("Error dropping database: {}", error);
                     Err(error)
-                },
+                }
             };
             drop_db?;
         }
-
         match self.connection.execute_batch(
             "
             BEGIN;
@@ -63,45 +63,40 @@ impl MyFiles {
                 unused          BOOLEAN NOT NULL
             );
             CREATE TABLE IF NOT EXISTS duplicates_associative_table (
-                tidy_score_id INTEGER NOT NULL,
-                my_file_id INTEGER NOT NULL,
-                FOREIGN KEY (my_file_id, tidy_score_id) REFERENCES my_files (id, tidy_score) ON DELETE CASCADE
+                tidy_score_id   INTEGER NOT NULL,
+                my_file_id      INTEGER NOT NULL,
+                PRIMARY KEY (tidy_score_id, my_file_id),
+                FOREIGN KEY (tidy_score_id) REFERENCES tidy_scores(id),
+                FOREIGN KEY (my_file_id) REFERENCES my_files(id) ON DELETE CASCADE
             );
             COMMIT;",
         ) {
-            Ok(_) => Ok(()),
+            Ok(_) => {
+                info!("Database initialized");
+                Ok(())
+            },
             Err(error) => {
-                eprintln!("Error initializing database: {}", error);
+                error!("Error initializing database: {}", error);
+                Err(error)
+            }
+        }
+    }
+    pub fn remove_file_from_db(&self, file_path: &str) -> Result<()> {
+        match self.connection.execute(
+            "DELETE FROM my_files WHERE path = ?1",
+            params![file_path],
+        ) {
+            Ok(_) => {
+                info!("{} removed from my_files", file_path);
+                Ok(())
+            },
+            Err(error) => {
+                error!("Error removing {} from my_files: {}", file_path, error);
                 Err(error)
             },
         }
     }
-    // fn associate_file_to_tidyscore(&self, file: FileInfo, tidy_score_rowid: i64) -> Result<()> {
-    //     match self.connection.execute(
-    //         "INSERT INTO duplicates_associative_table (tidy_score_id, my_file_id) VALUES (?1, ?2)",
-    //         params![tidy_score_rowid, file.id],
-    //     ) {
-    //         Ok(_) => Ok(()),
-    //         Err(error) => Err(error),
-    //     }
-    // }
     pub fn add_file_to_db(&self, file: &FileInfo) -> Result<()> {
-        // let mut tidy_score_rowid: Option<i64> = None;
-        //
-        // if !file.tidy_score.is_none() {
-        //     match self.connection.execute(
-        //         "INSERT INTO tidy_scores (misnamed, misplaced, unused) VALUES (?1, ?2, ?3)",
-        //         params![
-        //             file.tidy_score.unwrap().misnamed,
-        //             file.tidy_score.unwrap().misplaced,
-        //             file.tidy_score.unwrap().unused
-        //         ],
-        //     ) {
-        //         Ok(_) => tidy_score_rowid = Some(self.connection.last_insert_rowid()),
-        //         Err(error) => eprintln!("Error inserting tidy score: {}", error),
-        //     }
-        // }
-
         let last_modified: DateTime<Utc> = file.last_modified.into();
         match self.connection.execute(
             "INSERT INTO my_files (name, path, size, last_modified, tidy_score)
@@ -114,11 +109,27 @@ impl MyFiles {
                 file.tidy_score.as_ref()
             ],
         ) {
-            Ok(_) => Ok(()),
-            Err(error) => Err(error),
+            Ok(_) => Ok(
+                info!("{} added to my_files", file.path.to_str().unwrap()),
+            ),
+            Err(error) => {
+                error!("Error adding {} to my_files: {}", file.path.to_str().unwrap(), error);
+                Err(error)
+            },
         }
     }
     pub fn raw_query(&self, query: String, params: &[&dyn ToSql]) -> Result<usize> {
         self.connection.execute(query.as_str(), params)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    pub fn init_db() {
+        let my_files = MyFiles::new(ConfigurationWrapper::new().unwrap()).unwrap();
+        my_files.init_db().unwrap();
     }
 }
