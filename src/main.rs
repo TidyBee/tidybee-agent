@@ -2,9 +2,9 @@ mod configuration_wrapper;
 mod file_info;
 mod http_server;
 mod lister;
+mod logger;
 mod options_parser;
 mod watcher;
-mod logger;
 
 use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
@@ -19,10 +19,11 @@ struct HttpServerConfig {
 
 #[tokio::main]
 async fn main() {
-    logger::init_logger();
     let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
-        configuration_wrapper::ConfigurationWrapper::new().unwrap(); // unwrap should panic if the config fails to load
-    info!("Configuration File Parsed");
+        configuration_wrapper::ConfigurationWrapper::new().unwrap();
+    if let Err(_) = logger::init_logger(&configuration_wrapper) {
+        process::exit(1);
+    }
     let options: Result<options_parser::Options, options_parser::OptionsError> =
         options_parser::get_options();
     info!("Command-line Arguments Parsed");

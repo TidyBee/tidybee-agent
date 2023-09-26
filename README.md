@@ -36,20 +36,15 @@ cargo test
 ```
 
 ## Logger
-### Usage
-The logger is configured via environment variables ```TERM_LOG_LEVEL``` and ```FILE_LOG_LEVEL```. ```error!``` macro is the highest-priority and ```trace!``` the lowest, if no log level is provided if defaults to ```LevelFilter::Warn``` for the terminal and ```LevelFilter::Info``` for the log file.
-
-```
-TERM_LOG_LEVEL=<LOG_LEVEL> FILE_LOG_LEVEL=<LOG_LEVEL> ./target/debug/tidybee-agent
-```
+```error!``` macro is the highest-priority and ```trace!``` the lowest, if no log level is provided if defaults to ```LevelFilter::Warn``` for the terminal and ```LevelFilter::Info``` for the log file.
 
 ### [Log macros](https://docs.rs/log/0.4.20/log/#macros) conventions
 ```rust
-// log states of variables
-debug!("server_port: {}", server_port);
-
 // log features as they are executed
 trace!("Starting server");
+
+// log states of variables
+debug!("server_port: {}", server_port);
 
 // log successfully executed features
 info!("Server started");
