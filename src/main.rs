@@ -33,18 +33,6 @@ async fn main() {
     let server = http_server::HttpServer::new(http_server_config.host, http_server_config.port);
     info!("HTTP Server Created");
 
-    debug!(
-        "tidyhub_address = {}",
-        configuration_wrapper
-            .bind::<String>("tidyhub_address")
-            .unwrap_or_default()
-    );
-    debug!(
-        "tidyhub_port = {}",
-        configuration_wrapper
-            .bind::<String>("tidyhub_port")
-            .unwrap_or_default()
-    );
 
     match options {
         Ok(opts) => {
