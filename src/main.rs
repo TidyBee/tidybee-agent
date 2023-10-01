@@ -10,6 +10,7 @@ use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use std::process;
 use std::thread;
+use crate::http_server::http_server::HttpServerBuilder;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 struct HttpServerConfig {
@@ -30,8 +31,12 @@ async fn main() {
     let http_server_config: HttpServerConfig = configuration_wrapper
         .bind::<HttpServerConfig>("http_server")
         .unwrap_or_default();
-    let server = http_server::HttpServer::new(http_server_config.host, http_server_config.port);
-    info!("HTTP Server Created");
+    let server = HttpServerBuilder::new()
+        .host(http_server_config.host)
+        .port(http_server_config.port)
+        .router()
+        .build();
+    info!("HTTP Server build");
 
 
     match options {
@@ -52,9 +57,8 @@ async fn main() {
                 }
             }
             info!("Directory Successfully Listed");
-
             tokio::spawn(async move {
-                server.server_start().await;
+                server.start().await;
             });
             info!("HTTP Server Started");
 
