@@ -5,6 +5,17 @@ use log::{error, info};
 use rusqlite::{params, Connection, Result, ToSql};
 use serde::{Deserialize, Serialize};
 
+// region: --- MyFiles builder states
+#[derive(Default, Clone)]
+pub struct Sealed;
+#[derive(Default, Clone)]
+pub struct NotSealed;
+#[derive(Default, Clone)]
+pub struct NoConfigurationWrapper;
+#[derive(Default, Clone)]
+pub struct ConfigurationWrapperPresent(ConfigurationWrapper);
+// endregion: --- MyFiles builder states
+
 #[derive(Serialize, Deserialize, Default)]
 struct MyFilesDatabaseConfiguration {
     pub db_path: String,
@@ -14,6 +25,42 @@ struct MyFilesDatabaseConfiguration {
 pub struct MyFiles {
     connection: Connection,
     configuration: MyFilesDatabaseConfiguration,
+}
+
+#[derive(Default, Clone)]
+pub struct MyFilesBuilder<C, S> {
+    configuration_wrapper_instance: C,
+    marker_seal: std::marker::PhantomData<S>,
+}
+
+impl MyFilesBuilder<NoConfigurationWrapper, NotSealed> {
+    pub fn new() -> Self {
+        MyFilesBuilder {
+            configuration_wrapper_instance: NoConfigurationWrapper::default(),
+            marker_seal: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<C> MyFilesBuilder<C, NotSealed> {
+    pub fn configuration_wrapper(self, configuration_wrapper_instance: impl Into<ConfigurationWrapper>) -> MyFilesBuilder<ConfigurationWrapperPresent, NotSealed> {
+        MyFilesBuilder {
+            configuration_wrapper_instance: ConfigurationWrapperPresent(configuration_wrapper_instance.into()),
+            marker_seal: std::marker::PhantomData,
+        }
+    }
+    pub fn seal(self) -> MyFilesBuilder<C, Sealed> {
+        MyFilesBuilder {
+            configuration_wrapper_instance: self.configuration_wrapper_instance,
+            marker_seal: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<S> MyFilesBuilder<ConfigurationWrapperPresent, S> {
+    pub fn build(self) -> Result<MyFiles> {
+        Ok(MyFiles::new(self.configuration_wrapper_instance.0)?)
+    }
 }
 
 impl MyFiles {

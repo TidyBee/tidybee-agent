@@ -34,8 +34,14 @@ async fn main() {
     let server = http_server::HttpServer::new(http_server_config.host, http_server_config.port);
     info!("HTTP Server Created");
 
-    let my_files = my_files::MyFiles::new(configuration_wrapper).unwrap();
+    let my_files: my_files::MyFiles = my_files::MyFilesBuilder::new()
+        .configuration_wrapper(configuration_wrapper)
+        .seal()
+        .build()
+        .unwrap();
+    info!("MyFilesDB sucessfully created");
     my_files.init_db().unwrap();
+    info!("MyFilesDB sucessfully initialized");
 
     match options {
         Ok(opts) => {
