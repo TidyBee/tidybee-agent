@@ -1,6 +1,6 @@
-use axum::{routing::get, Router};
+use axum::{Router};
+use axum::routing::MethodRouter;
 use log::info;
-use crate::http_server::routes;
 
 #[derive(Clone, Default)]
 pub struct HttpServer {
@@ -21,32 +21,27 @@ impl HttpServerBuilder {
         HttpServerBuilder::default()
     }
 
-    pub fn host(&mut self, host: impl Into<String>) -> &mut Self{
+    pub fn host(mut self, host: impl Into<String>) -> Self {
         self.host = Some(host.into());
         self
     }
 
-    pub fn port(&mut self, port: impl Into<String>) -> &mut Self{
+    pub fn port(mut self, port: impl Into<String>) -> Self {
         self.port = Some(port.into());
         self
     }
 
-    pub fn router(&mut self) -> &mut Self {
-        self.router = Router::new()
-            .route("/", get(routes::hello_world))
-            .route("/users", get(routes::get_users))
-            .route("/heaviest_files", get(routes::get_heaviest_files));
+    pub fn add_route(mut self, path: &str, method_router: MethodRouter) -> Self {
+        self.router = self.router.route(path, method_router);
         self
     }
 
-    pub fn build(&self) -> HttpServer {
+    pub fn build(self) -> HttpServer {
         let host = self.host
-            .as_ref().cloned()
             .unwrap_or_else(|| "0.0.0.0".to_string());
         let port = self.port
-            .as_ref().cloned()
             .unwrap_or_else(|| "8080".to_string());
-        let router = self.router.clone();
+        let router = self.router;
 
         HttpServer {
             host,
@@ -57,6 +52,7 @@ impl HttpServerBuilder {
 }
 
 impl HttpServer {
+
     pub async fn start(self) {
         let addr = format!("{}:{}", self.host, self.port);
 
