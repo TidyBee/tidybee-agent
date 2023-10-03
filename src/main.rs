@@ -5,6 +5,8 @@ mod lister;
 mod logger;
 mod options_parser;
 mod watcher;
+use axum::{routing::get};
+use crate::http_server::routes;
 
 use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
@@ -34,7 +36,9 @@ async fn main() {
     let server = HttpServerBuilder::new()
         .host(http_server_config.host)
         .port(http_server_config.port)
-        .router()
+        .add_route("/", get(routes::hello_world))
+        .add_route("/users", get(routes::get_users))
+        .add_route("/heaviest_files", get(routes::get_heaviest_files))
         .build();
     info!("HTTP Server build");
 
