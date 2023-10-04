@@ -5,7 +5,7 @@ mod lister;
 mod logger;
 mod options_parser;
 mod watcher;
-use axum::{Json, routing::get};
+use axum::{routing::get};
 use crate::http_server::routes;
 
 use log::{debug, error, info};
@@ -16,7 +16,7 @@ use axum::routing::post;
 use crate::http_server::http_server::HttpServerBuilder;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
-struct HttpServerConfig {
+pub struct HttpServerConfig {
     host: String,
     port: String,
 }
@@ -35,8 +35,7 @@ async fn main() {
         .bind::<HttpServerConfig>("http_server")
         .unwrap_or_default();
     let server = HttpServerBuilder::new()
-        .host(http_server_config.host)
-        .port(http_server_config.port)
+        .configuration_wrapper(http_server_config)
         .add_route("/", get(routes::hello_world))
         .add_route("/users", get(routes::get_users))
         .add_route("/heaviest_files", get(routes::get_heaviest_files))

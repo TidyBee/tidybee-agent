@@ -1,6 +1,7 @@
 use axum::{Router};
 use axum::routing::MethodRouter;
 use log::info;
+use crate::HttpServerConfig;
 
 #[derive(Clone, Default)]
 pub struct HttpServer {
@@ -21,13 +22,11 @@ impl HttpServerBuilder {
         HttpServerBuilder::default()
     }
 
-    pub fn host(mut self, host: impl Into<String>) -> Self {
-        self.host = Some(host.into());
-        self
-    }
+    pub fn configuration_wrapper(mut self, http_server_config: impl Into<HttpServerConfig>) -> Self {
+        let config = http_server_config.into();
 
-    pub fn port(mut self, port: impl Into<String>) -> Self {
-        self.port = Some(port.into());
+        self.host = Some(config.host);
+        self.port = Some(config.port);
         self
     }
 
