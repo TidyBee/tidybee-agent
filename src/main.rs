@@ -12,7 +12,6 @@ use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use std::process;
 use std::thread;
-use axum::routing::post;
 use crate::http_server::http_server::HttpServerBuilder;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -39,7 +38,6 @@ async fn main() {
         .add_route("/", get(routes::hello_world))
         .add_route("/users", get(routes::get_users))
         .add_route("/heaviest_files", get(routes::get_heaviest_files))
-        .add_route("/get_files", post(routes::get_files))
         .build();
     info!("HTTP Server build");
 
