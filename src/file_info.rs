@@ -1,3 +1,5 @@
+use rusqlite::ToSql;
+use rusqlite::types::Value;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -27,4 +29,12 @@ pub struct TidyScore {
     pub misplaced: bool,
     pub unused: bool,
     pub duplicated: Vec<FileInfo>,
+}
+
+impl ToSql for TidyScore {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        Ok(rusqlite::types::ToSqlOutput::Owned(
+            Value::from(serde_json::to_string(self).unwrap()),
+        ))
+    }
 }

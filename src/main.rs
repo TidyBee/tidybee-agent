@@ -2,8 +2,9 @@ mod configuration_wrapper;
 mod file_info;
 mod http_server;
 mod lister;
-mod logger;
 mod options_parser;
+mod my_files;
+mod logger;
 mod watcher;
 
 use log::{debug, error, info};
@@ -33,6 +34,14 @@ async fn main() {
     let server = http_server::HttpServer::new(http_server_config.host, http_server_config.port);
     info!("HTTP Server Created");
 
+    let my_files: my_files::MyFiles = my_files::MyFilesBuilder::new()
+        .configuration_wrapper(configuration_wrapper)
+        .seal()
+        .build()
+        .unwrap();
+    info!("MyFilesDB sucessfully created");
+    my_files.init_db().unwrap();
+    info!("MyFilesDB sucessfully initialized");
 
     match options {
         Ok(opts) => {
@@ -45,7 +54,14 @@ async fn main() {
 
             match lister::list_directories(directories_list_args) {
                 Ok(_files_vec) => {
-                    debug!("{:?}", _files_vec);
+                    for file in _files_vec.iter() {
+                        match my_files.add_file_to_db(file) {
+                            Ok(_) => {}
+                            Err(error) => {
+                                error!("{}", error);
+                            }
+                        }
+                    }
                 }
                 Err(error) => {
                     error!("{}", error);
