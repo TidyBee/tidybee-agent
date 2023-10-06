@@ -25,7 +25,7 @@ async fn main() {
         options_parser::get_options();
     info!("Command-line Arguments Parsed");
     let server = HttpServerBuilder::new()
-        .configuration_wrapper(configuration_wrapper)
+        .configuration_wrapper(configuration_wrapper.clone())
         .add_route("/", get(routes::hello_world))
         .add_route("/users", get(routes::get_users))
         .add_route("/heaviest_files", get(routes::get_heaviest_files))
