@@ -1,6 +1,6 @@
 use config::{Config, ConfigError, Environment, File};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ConfigurationWrapper {
     config: Config,
 }

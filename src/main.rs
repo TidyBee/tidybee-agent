@@ -9,16 +9,9 @@ use axum::{routing::get};
 use crate::http_server::routes;
 
 use log::{debug, error, info};
-use serde::{Deserialize, Serialize};
 use std::process;
 use std::thread;
 use crate::http_server::http_server::HttpServerBuilder;
-
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub struct HttpServerConfig {
-    host: String,
-    port: String,
-}
 
 #[tokio::main]
 async fn main() {
@@ -30,11 +23,8 @@ async fn main() {
     let options: Result<options_parser::Options, options_parser::OptionsError> =
         options_parser::get_options();
     info!("Command-line Arguments Parsed");
-    let http_server_config: HttpServerConfig = configuration_wrapper
-        .bind::<HttpServerConfig>("http_server")
-        .unwrap_or_default();
     let server = HttpServerBuilder::new()
-        .configuration_wrapper(http_server_config)
+        .configuration_wrapper(configuration_wrapper)
         .add_route("/", get(routes::hello_world))
         .add_route("/users", get(routes::get_users))
         .add_route("/heaviest_files", get(routes::get_heaviest_files))
