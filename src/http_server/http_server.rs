@@ -1,6 +1,7 @@
+use std::net::SocketAddr;
 use axum::{Router};
 use axum::routing::MethodRouter;
-use log::info;
+use log::{error, info};
 use serde::Deserialize;
 use crate::configuration_wrapper::ConfigurationWrapper;
 
@@ -19,7 +20,7 @@ pub struct HttpServer {
 #[derive(Clone, Default)]
 pub struct HttpServerBuilder {
     router: Router,
-    configuration_wrapper: ConfigurationWrapper
+    configuration_wrapper: ConfigurationWrapper,
 }
 
 impl Default for HttpServerConfig {
@@ -29,7 +30,7 @@ impl Default for HttpServerConfig {
 
         HttpServerConfig {
             host,
-            port
+            port,
         }
     }
 }
@@ -44,7 +45,7 @@ impl HttpServerBuilder {
         self
     }
 
-    pub fn configuration_wrapper(mut self, configuration_wrapper: impl Into<ConfigurationWrapper>) -> Self{
+    pub fn configuration_wrapper(mut self, configuration_wrapper: impl Into<ConfigurationWrapper>) -> Self {
         self.configuration_wrapper = configuration_wrapper.into();
         self
     }
@@ -57,18 +58,28 @@ impl HttpServerBuilder {
 
         HttpServer {
             http_server_config,
-            router
+            router,
         }
     }
 }
 
 impl HttpServer {
-
     pub async fn start(self) {
-        let addr = format!("{}:{}", self.http_server_config.host, self.http_server_config.port);
+        let addr: SocketAddr = match format!("{}:{}", self.http_server_config.host, self.http_server_config.port).parse() {
+            Ok(addr) => addr,
+            Err(_) => {
+                let default_config: HttpServerConfig = HttpServerConfig::default();
+                error!("Invalid host or port: {}:{}, defaulting to {}:{}",
+                    self.http_server_config.host,
+                    self.http_server_config.port,
+                    default_config.host,
+                    default_config.port);
+                format!("{}:{}", default_config.host, default_config.port).parse().unwrap()
+            }
+        };
 
-        info!("Http Server running on host : {} & port : {}", self.http_server_config.host, self.http_server_config.port);
-        axum::Server::bind(&addr.parse().unwrap())
+        info!("Http Server running at {}", addr.to_string());
+        axum::Server::bind(&addr)
             .serve(self.router.into_make_service())
             .await
             .unwrap();
