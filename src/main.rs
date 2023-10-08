@@ -2,24 +2,18 @@ mod configuration_wrapper;
 mod file_info;
 mod http_server;
 mod lister;
-mod logger;
 mod options_parser;
+mod my_files;
+mod logger;
 mod watcher;
 use axum::{routing::get};
 use crate::http_server::routes;
 
 use log::{debug, error, info};
-use serde::{Deserialize, Serialize};
 use std::process;
 use std::thread;
 use axum::routing::post;
 use crate::http_server::http_server::HttpServerBuilder;
-
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub struct HttpServerConfig {
-    host: String,
-    port: String,
-}
 
 #[tokio::main]
 async fn main() {
@@ -31,11 +25,8 @@ async fn main() {
     let options: Result<options_parser::Options, options_parser::OptionsError> =
         options_parser::get_options();
     info!("Command-line Arguments Parsed");
-    let http_server_config: HttpServerConfig = configuration_wrapper
-        .bind::<HttpServerConfig>("http_server")
-        .unwrap_or_default();
     let server = HttpServerBuilder::new()
-        .configuration_wrapper(http_server_config)
+        .configuration_wrapper(configuration_wrapper.clone())
         .add_route("/", get(routes::hello_world))
         .add_route("/users", get(routes::get_users))
         .add_route("/heaviest_files", get(routes::get_heaviest_files))
@@ -43,6 +34,14 @@ async fn main() {
         .build();
     info!("HTTP Server build");
 
+    let my_files: my_files::MyFiles = my_files::MyFilesBuilder::new()
+        .configuration_wrapper(configuration_wrapper)
+        .seal()
+        .build()
+        .unwrap();
+    info!("MyFilesDB sucessfully created");
+    my_files.init_db().unwrap();
+    info!("MyFilesDB sucessfully initialized");
 
     match options {
         Ok(opts) => {
@@ -55,7 +54,14 @@ async fn main() {
 
             match lister::list_directories(directories_list_args) {
                 Ok(_files_vec) => {
-                    debug!("{:?}", _files_vec);
+                    for file in _files_vec.iter() {
+                        match my_files.add_file_to_db(file) {
+                            Ok(_) => {}
+                            Err(error) => {
+                                error!("{}", error);
+                            }
+                        }
+                    }
                 }
                 Err(error) => {
                     error!("{}", error);
