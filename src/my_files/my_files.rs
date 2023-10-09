@@ -1,7 +1,7 @@
 use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::FileInfo;
 use chrono::{DateTime, Utc};
-use log::{error, info};
+use log::{error, info, warn};
 use rusqlite::{params, Connection, Result, ToSql};
 use serde::{Deserialize, Serialize};
 
@@ -152,7 +152,7 @@ impl MyFiles {
                 file.name,
                 file.path.to_str(),
                 file.size,
-                last_modified.to_string(),
+                last_modified.to_rfc3339(),
                 file.tidy_score.as_ref()
             ],
         ) {
@@ -160,11 +160,58 @@ impl MyFiles {
                 info!("{} added to my_files", file.path.to_str().unwrap()),
             ),
             Err(error) => {
-                error!("Error adding {} to my_files: {}", file.path.to_str().unwrap(), error);
+                warn!("Error adding {} to my_files: {}", file.path.to_str().unwrap(), error);
                 Err(error)
             },
         }
     }
+    pub fn get_all_files_from_db(&self) -> Result<Vec<FileInfo>> {
+        let mut statement = self.connection.prepare("SELECT * FROM my_files")?;
+        let file_iter = statement.query_map(params![], |row| {
+            let path_str = row.get::<_, String>(2)?;
+            let path = std::path::Path::new(&path_str).to_owned(    );
+
+            let time_str = row.get::<_, String>(4)?;
+            let last_modified = match DateTime::parse_from_rfc3339(&time_str) {
+                Ok(last_modified) => last_modified.into(),
+                Err(error) => {
+                    error!("Error parsing key: last_modified with value {}, for file {}. {}", path_str, time_str, error);
+                    std::time::SystemTime::UNIX_EPOCH
+                }
+            };
+
+            Ok(FileInfo {
+                name: row.get::<_, String>(1)?,
+                path,
+                size: row.get::<_, u64>(3)?,
+                last_modified,
+                tidy_score: row.get(5)?,
+            })
+        })?;
+        let mut files_vec: Vec<FileInfo> = Vec::new();
+        for file in file_iter {
+            files_vec.push(file.unwrap());
+        }
+        Ok(files_vec)
+    }
+
+    pub fn raw_select_query(&self, query: &str, params: &[&dyn ToSql]) -> Result<Vec<FileInfo>> {
+        let mut statement = self.connection.prepare(query)?;
+
+        let db_result = statement.query_map(params, |row| {
+            Ok(
+                FileInfo {
+                    name: row.get::<_, String>(1)?,
+                    path: std::path::Path::new(row.get::<_, String>(2)?.as_str()).to_owned(),
+                    size: row.get::<_, u64>(3)?,
+                    last_modified: row.get::<_, String>(4)?.parse::<DateTime<Utc>>().unwrap().into(),
+                    tidy_score: row.get(5)?,
+                }
+            )
+        })?;
+        Ok(db_result.map(|file| file.unwrap()).collect::<Vec<FileInfo>>())
+    }
+
     pub fn raw_query(&self, query: String, params: &[&dyn ToSql]) -> Result<usize> {
         self.connection.execute(query.as_str(), params)
     }

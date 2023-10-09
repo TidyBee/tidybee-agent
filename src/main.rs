@@ -10,9 +10,18 @@ use axum::{routing::get};
 use crate::http_server::routes;
 
 use log::{debug, error, info};
+use serde::{Deserialize, Serialize};
+use rusqlite::params;
 use std::process;
 use std::thread;
 use crate::http_server::http_server::HttpServerBuilder;
+use serde_json::json;
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+struct HttpServerConfig {
+    host: String,
+    port: String,
+}
 
 #[tokio::main]
 async fn main() {
@@ -66,6 +75,9 @@ async fn main() {
                 }
             }
             info!("Directory Successfully Listed");
+
+            println!("{}", json!(my_files.raw_select_query("SELECT * FROM my_files WHERE name=(?1)", params!["configuration_wrapper.rs"]).unwrap()).to_string());
+
             tokio::spawn(async move {
                 server.start().await;
             });
