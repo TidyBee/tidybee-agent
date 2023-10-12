@@ -11,6 +11,7 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os:
           - macos-latest
@@ -18,8 +19,8 @@ jobs:
           - windows-latest
     runs-on: ${{matrix.os}}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
       - uses: actions-rs/toolchain@v1.0.6
         with:
           toolchain: stable
