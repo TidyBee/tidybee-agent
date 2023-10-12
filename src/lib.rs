@@ -2,20 +2,17 @@ mod configuration_wrapper;
 mod file_info;
 mod http_server;
 mod lister;
-mod logger;
 mod options_parser;
+mod my_files;
+mod logger;
 mod watcher;
+use axum::{routing::get};
+use crate::http_server::routes;
 
 use log::{debug, error, info};
-use serde::{Deserialize, Serialize};
 use std::process;
 use std::thread;
-
-#[derive(Debug, Default, Deserialize, Serialize)]
-struct HttpServerConfig {
-    host: String,
-    port: String,
-}
+use crate::http_server::http_server::HttpServerBuilder;
 
 pub async fn run() {
     let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
@@ -26,11 +23,22 @@ pub async fn run() {
     let options: Result<options_parser::Options, options_parser::OptionsError> =
         options_parser::get_options();
     info!("Command-line Arguments Parsed");
-    let http_server_config: HttpServerConfig = configuration_wrapper
-        .bind::<HttpServerConfig>("http_server")
-        .unwrap_or_default();
-    let server = http_server::HttpServer::new(http_server_config.host, http_server_config.port);
-    info!("HTTP Server Created");
+    let server = HttpServerBuilder::new()
+        .configuration_wrapper(configuration_wrapper.clone())
+        .add_route("/", get(routes::hello_world))
+        .add_route("/users", get(routes::get_users))
+        .add_route("/heaviest_files", get(routes::get_heaviest_files))
+        .build();
+    info!("HTTP Server build");
+
+    let my_files: my_files::MyFiles = my_files::MyFilesBuilder::new()
+        .configuration_wrapper(configuration_wrapper)
+        .seal()
+        .build()
+        .unwrap();
+    info!("MyFilesDB sucessfully created");
+    my_files.init_db().unwrap();
+    info!("MyFilesDB sucessfully initialized");
 
     match options {
         Ok(opts) => {
@@ -43,16 +51,22 @@ pub async fn run() {
 
             match lister::list_directories(directories_list_args) {
                 Ok(_files_vec) => {
-                    debug!("{:?}", _files_vec);
+                    for file in _files_vec.iter() {
+                        match my_files.add_file_to_db(file) {
+                            Ok(_) => {}
+                            Err(error) => {
+                                error!("{}", error);
+                            }
+                        }
+                    }
                 }
                 Err(error) => {
                     error!("{}", error);
                 }
             }
             info!("Directory Successfully Listed");
-
             tokio::spawn(async move {
-                server.server_start().await;
+                server.start().await;
             });
             info!("HTTP Server Started");
 
