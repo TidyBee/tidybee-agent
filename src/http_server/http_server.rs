@@ -1,9 +1,9 @@
-use std::net::SocketAddr;
-use axum::{Router};
+use crate::configuration_wrapper::ConfigurationWrapper;
 use axum::routing::MethodRouter;
+use axum::Router;
 use log::{error, info};
 use serde::Deserialize;
-use crate::configuration_wrapper::ConfigurationWrapper;
+use std::net::SocketAddr;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct HttpServerConfig {
@@ -28,10 +28,7 @@ impl Default for HttpServerConfig {
         let host = "0.0.0.0".to_string();
         let port = "8080".to_string();
 
-        HttpServerConfig {
-            host,
-            port,
-        }
+        HttpServerConfig { host, port }
     }
 }
 
@@ -45,13 +42,17 @@ impl HttpServerBuilder {
         self
     }
 
-    pub fn configuration_wrapper(mut self, configuration_wrapper: impl Into<ConfigurationWrapper>) -> Self {
+    pub fn configuration_wrapper(
+        mut self,
+        configuration_wrapper: impl Into<ConfigurationWrapper>,
+    ) -> Self {
         self.configuration_wrapper = configuration_wrapper.into();
         self
     }
 
     pub fn build(self) -> HttpServer {
-        let http_server_config: HttpServerConfig = self.configuration_wrapper
+        let http_server_config: HttpServerConfig = self
+            .configuration_wrapper
             .bind::<HttpServerConfig>("http_server_config")
             .unwrap_or_default();
         let router = self.router;
@@ -65,16 +66,25 @@ impl HttpServerBuilder {
 
 impl HttpServer {
     pub async fn start(self) {
-        let addr: SocketAddr = match format!("{}:{}", self.http_server_config.host, self.http_server_config.port).parse() {
+        let addr: SocketAddr = match format!(
+            "{}:{}",
+            self.http_server_config.host, self.http_server_config.port
+        )
+        .parse()
+        {
             Ok(addr) => addr,
             Err(_) => {
                 let default_config: HttpServerConfig = HttpServerConfig::default();
-                error!("Invalid host or port: {}:{}, defaulting to {}:{}",
+                error!(
+                    "Invalid host or port: {}:{}, defaulting to {}:{}",
                     self.http_server_config.host,
                     self.http_server_config.port,
                     default_config.host,
-                    default_config.port);
-                format!("{}:{}", default_config.host, default_config.port).parse().unwrap()
+                    default_config.port
+                );
+                format!("{}:{}", default_config.host, default_config.port)
+                    .parse()
+                    .unwrap()
             }
         };
 

@@ -43,9 +43,14 @@ impl MyFilesBuilder<NoConfigurationWrapper, NotSealed> {
 }
 
 impl<C> MyFilesBuilder<C, NotSealed> {
-    pub fn configuration_wrapper(self, configuration_wrapper_instance: impl Into<ConfigurationWrapper>) -> MyFilesBuilder<ConfigurationWrapperPresent, NotSealed> {
+    pub fn configuration_wrapper(
+        self,
+        configuration_wrapper_instance: impl Into<ConfigurationWrapper>,
+    ) -> MyFilesBuilder<ConfigurationWrapperPresent, NotSealed> {
         MyFilesBuilder {
-            configuration_wrapper_instance: ConfigurationWrapperPresent(configuration_wrapper_instance.into()),
+            configuration_wrapper_instance: ConfigurationWrapperPresent(
+                configuration_wrapper_instance.into(),
+            ),
             marker_seal: std::marker::PhantomData,
         }
     }
@@ -71,7 +76,10 @@ impl MyFiles {
 
         let connection = Connection::open(my_files_database_configuration.db_path.clone())?;
 
-        Ok(MyFiles { connection, configuration: my_files_database_configuration })
+        Ok(MyFiles {
+            connection,
+            configuration: my_files_database_configuration,
+        })
     }
     pub fn init_db(&self) -> Result<(), rusqlite::Error> {
         if self.configuration.drop_db_on_start {
@@ -121,7 +129,7 @@ impl MyFiles {
             Ok(_) => {
                 info!("Database initialized");
                 Ok(())
-            },
+            }
             Err(error) => {
                 error!("Error initializing database: {}", error);
                 Err(error)
@@ -129,18 +137,18 @@ impl MyFiles {
         }
     }
     pub fn remove_file_from_db(&self, file_path: &str) -> Result<()> {
-        match self.connection.execute(
-            "DELETE FROM my_files WHERE path = ?1",
-            params![file_path],
-        ) {
+        match self
+            .connection
+            .execute("DELETE FROM my_files WHERE path = ?1", params![file_path])
+        {
             Ok(_) => {
                 info!("{} removed from my_files", file_path);
                 Ok(())
-            },
+            }
             Err(error) => {
                 error!("Error removing {} from my_files: {}", file_path, error);
                 Err(error)
-            },
+            }
         }
     }
     pub fn add_file_to_db(&self, file: &FileInfo) -> Result<()> {
@@ -156,26 +164,31 @@ impl MyFiles {
                 file.tidy_score.as_ref()
             ],
         ) {
-            Ok(_) => Ok(
-                info!("{} added to my_files", file.path.to_str().unwrap()),
-            ),
+            Ok(_) => Ok(info!("{} added to my_files", file.path.to_str().unwrap())),
             Err(error) => {
-                warn!("Error adding {} to my_files: {}", file.path.to_str().unwrap(), error);
+                warn!(
+                    "Error adding {} to my_files: {}",
+                    file.path.to_str().unwrap(),
+                    error
+                );
                 Err(error)
-            },
+            }
         }
     }
     pub fn get_all_files_from_db(&self) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection.prepare("SELECT * FROM my_files")?;
         let file_iter = statement.query_map(params![], |row| {
             let path_str = row.get::<_, String>(2)?;
-            let path = std::path::Path::new(&path_str).to_owned(    );
+            let path = std::path::Path::new(&path_str).to_owned();
 
             let time_str = row.get::<_, String>(4)?;
             let last_modified = match DateTime::parse_from_rfc3339(&time_str) {
                 Ok(last_modified) => last_modified.into(),
                 Err(error) => {
-                    error!("Error parsing key: last_modified with value {}, for file {}. {}", path_str, time_str, error);
+                    error!(
+                        "Error parsing key: last_modified with value {}, for file {}. {}",
+                        path_str, time_str, error
+                    );
                     std::time::SystemTime::UNIX_EPOCH
                 }
             };
@@ -199,17 +212,21 @@ impl MyFiles {
         let mut statement = self.connection.prepare(query)?;
 
         let db_result = statement.query_map(params, |row| {
-            Ok(
-                FileInfo {
-                    name: row.get::<_, String>(1)?,
-                    path: std::path::Path::new(row.get::<_, String>(2)?.as_str()).to_owned(),
-                    size: row.get::<_, u64>(3)?,
-                    last_modified: row.get::<_, String>(4)?.parse::<DateTime<Utc>>().unwrap().into(),
-                    tidy_score: row.get(5)?,
-                }
-            )
+            Ok(FileInfo {
+                name: row.get::<_, String>(1)?,
+                path: std::path::Path::new(row.get::<_, String>(2)?.as_str()).to_owned(),
+                size: row.get::<_, u64>(3)?,
+                last_modified: row
+                    .get::<_, String>(4)?
+                    .parse::<DateTime<Utc>>()
+                    .unwrap()
+                    .into(),
+                tidy_score: row.get(5)?,
+            })
         })?;
-        Ok(db_result.map(|file| file.unwrap()).collect::<Vec<FileInfo>>())
+        Ok(db_result
+            .map(|file| file.unwrap())
+            .collect::<Vec<FileInfo>>())
     }
 
     pub fn raw_query(&self, query: String, params: &[&dyn ToSql]) -> Result<usize> {

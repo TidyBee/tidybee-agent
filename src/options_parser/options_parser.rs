@@ -98,7 +98,7 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
         .map(|dirs: clap::Values<'_>| dirs.map(path::PathBuf::from).collect())
         .or(Some(vec![path::PathBuf::from(".")]));
 
-    if !directories_list_args.is_some() || !directories_watch_args.is_some() {
+    if directories_list_args.is_none() || directories_watch_args.is_none() {
         return Err(OptionsError::MissingCommand("".to_string()));
     }
 
@@ -166,7 +166,7 @@ fn check_options(matches: clap::ArgMatches<'_>) -> Result<Options, OptionsError>
             file_types_args = Some("directory".to_string());
         }
         if t.iter()
-            .any(|t: &String| t.contains("*") || t.contains("all"))
+            .any(|t: &String| t.contains('*') || t.contains("all"))
         {
             file_types_args = Some("all".to_string());
         }

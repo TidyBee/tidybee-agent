@@ -1,5 +1,5 @@
-use rusqlite::ToSql;
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, Value, ValueRef};
+use rusqlite::ToSql;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -33,9 +33,9 @@ pub struct TidyScore {
 
 impl ToSql for TidyScore {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
-        Ok(rusqlite::types::ToSqlOutput::Owned(
-            Value::from(serde_json::to_string(self).unwrap()),
-        ))
+        Ok(rusqlite::types::ToSqlOutput::Owned(Value::from(
+            serde_json::to_string(self).unwrap(),
+        )))
     }
 }
 
@@ -43,13 +43,14 @@ impl FromSql for TidyScore {
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
         match value {
             ValueRef::Text(s) => {
-                let tidy_score: TidyScore = match serde_json::from_str(match std::str::from_utf8(s) {
-                    Ok(s) => s,
-                    Err(_) => return Err(FromSqlError::InvalidType),
-                }) {
-                    Ok(tidy_score) => tidy_score,
-                    Err(_) => return Err(FromSqlError::InvalidType),
-                };
+                let tidy_score: TidyScore =
+                    match serde_json::from_str(match std::str::from_utf8(s) {
+                        Ok(s) => s,
+                        Err(_) => return Err(FromSqlError::InvalidType),
+                    }) {
+                        Ok(tidy_score) => tidy_score,
+                        Err(_) => return Err(FromSqlError::InvalidType),
+                    };
                 Ok(tidy_score)
             }
             _ => Err(FromSqlError::InvalidType),
