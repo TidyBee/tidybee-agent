@@ -36,7 +36,7 @@ pub struct MyFilesBuilder<C, S> {
 impl MyFilesBuilder<NoConfigurationWrapper, NotSealed> {
     pub fn new() -> Self {
         MyFilesBuilder {
-            configuration_wrapper_instance: NoConfigurationWrapper::default(),
+            configuration_wrapper_instance: NoConfigurationWrapper,
             marker_seal: std::marker::PhantomData,
         }
     }
@@ -64,7 +64,7 @@ impl<C> MyFilesBuilder<C, NotSealed> {
 
 impl<S> MyFilesBuilder<ConfigurationWrapperPresent, S> {
     pub fn build(self) -> Result<MyFiles> {
-        Ok(MyFiles::new(self.configuration_wrapper_instance.0)?)
+        MyFiles::new(self.configuration_wrapper_instance.0)
     }
 }
 
