@@ -20,7 +20,12 @@ pub fn list_directories(directories: Vec<path::PathBuf>) -> Result<Vec<FileInfo>
                         let size: u64 = md.len();
                         let last_modified: std::time::SystemTime = md.accessed()?;
                         files.push(FileInfo {
-                            name: Path::new(file).file_name().unwrap().to_str().unwrap().to_string(),
+                            name: Path::new(file)
+                                .file_name()
+                                .unwrap()
+                                .to_str()
+                                .unwrap()
+                                .to_string(),
                             path: file.to_string().parse().unwrap(),
                             size,
                             last_modified,
