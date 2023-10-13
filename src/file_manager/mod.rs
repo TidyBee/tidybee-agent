@@ -64,4 +64,19 @@ mod tests {
         assert!(fs::metadata(target_file_path).is_ok());
         fs::remove_dir_all(target_file_path).expect("Failed to remove file");
     }
+
+    #[test]
+    fn test_move_file_source_does_not_exists() {
+        let source_file_path = "source.txt";
+        let target_file_path = "target.txt";
+        assert!(move_file(source_file_path, target_file_path).is_err());
+    }
+
+    #[test]
+    fn test_move_file_target_exists() {
+        let source_file_path = "source.txt";
+        let target_file_path = "target.txt";
+        fs::write(target_file_path, "").expect("Failed to create file");
+        assert!(move_file(source_file_path, target_file_path).is_err());
+    }
 }
