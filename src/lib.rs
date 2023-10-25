@@ -6,8 +6,6 @@ mod logger;
 mod my_files;
 mod options_parser;
 mod watcher;
-use crate::http_server::routes;
-use axum::routing::get;
 
 use crate::http_server::http_server::HttpServerBuilder;
 use log::{debug, error, info};
@@ -25,9 +23,6 @@ pub async fn run() {
     info!("Command-line Arguments Parsed");
     let server = HttpServerBuilder::new()
         .configuration_wrapper(configuration_wrapper.clone())
-        .add_route("/", get(routes::hello_world))
-        .add_route("/users", get(routes::get_users))
-        .add_route("/heaviest_files", get(routes::get_heaviest_files))
         .build();
     info!("HTTP Server build");
 
