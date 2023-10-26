@@ -25,10 +25,12 @@ jobs:
         with:
           toolchain: stable
       - uses: actions-rs/cargo@v1.0.1
+        name: cargo build --release
         with:
           command: build
           args: --release
       - uses: actions-rs/cargo@v1.0.1
+        name: cargo test --verbose
         with:
           command: test
           args: --verbose
