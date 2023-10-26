@@ -1,0 +1,6 @@
+{
+    "my_files_database_configuration": {
+        "db_path": "./my_files_test.db",
+        "drop_db_on_start": true
+      }
+}

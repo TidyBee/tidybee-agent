@@ -2,13 +2,13 @@
   "http_server_config": {
     "host": "0.0.0.0",
     "port": "8082"
-  },
+  },  
   "my_files_database_configuration": {
     "db_path": "./my_files.db",
     "drop_db_on_start": true
   },
   "log_level": {
-    "term": "info",
+    "term": "debug",
     "file": "warn"
   }
 }

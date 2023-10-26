@@ -20,6 +20,9 @@ simplelog = "0.12.1"
 rusqlite = { version = "0.29.0", features = ["bundled"] }
 chrono = "0.4.31"
 
+[dev-dependencies]
+ctor = "0.2.5"
+
 [[bin]]
 name = "tidybee-agent"
 path = "src/main.rs"

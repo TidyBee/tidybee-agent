@@ -1,4 +1,5 @@
 use config::{Config, ConfigError, Environment, File};
+use log::{debug, info};
 
 #[derive(Debug, Clone, Default)]
 pub struct ConfigurationWrapper {
@@ -8,6 +9,8 @@ pub struct ConfigurationWrapper {
 impl ConfigurationWrapper {
     pub fn new() -> Result<Self, ConfigError> {
         let env_name = std::env::var("ENV_NAME").unwrap_or_else(|_| "development".into());
+
+        println!("Loading configuration for {} environment... ", env_name);
 
         let config: Result<Config, ConfigError> = Config::builder()
             .add_source(File::with_name("config/default.json"))

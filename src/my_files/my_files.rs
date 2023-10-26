@@ -236,11 +236,49 @@ impl MyFiles {
 
 #[cfg(test)]
 mod tests {
+    use std::time::SystemTime;
+
     use super::*;
+
+    #[cfg(test)]
+    #[ctor::ctor]
+    fn init() {
+        env_logger::init();
+        std::env::set_var("ENV_NAME", "test");
+    }
 
     #[test]
     pub fn init_db() {
         let my_files = MyFiles::new(ConfigurationWrapper::new().unwrap()).unwrap();
         my_files.init_db().unwrap();
+        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 0);
+    }
+
+    #[test]
+    pub fn insert_file() {
+        let my_files = MyFiles::new(ConfigurationWrapper::new().unwrap()).unwrap();
+        my_files.init_db().unwrap();
+        my_files.add_file_to_db(&FileInfo { name: "xaaaa".into(), path: "/workspaces/tidybee-agent/test_folder/xaaaa".into(), size: 12, last_modified: SystemTime::now(), tidy_score: None }).unwrap();
+        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 1);
+    }
+
+    #[test]
+    pub fn remove_file_from_db() {
+        let my_files = MyFiles::new(ConfigurationWrapper::new().unwrap()).unwrap();
+        my_files.init_db().unwrap();
+        my_files.add_file_to_db(&FileInfo { name: "xaaaa".into(), path: "/workspaces/tidybee-agent/test_folder/xaaaa".into(), size: 12, last_modified: SystemTime::now(), tidy_score: None }).unwrap();
+        my_files.remove_file_from_db("/workspaces/tidybee-agent/test_folder/xaaaa").unwrap();
+        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 0);
+    }
+
+    #[test]
+    pub fn test_raw_select_query() {
+        let my_files = MyFiles::new(ConfigurationWrapper::new().unwrap()).unwrap();
+        my_files.init_db().unwrap();
+        my_files.add_file_to_db(&FileInfo { name: "xaaaa".into(), path: "/workspaces/tidybee-agent/test_folder/xaaaa".into(), size: 12, last_modified: SystemTime::now(), tidy_score: None }).unwrap();
+        let file_info = my_files.raw_select_query("SELECT * FROM my_files WHERE path = ?1", &[&"/workspaces/tidybee-agent/test_folder/xaaaa"]).unwrap();
+        assert_eq!(file_info.len(), 1);
+        assert_eq!(file_info[0].name, "xaaaa");
+        assert_eq!(file_info[0].size, 12);
     }
 }
