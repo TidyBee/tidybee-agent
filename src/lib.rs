@@ -21,13 +21,9 @@ pub async fn run() {
     let options: Result<options_parser::Options, options_parser::OptionsError> =
         options_parser::get_options();
     info!("Command-line Arguments Parsed");
-    let server = HttpServerBuilder::new()
-        .configuration_wrapper(configuration_wrapper.clone())
-        .build();
-    info!("HTTP Server build");
 
     let my_files: my_files::MyFiles = my_files::MyFilesBuilder::new()
-        .configuration_wrapper(configuration_wrapper)
+        .configuration_wrapper(configuration_wrapper.clone())
         .seal()
         .build()
         .unwrap();
@@ -59,6 +55,10 @@ pub async fn run() {
                     error!("{}", error);
                 }
             }
+            let server = HttpServerBuilder::new()
+                .configuration_wrapper(configuration_wrapper)
+                .build();
+            info!("HTTP Server build");
             info!("Directory Successfully Listed");
             tokio::spawn(async move {
                 server.start().await;
