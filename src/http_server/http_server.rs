@@ -7,6 +7,7 @@ use std::net::SocketAddr;
 use crate::http_server::routes;
 use axum::routing::get;
 use crate::http_server::routes::get_heaviest_files;
+use crate::my_files::MyFiles;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct HttpServerConfig {
@@ -53,7 +54,7 @@ impl HttpServerBuilder {
         self
     }
 
-    pub fn build(self) -> HttpServer {
+    pub fn build(self, my_files: MyFiles) -> HttpServer {
         let http_server_config: HttpServerConfig = self
             .configuration_wrapper
             .bind::<HttpServerConfig>("http_server_config")
@@ -62,6 +63,7 @@ impl HttpServerBuilder {
             .route("/", get(routes::hello_world))
             .route("/users", get(routes::get_users))
             .route("/heaviest_files", get(get_heaviest_files))
+            // .route("/get_files", )
             ;
 
         HttpServer {
