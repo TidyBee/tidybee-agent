@@ -1,5 +1,4 @@
 use config::{Config, ConfigError, Environment, File};
-use log::{debug, info};
 
 #[derive(Debug, Clone, Default)]
 pub struct ConfigurationWrapper {
