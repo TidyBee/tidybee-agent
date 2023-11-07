@@ -8,7 +8,7 @@ pub struct Params {
     amount: u32
 }
 
-pub async fn get_files() -> Result<Json<Vec<(String, i64)>>, axum::Error> {
+pub async fn get_files() -> Result<axum::Json<Vec<(String, i64)>>, axum::Error> {
     let conn = Connection::open("my_files.db").expect("Failed to open database");
 
     let mut stmt = conn
@@ -23,11 +23,11 @@ pub async fn get_files() -> Result<Json<Vec<(String, i64)>>, axum::Error> {
 
     match results {
         Ok(data) => {
-            Ok(Json(data))
+            Ok(axum::Json(data))
         }
         Err(err) => {
             eprintln!("Error: {:?}", err);
-            Ok(Json(vec![])) // Return an empty JSON array in case of an error
+            Ok(axum::Json(vec![])) // Return an empty JSON array in case of an error
         }
     }
 }
