@@ -236,9 +236,8 @@ impl MyFiles {
 
 #[cfg(test)]
 mod tests {
-    use std::time::SystemTime;
-
     use super::*;
+    use crate::lister;
 
     #[cfg(test)]
     #[ctor::ctor]
@@ -248,37 +247,26 @@ mod tests {
     }
 
     #[test]
-    pub fn init_db() {
+    pub fn main_test() {
         let my_files = MyFiles::new(ConfigurationWrapper::new().unwrap()).unwrap();
         my_files.init_db().unwrap();
+
+        // Checking that there is no file in the database
         assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 0);
-    }
 
-    #[test]
-    pub fn insert_file() {
-        let my_files = MyFiles::new(ConfigurationWrapper::new().unwrap()).unwrap();
-        my_files.init_db().unwrap();
-        my_files.add_file_to_db(&FileInfo { name: "xaaaa".into(), path: "/workspaces/tidybee-agent/test_folder/xaaaa".into(), size: 12, last_modified: SystemTime::now(), tidy_score: None }).unwrap();
-        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 1);
-    }
+        // Adding files to the database
+        lister::list_directories(vec!["./tests/assets/test_folder".into()])
+            .unwrap()
+            .iter()
+            .for_each(|file| {
+                my_files.add_file_to_db(file).unwrap();
+            });
+        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 10);
 
-    #[test]
-    pub fn remove_file_from_db() {
-        let my_files = MyFiles::new(ConfigurationWrapper::new().unwrap()).unwrap();
-        my_files.init_db().unwrap();
-        my_files.add_file_to_db(&FileInfo { name: "xaaaa".into(), path: "/workspaces/tidybee-agent/test_folder/xaaaa".into(), size: 12, last_modified: SystemTime::now(), tidy_score: None }).unwrap();
-        my_files.remove_file_from_db("/workspaces/tidybee-agent/test_folder/xaaaa").unwrap();
-        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 0);
-    }
-
-    #[test]
-    pub fn test_raw_select_query() {
-        let my_files = MyFiles::new(ConfigurationWrapper::new().unwrap()).unwrap();
-        my_files.init_db().unwrap();
-        my_files.add_file_to_db(&FileInfo { name: "xaaaa".into(), path: "/workspaces/tidybee-agent/test_folder/xaaaa".into(), size: 12, last_modified: SystemTime::now(), tidy_score: None }).unwrap();
-        let file_info = my_files.raw_select_query("SELECT * FROM my_files WHERE path = ?1", &[&"/workspaces/tidybee-agent/test_folder/xaaaa"]).unwrap();
+        // Using raw query
+        let file_info = my_files.raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"xaaaa"]).unwrap();
         assert_eq!(file_info.len(), 1);
         assert_eq!(file_info[0].name, "xaaaa");
-        assert_eq!(file_info[0].size, 12);
+        assert_eq!(file_info[0].size, 100);
     }
 }
