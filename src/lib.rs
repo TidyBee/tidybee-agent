@@ -61,7 +61,7 @@ pub async fn run() {
             info!("HTTP Server build");
             info!("Directory Successfully Listed");
             tokio::spawn(async move {
-                server.start().await;
+                server.await.start().await;
             });
             info!("HTTP Server Started");
 
