@@ -136,6 +136,8 @@ impl MyFiles {
             }
         }
     }
+
+    #[allow(dead_code)]
     pub fn remove_file_from_db(&self, file_path: &str) -> Result<()> {
         match self
             .connection
@@ -151,6 +153,8 @@ impl MyFiles {
             }
         }
     }
+
+    #[allow(dead_code)]
     pub fn add_file_to_db(&self, file: &FileInfo) -> Result<()> {
         let last_modified: DateTime<Utc> = file.last_modified.into();
         match self.connection.execute(
@@ -175,6 +179,8 @@ impl MyFiles {
             }
         }
     }
+
+    #[allow(dead_code)]
     pub fn get_all_files_from_db(&self) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection.prepare("SELECT * FROM my_files")?;
         let file_iter = statement.query_map(params![], |row| {
@@ -208,6 +214,7 @@ impl MyFiles {
         Ok(files_vec)
     }
 
+    #[allow(dead_code)]
     pub fn raw_select_query(&self, query: &str, params: &[&dyn ToSql]) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection.prepare(query)?;
 
@@ -229,6 +236,7 @@ impl MyFiles {
             .collect::<Vec<FileInfo>>())
     }
 
+    #[allow(dead_code)]
     pub fn raw_query(&self, query: String, params: &[&dyn ToSql]) -> Result<usize> {
         self.connection.execute(query.as_str(), params)
     }
