@@ -1,12 +1,5 @@
 use axum::{Json, http};
 use rusqlite::Connection;
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize)]
-pub struct Params {
-    message: String,
-    amount: u32
-}
 
 pub async fn get_files() -> Result<Json<Vec<(String, i64)>>, http::StatusCode> {
     let conn = Connection::open("my_files.db").expect("Failed to open database");
@@ -27,7 +20,7 @@ pub async fn get_files() -> Result<Json<Vec<(String, i64)>>, http::StatusCode> {
         }
         Err(err) => {
             eprintln!("Error: {:?}", err);
-            Ok(Json(vec![])) // Return an empty JSON array in case of an error
+            Ok(Json(vec![]))
         }
     }
 }
