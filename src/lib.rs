@@ -6,11 +6,13 @@ mod logger;
 mod my_files;
 mod options_parser;
 mod watcher;
+mod agent_infos;
 
 use crate::http_server::http_server::HttpServerBuilder;
 use log::{debug, error, info};
 use std::process;
 use std::thread;
+use crate::agent_infos::agent_infos::AgentInfosBuilder;
 
 pub async fn run() {
     let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
@@ -56,7 +58,7 @@ pub async fn run() {
                 }
             }
             let server = HttpServerBuilder::new()
-                .configuration_wrapper(configuration_wrapper)
+                .configuration_wrapper(configuration_wrapper.clone())
                 .build();
             info!("HTTP Server build");
             info!("Directory Successfully Listed");
@@ -65,6 +67,9 @@ pub async fn run() {
             });
             info!("HTTP Server Started");
 
+            let agent_infos = AgentInfosBuilder::new()
+                .configuration_wrapper(configuration_wrapper)
+                .build();
             let (sender, receiver) = crossbeam_channel::unbounded();
             let watch_directories_thread: thread::JoinHandle<()> = thread::spawn(move || {
                 watcher::watch_directories(

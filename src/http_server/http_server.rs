@@ -55,7 +55,9 @@ impl HttpServerBuilder {
             .route("/", get(routes::hello_world))
             .route("/users", get(routes::get_users))
             .route("/heaviest_files", get(routes::get_heaviest_files))
-            .route("/get_files", get(routes::get_files));
+            .route("/get_files", get(routes::get_files))
+            .route("/get_status", get(routes::get_status))
+            ;
 
         HttpServer {
             http_server_config,
