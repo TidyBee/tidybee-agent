@@ -1,18 +1,10 @@
 use crate::configuration_wrapper::ConfigurationWrapper;
-use axum::routing::MethodRouter;
-use axum::{Extension, Router};
+use axum::{Router};
 use log::{error, info};
 use serde::Deserialize;
 use std::net::SocketAddr;
-use std::sync::Arc;
 use crate::http_server::routes;
 use axum::routing::get;
-use rusqlite::Connection;
-use crate::http_server::routes::{get_files, get_heaviest_files};
-use crate::my_files::MyFiles;
-use std::sync::RwLock;
-use axum::response::Json;
-use serde_json::json;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct HttpServerConfig {
@@ -46,11 +38,6 @@ impl HttpServerBuilder {
         HttpServerBuilder::default()
     }
 
-    pub fn add_route(mut self, path: &str, method_router: MethodRouter) -> Self {
-        self.router = self.router.route(path, method_router);
-        self
-    }
-
     pub fn configuration_wrapper(
         mut self,
         configuration_wrapper: impl Into<ConfigurationWrapper>,
@@ -59,7 +46,7 @@ impl HttpServerBuilder {
         self
     }
 
-    pub async fn build(self, my_files: MyFiles) -> HttpServer {
+    pub async fn build(self) -> HttpServer {
         let http_server_config: HttpServerConfig = self
             .configuration_wrapper
             .bind::<HttpServerConfig>("http_server_config")
