@@ -69,7 +69,7 @@ pub async fn run() {
 
             let agent_infos = AgentInfosBuilder::new()
                 .configuration_wrapper(configuration_wrapper)
-                .build();
+                .build(directories_watch_args.clone());
             agent_infos.dump().await;
             let (sender, receiver) = crossbeam_channel::unbounded();
             let watch_directories_thread: thread::JoinHandle<()> = thread::spawn(move || {
