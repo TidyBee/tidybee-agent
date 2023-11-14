@@ -59,6 +59,7 @@ impl HttpServerBuilder {
             .route("/heaviest_files", get(routes::get_heaviest_files))
             .route("/get_files", get(routes::get_files))
             .route("/get_status", get(routes::get_status))
+            .layer(Extension(agent_infos))
             ;
 
         HttpServer {
