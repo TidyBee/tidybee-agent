@@ -11,6 +11,7 @@ mod agent_infos;
 use crate::http_server::http_server::HttpServerBuilder;
 use log::{debug, error, info};
 use std::process;
+use std::sync::Arc;
 use std::thread;
 use crate::agent_infos::agent_infos::AgentInfosBuilder;
 
@@ -42,6 +43,12 @@ pub async fn run() {
             debug!("directories_list_args = {:?}", directories_list_args);
             debug!("directories_watch_args = {:?}", directories_watch_args);
 
+            let agent_infos = AgentInfosBuilder::new()
+                .configuration_wrapper(configuration_wrapper.clone())
+                .build(directories_watch_args.clone());
+            agent_infos.dump().await;
+
+            let state = Arc::new(agent_infos);
             match lister::list_directories(directories_list_args) {
                 Ok(_files_vec) => {
                     for file in _files_vec.iter() {
@@ -59,7 +66,7 @@ pub async fn run() {
             }
             let server = HttpServerBuilder::new()
                 .configuration_wrapper(configuration_wrapper.clone())
-                .build();
+                .build(state);
             info!("HTTP Server build");
             info!("Directory Successfully Listed");
             tokio::spawn(async move {
@@ -67,10 +74,6 @@ pub async fn run() {
             });
             info!("HTTP Server Started");
 
-            let agent_infos = AgentInfosBuilder::new()
-                .configuration_wrapper(configuration_wrapper)
-                .build(directories_watch_args.clone());
-            agent_infos.dump().await;
             let (sender, receiver) = crossbeam_channel::unbounded();
             let watch_directories_thread: thread::JoinHandle<()> = thread::spawn(move || {
                 watcher::watch_directories(

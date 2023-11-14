@@ -1,10 +1,12 @@
 use crate::configuration_wrapper::ConfigurationWrapper;
-use axum::{Router};
+use axum::{Extension, Router};
 use log::{error, info};
 use serde::Deserialize;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use crate::http_server::routes;
 use axum::routing::get;
+use crate::agent_infos::AgentInfos;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct HttpServerConfig {
@@ -46,7 +48,7 @@ impl HttpServerBuilder {
         self
     }
 
-    pub async fn build(self) -> HttpServer {
+    pub async fn build(self, agent_infos: Arc<AgentInfos>) -> HttpServer {
         let http_server_config: HttpServerConfig = self
             .configuration_wrapper
             .bind::<HttpServerConfig>("http_server_config")

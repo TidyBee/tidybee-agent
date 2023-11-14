@@ -1,12 +1,14 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
+use axum::{http, Json};
 use gethostname::gethostname;
 use log::{info};
-use serde::Deserialize;
-use sysinfo::{PidExt, System, SystemExt as SysInfoSystemExt};
+use serde::{Deserialize, Serialize};
+use serde_json::to_string;
+use sysinfo::{PidExt, RefreshKind, System, SystemExt as SysInfoSystemExt};
 use crate::configuration_wrapper::ConfigurationWrapper;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct AgentVersion {
     latest_version: String,
     minimal_version: String
@@ -24,7 +26,7 @@ impl Default for AgentVersion {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct AgentInfos {
     agent_version: AgentVersion,
     machine_name: OsString,
@@ -61,7 +63,7 @@ impl AgentInfosBuilder {
             agent_version,
             machine_name: gethostname(),
             process_id: sysinfo::get_current_pid().unwrap().as_u32(),
-            uptime: self.system.uptime(),
+            uptime: System::new_with_specifics(RefreshKind::new()).uptime(),
             watched_directories: directories_watch_args,
         }
     }
@@ -77,4 +79,18 @@ impl AgentInfos {
         info!("Up time : {:?}", self.uptime);
         info!("Les dossiers pris en compte : {:?}", self.watched_directories);
     }
+
+    pub async fn update(&mut self) {
+        self.uptime = System::new_with_specifics(RefreshKind::new()).uptime();
+    }
+    
+    pub async fn get_uptime(self) -> u64{
+        self.uptime
+    }
+
+    // pub fn from_object_to_json(&self) -> Json<&AgentInfos> {
+    //     let json_response = Json(self.clone());
+    //
+    //     json_response
+    // }
 }
