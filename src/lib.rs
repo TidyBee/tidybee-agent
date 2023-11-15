@@ -13,7 +13,7 @@ use log::{debug, error, info};
 use std::process;
 use std::sync::Arc;
 use std::thread;
-use crate::agent_infos::agent_infos::AgentInfosBuilder;
+use crate::agent_infos::agent_data::AgentDataWrapperBuilder;
 
 pub async fn run() {
     let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
@@ -43,10 +43,10 @@ pub async fn run() {
             debug!("directories_list_args = {:?}", directories_list_args);
             debug!("directories_watch_args = {:?}", directories_watch_args);
 
-            let agent_infos = AgentInfosBuilder::new()
+            let agent_infos = AgentDataWrapperBuilder::new()
                 .configuration_wrapper(configuration_wrapper.clone())
                 .build(directories_watch_args.clone());
-            agent_infos.dump().await;
+            agent_infos.dump();
 
             let state = Arc::new(agent_infos);
             match lister::list_directories(directories_list_args) {

@@ -6,7 +6,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use crate::http_server::routes;
 use axum::routing::get;
-use crate::agent_infos::AgentInfos;
+use crate::agent_infos::AgentData;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct HttpServerConfig {
@@ -48,7 +48,7 @@ impl HttpServerBuilder {
         self
     }
 
-    pub async fn build(self, agent_infos: Arc<AgentInfos>) -> HttpServer {
+    pub async fn build(self, agent_infos: Arc<AgentData>) -> HttpServer {
         let http_server_config: HttpServerConfig = self
             .configuration_wrapper
             .bind::<HttpServerConfig>("http_server_config")

@@ -1,2 +1,2 @@
-pub mod agent_infos;
-pub use agent_infos::AgentInfos;
+pub mod agent_data;
+pub use agent_data::AgentData;
