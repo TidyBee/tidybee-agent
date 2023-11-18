@@ -3,5 +3,5 @@ WORKDIR /app/
 COPY config/ ./config/
 COPY src/ ./src/
 COPY Cargo.lock Cargo.toml ./
-RUN apk add --no-cache build-base=0.5-r3 jq=1.6-r2 && cargo build
+RUN apk add --no-cache build-base=0.5-r3 && cargo build
 CMD ["./target/debug/tidybee-agent"]
