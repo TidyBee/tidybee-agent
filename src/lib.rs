@@ -22,9 +22,11 @@ pub async fn run() {
         options_parser::get_options();
     info!("Command-line Arguments Parsed");
 
-    let my_files: my_files::MyFiles = my_files::MyFilesBuilder::new()
+    let my_files_builder = my_files::MyFilesBuilder::new()
         .configuration_wrapper(configuration_wrapper.clone())
-        .seal()
+        .seal();
+
+    let my_files: my_files::MyFiles = my_files_builder
         .build()
         .unwrap();
     info!("MyFilesDB sucessfully created");
@@ -57,7 +59,7 @@ pub async fn run() {
             }
             let server = HttpServerBuilder::new()
                 .configuration_wrapper(configuration_wrapper)
-                .build();
+                .build(my_files_builder);
             info!("HTTP Server build");
             info!("Directory Successfully Listed");
             tokio::spawn(async move {

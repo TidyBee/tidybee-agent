@@ -3,8 +3,13 @@ use axum::{Router};
 use log::{error, info};
 use serde::Deserialize;
 use std::net::SocketAddr;
-use crate::http_server::routes;
+use std::sync::{Arc, Mutex};
 use axum::routing::get;
+
+use crate::http_server::routes;
+use crate::http_server::routes::get_users::User;
+use crate::my_files;
+use crate::my_files::my_files::{ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct HttpServerConfig {
@@ -15,12 +20,18 @@ pub struct HttpServerConfig {
 #[derive(Clone, Default)]
 pub struct HttpServer {
     http_server_config: HttpServerConfig,
-    router: Router,
+    router: Router
+}
+
+#[derive(Clone)]
+pub struct MyFilesState {
+    pub my_files: Arc<Mutex<my_files::MyFiles>>,
 }
 
 #[derive(Clone, Default)]
 pub struct HttpServerBuilder {
     router: Router,
+    my_files_builder: my_files::MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed>,
     configuration_wrapper: ConfigurationWrapper,
 }
 
@@ -46,17 +57,33 @@ impl HttpServerBuilder {
         self
     }
 
+    pub fn my_files_builder(
+        mut self,
+        my_files_builder: my_files::MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed>,
+    ) -> Self {
+        self.my_files_builder = my_files_builder;
+        self
+    }
+
     pub async fn build(self) -> HttpServer {
         let http_server_config: HttpServerConfig = self
             .configuration_wrapper
             .bind::<HttpServerConfig>("http_server_config")
             .unwrap_or_default();
+
+        let my_files_instance = self.my_files_builder
+            .build()
+            .unwrap();
+        info!("MyFiles instance sucessfully created for HTTP Server");
+        let my_files_state = MyFilesState {
+            my_files: Arc::new(Mutex::new(my_files_instance)),
+        };
+
         let router = self.router
             .route("/", get(routes::hello_world))
-            .route("/users", get(routes::get_users))
+            .route("/users", get(routes::get_users).with_state(my_files_state))
             .route("/heaviest_files", get(routes::get_heaviest_files))
             .route("/get_files", get(routes::get_files));
-
         HttpServer {
             http_server_config,
             router,
@@ -70,7 +97,7 @@ impl HttpServer {
             "{}:{}",
             self.http_server_config.host, self.http_server_config.port
         )
-        .parse()
+            .parse()
         {
             Ok(addr) => addr,
             Err(_) => {
