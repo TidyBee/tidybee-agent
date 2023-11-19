@@ -7,7 +7,6 @@ use std::sync::{Arc, Mutex};
 use axum::routing::get;
 
 use crate::http_server::routes;
-use crate::http_server::routes::get_users::User;
 use crate::my_files;
 use crate::my_files::my_files::{ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed};
 

@@ -24,7 +24,7 @@ pub struct NoConnectionManager;
 #[derive(Default, Clone)]
 pub struct ConfigurationWrapperPresent(ConfigurationWrapper);
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct ConnectionManagerPresent(Pool<SqliteConnectionManager>);
 // endregion: --- MyFiles builder states
 
@@ -39,7 +39,7 @@ pub struct MyFiles {
     configuration: MyFilesDatabaseConfiguration,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct MyFilesBuilder<C, M, S> {
     connection_manager: M,
     configuration_wrapper_instance: C,

@@ -59,7 +59,8 @@ pub async fn run() {
             }
             let server = HttpServerBuilder::new()
                 .configuration_wrapper(configuration_wrapper)
-                .build(my_files_builder);
+                .my_files_builder(my_files_builder)
+                .build();
             info!("HTTP Server build");
             info!("Directory Successfully Listed");
             tokio::spawn(async move {

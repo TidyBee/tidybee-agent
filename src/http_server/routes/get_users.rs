@@ -1,8 +1,6 @@
-use std::sync::{Arc, Mutex};
-use axum::{Json, extract::State, debug_handler};
+use axum::{Json, extract::State};
 use serde::Serialize;
 use crate::http_server::MyFilesState;
-use crate::my_files::MyFiles;
 
 #[derive(Serialize, Clone)]
 pub struct User {
