@@ -26,9 +26,7 @@ pub async fn run() {
         .configuration_wrapper(configuration_wrapper.clone())
         .seal();
 
-    let my_files: my_files::MyFiles = my_files_builder
-        .build()
-        .unwrap();
+    let my_files: my_files::MyFiles = my_files_builder.build().unwrap();
     info!("MyFilesDB sucessfully created");
     my_files.init_db().unwrap();
     info!("MyFilesDB sucessfully initialized");
