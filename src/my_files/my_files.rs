@@ -55,8 +55,8 @@ impl Default for ConnectionManagerPresent {
 impl MyFilesBuilder<NoConfigurationWrapper, NoConnectionManager, NotSealed> {
     pub fn new() -> Self {
         MyFilesBuilder {
-            connection_manager: NoConnectionManager::default(),
-            configuration_wrapper_instance: NoConfigurationWrapper::default(),
+            connection_manager: NoConnectionManager,
+            configuration_wrapper_instance: NoConfigurationWrapper,
             marker_seal: std::marker::PhantomData,
         }
     }
@@ -111,7 +111,7 @@ impl MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Seale
                 panic!();
             }
         };
-        Ok(MyFiles::new(my_files_configuration, connection_pool)?)
+        MyFiles::new(my_files_configuration, connection_pool)
     }
 }
 
