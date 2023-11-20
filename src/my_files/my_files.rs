@@ -2,11 +2,11 @@ use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::FileInfo;
 use chrono::{DateTime, Utc};
 use log::{error, info, warn};
-use rusqlite::{params, Result, ToSql};
-use serde::{Deserialize, Serialize};
-use r2d2_sqlite::SqliteConnectionManager;
 use r2d2;
 use r2d2::{Pool, PooledConnection};
+use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::{params, Result, ToSql};
+use serde::{Deserialize, Serialize};
 
 // region: --- MyFiles builder states
 #[derive(Default, Clone)]
@@ -63,8 +63,14 @@ impl MyFilesBuilder<NoConfigurationWrapper, NoConnectionManager, NotSealed> {
 }
 
 impl<C, M> MyFilesBuilder<C, M, NotSealed> {
-    pub fn configuration_wrapper(self, configuration_wrapper_instance: ConfigurationWrapper) -> MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, NotSealed> {
-        let db_path = configuration_wrapper_instance.bind::<MyFilesDatabaseConfiguration>("my_files_database_configuration").unwrap_or_default().db_path;
+    pub fn configuration_wrapper(
+        self,
+        configuration_wrapper_instance: ConfigurationWrapper,
+    ) -> MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, NotSealed> {
+        let db_path = configuration_wrapper_instance
+            .bind::<MyFilesDatabaseConfiguration>("my_files_database_configuration")
+            .unwrap_or_default()
+            .db_path;
         let manager = SqliteConnectionManager::file(db_path);
         let pool = match Pool::new(manager) {
             Ok(pool) => pool,
@@ -75,7 +81,9 @@ impl<C, M> MyFilesBuilder<C, M, NotSealed> {
         };
 
         MyFilesBuilder {
-            configuration_wrapper_instance: ConfigurationWrapperPresent(configuration_wrapper_instance),
+            configuration_wrapper_instance: ConfigurationWrapperPresent(
+                configuration_wrapper_instance,
+            ),
             connection_manager: ConnectionManagerPresent(pool),
             marker_seal: std::marker::PhantomData,
         }
@@ -91,7 +99,11 @@ impl<C, M> MyFilesBuilder<C, M, NotSealed> {
 
 impl MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed> {
     pub fn build(&self) -> Result<MyFiles> {
-        let my_files_configuration = self.configuration_wrapper_instance.0.bind::<MyFilesDatabaseConfiguration>("my_files_database_configuration").unwrap_or_default();
+        let my_files_configuration = self
+            .configuration_wrapper_instance
+            .0
+            .bind::<MyFilesDatabaseConfiguration>("my_files_database_configuration")
+            .unwrap_or_default();
         let connection_pool = match self.connection_manager.0.get() {
             Ok(connection) => connection,
             Err(error) => {
@@ -104,8 +116,14 @@ impl MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Seale
 }
 
 impl MyFiles {
-    pub fn new(configuration: MyFilesDatabaseConfiguration, connection_pool: PooledConnection<SqliteConnectionManager>) -> Result<Self> {
-        Ok(MyFiles { connection_pool, configuration })
+    pub fn new(
+        configuration: MyFilesDatabaseConfiguration,
+        connection_pool: PooledConnection<SqliteConnectionManager>,
+    ) -> Result<Self> {
+        Ok(MyFiles {
+            connection_pool,
+            configuration,
+        })
     }
     pub fn init_db(&self) -> Result<(), rusqlite::Error> {
         if self.configuration.drop_db_on_start {
@@ -163,10 +181,10 @@ impl MyFiles {
         }
     }
     pub fn remove_file_from_db(&self, file_path: &str) -> Result<()> {
-        match self.connection_pool.execute(
-            "DELETE FROM my_files WHERE path = ?1",
-            params![file_path],
-        ) {
+        match self
+            .connection_pool
+            .execute("DELETE FROM my_files WHERE path = ?1", params![file_path])
+        {
             Ok(_) => {
                 info!("{} removed from my_files", file_path);
                 Ok(())
@@ -190,11 +208,13 @@ impl MyFiles {
                 file.tidy_score.as_ref()
             ],
         ) {
-            Ok(_) => Ok(
-                info!("{} added to my_files", file.path.to_str().unwrap()),
-            ),
+            Ok(_) => Ok(info!("{} added to my_files", file.path.to_str().unwrap())),
             Err(error) => {
-                warn!("Error adding {} to my_files: {}", file.path.to_str().unwrap(), error);
+                warn!(
+                    "Error adding {} to my_files: {}",
+                    file.path.to_str().unwrap(),
+                    error
+                );
                 Err(error)
             }
         }
@@ -209,7 +229,10 @@ impl MyFiles {
             let last_modified = match DateTime::parse_from_rfc3339(&time_str) {
                 Ok(last_modified) => last_modified.into(),
                 Err(error) => {
-                    error!("Error parsing key: last_modified with value {}, for file {}. {}", path_str, time_str, error);
+                    error!(
+                        "Error parsing key: last_modified with value {}, for file {}. {}",
+                        path_str, time_str, error
+                    );
                     std::time::SystemTime::UNIX_EPOCH
                 }
             };
@@ -233,17 +256,21 @@ impl MyFiles {
         let mut statement = self.connection_pool.prepare(query)?;
 
         let db_result = statement.query_map(params, |row| {
-            Ok(
-                FileInfo {
-                    name: row.get::<_, String>(1)?,
-                    path: std::path::Path::new(row.get::<_, String>(2)?.as_str()).to_owned(),
-                    size: row.get::<_, u64>(3)?,
-                    last_modified: row.get::<_, String>(4)?.parse::<DateTime<Utc>>().unwrap().into(),
-                    tidy_score: row.get(5)?,
-                }
-            )
+            Ok(FileInfo {
+                name: row.get::<_, String>(1)?,
+                path: std::path::Path::new(row.get::<_, String>(2)?.as_str()).to_owned(),
+                size: row.get::<_, u64>(3)?,
+                last_modified: row
+                    .get::<_, String>(4)?
+                    .parse::<DateTime<Utc>>()
+                    .unwrap()
+                    .into(),
+                tidy_score: row.get(5)?,
+            })
         })?;
-        Ok(db_result.map(|file| file.unwrap()).collect::<Vec<FileInfo>>())
+        Ok(db_result
+            .map(|file| file.unwrap())
+            .collect::<Vec<FileInfo>>())
     }
 
     pub fn raw_query(&self, query: String, params: &[&dyn ToSql]) -> Result<usize> {

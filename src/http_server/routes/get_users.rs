@@ -1,6 +1,7 @@
-use axum::{Json, extract::State};
-use serde::Serialize;
+use crate::file_info::FileInfo;
 use crate::http_server::MyFilesState;
+use axum::{extract::State, Json};
+use serde::Serialize;
 
 #[derive(Serialize, Clone)]
 pub struct User {
@@ -8,23 +9,13 @@ pub struct User {
     pub username: String,
 }
 
+pub async fn get_users(State(my_files): State<MyFilesState>) -> Json<Vec<FileInfo>> {
+    let files = my_files
+        .my_files
+        .lock()
+        .unwrap()
+        .get_all_files_from_db()
+        .unwrap();
 
-pub async fn get_users(State(my_files): State<MyFilesState>) -> Json<Vec<User>> {
-    let files = my_files.my_files.lock().unwrap().get_all_files_from_db().unwrap();
-
-    for file in files {
-        println!("file = {:?}", file);
-    }
-
-    let users: Vec<User> = vec![
-        User {
-            name: "Alice".to_string(),
-            username: "alice".to_string(),
-        },
-        User {
-            name: "Bob".to_string(),
-            username: "bob".to_string(),
-        },
-    ];
-    Json(users)
+    Json(files)
 }
