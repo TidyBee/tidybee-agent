@@ -1,12 +1,12 @@
 use crate::file_info::FileInfo;
 use crate::http_server::MyFilesState;
+use crate::my_files::MyFiles;
 use axum::{extract::State, Json};
 use log::error;
-use crate::my_files::MyFiles;
 
 struct MyQueryParams {
     sort_by: String,
-    number_of_files: usize
+    number_of_files: usize,
 }
 
 pub async fn get_files(State(my_files): State<MyFilesState>) -> Json<Vec<FileInfo>> {

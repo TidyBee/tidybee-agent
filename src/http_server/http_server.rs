@@ -85,7 +85,10 @@ impl HttpServerBuilder {
             .router
             .route("/", get(routes::hello_world))
             .route("/heaviest_files", get(routes::get_heaviest_files))
-            .route("/get_files", get(routes::get_files).with_state(my_files_state));
+            .route(
+                "/get_files",
+                get(routes::get_files).with_state(my_files_state),
+            );
         HttpServer {
             http_server_config,
             router,
