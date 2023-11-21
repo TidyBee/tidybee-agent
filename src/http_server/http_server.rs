@@ -84,9 +84,8 @@ impl HttpServerBuilder {
         let router = self
             .router
             .route("/", get(routes::hello_world))
-            .route("/users", get(routes::get_users).with_state(my_files_state))
             .route("/heaviest_files", get(routes::get_heaviest_files))
-            .route("/get_files", get(routes::get_files));
+            .route("/get_files", get(routes::get_files).with_state(my_files_state));
         HttpServer {
             http_server_config,
             router,
