@@ -1,7 +1,7 @@
 {
   "http_server_config": {
     "host": "0.0.0.0",
-    "port": "8082"
+    "port": "8080"
   },
   "my_files_database_configuration": {
     "db_path": "./my_files.db",
