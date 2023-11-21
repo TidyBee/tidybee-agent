@@ -1,12 +1,12 @@
 use crate::configuration_wrapper::ConfigurationWrapper;
-use crate::http_server::routes;
-use crate::http_server::routes::get_heaviest_files;
-use axum::routing::get;
 use axum::routing::MethodRouter;
 use axum::Router;
 use log::{error, info};
 use serde::Deserialize;
 use std::net::SocketAddr;
+use crate::http_server::routes;
+use axum::routing::get;
+use crate::http_server::routes::get_heaviest_files;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct HttpServerConfig {
@@ -58,11 +58,11 @@ impl HttpServerBuilder {
             .configuration_wrapper
             .bind::<HttpServerConfig>("http_server_config")
             .unwrap_or_default();
-        let router = self
-            .router
+        let router = self.router
             .route("/", get(routes::hello_world))
             .route("/users", get(routes::get_users))
-            .route("/heaviest_files", get(get_heaviest_files));
+            .route("/heaviest_files", get(get_heaviest_files))
+            ;
 
         HttpServer {
             http_server_config,
