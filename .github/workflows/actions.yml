@@ -40,7 +40,7 @@ jobs:
         with:
           host: ${{ secrets.ZONEO_HOST }}
           username: ${{ secrets.ZONEO_AGENT_USERNAME }}
-          password: ${{ ZONEO_AGENT_PASSWORD }}
+          password: ${{ secrets.ZONEO_AGENT_PASSWORD }}
           port: ${{ secrets.ZONEO_SSH_PORT }}
           source: "target/debug/tidybee-agent,config/"
           target: "/opt/tidybee-agent"
