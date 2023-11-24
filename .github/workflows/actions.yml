@@ -1,4 +1,4 @@
-name: Build
+name: Build & Deploy
 on:
   push:
     branches:
@@ -34,3 +34,16 @@ jobs:
         with:
           command: test
           args: --verbose
+      - name: "Deploy linux agent"
+        if: ${{matrix.os}} == "ubuntu-latest" && ${{ github.ref }} == "refs/heads/main"
+        uses: appleboy/scp-action@latest
+        with:
+          host: ${{ secrets.ZONEO_HOST }}
+          username: ${{ secrets.ZONEO_AGENT_USERNAME }}
+          password: ${{ ZONEO_AGENT_PASSWORD }}
+          port: ${{ secrets.ZONEO_SSH_PORT }}
+          source: "target/debug/tidybee-agent,config/"
+          target: "/opt/tidybee-agent"
+        
+        
+        
