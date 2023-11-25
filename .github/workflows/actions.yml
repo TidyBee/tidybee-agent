@@ -41,7 +41,8 @@ jobs:
           direction: upload
           host: ${{ secrets.ZONEO_HOST }}
           username: ${{ secrets.ZONEO_AGENT_USERNAME }}
-          password: ${{ secrets.ZONEO_AGENT_PASSWORD }}
+          passphrase: ${{ secrets.ZONEO_AGENT_PASSWORD }}
+          insecure_proxy_ignore_fingerprint: true
           port: ${{ secrets.ZONEO_SSH_PORT }}
           source: |
             tidybee-agent/tidybee-agent
