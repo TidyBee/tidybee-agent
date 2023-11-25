@@ -35,7 +35,7 @@ jobs:
           command: test
           args: --verbose
       - name: "Deploy linux agent"
-        if: ${{matrix.os}} == "ubuntu-latest" && ${{ github.ref }} == "refs/heads/main"
+        if: matrix.os == "ubuntu-latest" && github.ref == "refs/heads/main"
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.ZONEO_HOST }}
