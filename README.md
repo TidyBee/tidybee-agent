@@ -30,6 +30,12 @@ Optional commands are parsed in the configuration module, but not implemented!
 -s, --send <ADDR>       # send json data to this address (send file list/events)
 ```
 
+## Docker image
+```
+docker build -t agent .
+docker run -it --rm -p 8082:8082 agent
+```
+
 ## Run the test suite
 ```
 cargo test

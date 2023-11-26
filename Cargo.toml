@@ -6,7 +6,6 @@ authors = ["majent4", "Cavonstavant", "Ju"]
 
 [dependencies]
 notify = "6.1.1"
-clap = "2.33"
 notify-debouncer-full = "0.3.1"
 crossbeam-channel = "0.5.8"
 serde = { version = "1.0.185", features = ["derive"] }
