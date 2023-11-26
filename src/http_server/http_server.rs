@@ -76,7 +76,7 @@ impl HttpServerBuilder {
             .unwrap_or_default();
 
         let my_files_instance = self.my_files_builder.build().unwrap();
-        info!("MyFiles instance sucessfully created for HTTP Server");
+        info!("MyFiles instance successfully created for HTTP Server");
         let my_files_state = MyFilesState {
             my_files: Arc::new(Mutex::new(my_files_instance)),
         };
@@ -84,9 +84,8 @@ impl HttpServerBuilder {
         let router = self
             .router
             .route("/", get(routes::hello_world))
-            .route("/heaviest_files", get(routes::get_heaviest_files))
             .route(
-                "/get_files",
+                "/get_files/:nb_files/sorted_by/:sort_type",
                 get(routes::get_files).with_state(my_files_state),
             );
         HttpServer {
