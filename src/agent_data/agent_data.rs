@@ -1,14 +1,14 @@
-use std::path::PathBuf;
-use gethostname::gethostname;
-use log::{info};
-use serde::{Deserialize, Serialize};
-use sysinfo::{PidExt, RefreshKind, System, SystemExt as SysInfoSystemExt};
 use crate::configuration_wrapper::ConfigurationWrapper;
+use gethostname::gethostname;
+use log::info;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use sysinfo::{PidExt, RefreshKind, System, SystemExt as SysInfoSystemExt};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct AgentVersion {
     latest_version: String,
-    minimal_version: String
+    minimal_version: String,
 }
 
 impl Default for AgentVersion {
@@ -18,7 +18,7 @@ impl Default for AgentVersion {
 
         AgentVersion {
             latest_version,
-            minimal_version
+            minimal_version,
         }
     }
 }
@@ -34,7 +34,7 @@ pub struct AgentData {
 
 #[derive(Default)]
 pub struct AgentDataBuilder {
-    configuration_wrapper: ConfigurationWrapper
+    configuration_wrapper: ConfigurationWrapper,
 }
 
 impl AgentDataBuilder {
@@ -44,14 +44,15 @@ impl AgentDataBuilder {
 
     pub fn configuration_wrapper(
         mut self,
-        configuration_wrapper: impl Into<ConfigurationWrapper>
+        configuration_wrapper: impl Into<ConfigurationWrapper>,
     ) -> Self {
         self.configuration_wrapper = configuration_wrapper.into();
         self
     }
 
     pub fn build(self, directories_watch_args: Vec<PathBuf>) -> AgentData {
-        let agent_version: AgentVersion = self.configuration_wrapper
+        let agent_version: AgentVersion = self
+            .configuration_wrapper
             .bind::<AgentVersion>("agent_config")
             .unwrap_or_default();
 
@@ -65,6 +66,7 @@ impl AgentDataBuilder {
     }
 }
 
+#[allow(dead_code)]
 impl AgentData {
     pub fn dump(&self) {
         info!("Voici le status de l'agent et ses configurations :");
@@ -73,7 +75,10 @@ impl AgentData {
         info!("Machine name : {:?}", self.machine_name);
         info!("Pid : {:?}", self.process_id);
         info!("Up time : {:?}", self.uptime);
-        info!("Les dossiers pris en compte : {:?}", self.watched_directories);
+        info!(
+            "Les dossiers pris en compte : {:?}",
+            self.watched_directories
+        );
     }
 
     pub fn update(&mut self) {
