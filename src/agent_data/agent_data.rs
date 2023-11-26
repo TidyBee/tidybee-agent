@@ -69,14 +69,14 @@ impl AgentDataBuilder {
 #[allow(dead_code)]
 impl AgentData {
     pub fn dump(&self) {
-        info!("Voici le status de l'agent et ses configurations :");
+        info!("Agent's status and his configuration below :");
         info!("Latest version : {}", self.agent_version.latest_version);
         info!("Minimal version : {}", self.agent_version.minimal_version);
         info!("Machine name : {:?}", self.machine_name);
         info!("Pid : {:?}", self.process_id);
         info!("Up time : {:?}", self.uptime);
         info!(
-            "Les dossiers pris en compte : {:?}",
+            "Watched directories : {:?}",
             self.watched_directories
         );
     }
