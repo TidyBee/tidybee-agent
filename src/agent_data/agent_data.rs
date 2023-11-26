@@ -84,8 +84,4 @@ impl AgentData {
     pub fn update(&mut self) {
         self.uptime = System::new_with_specifics(RefreshKind::new()).uptime();
     }
-
-    pub fn dup(self) -> Self {
-        self.clone()
-    }
 }
