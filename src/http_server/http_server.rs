@@ -1,12 +1,14 @@
 use crate::configuration_wrapper::ConfigurationWrapper;
-use axum::{Extension, Router};
+use axum::routing::get;
+use axum::Router;
 use log::{error, info};
 use serde::Deserialize;
 use std::net::SocketAddr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+
 use crate::http_server::routes;
-use axum::routing::get;
-use crate::agent_infos::AgentData;
+use crate::my_files;
+use crate::my_files::my_files::{ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct HttpServerConfig {
@@ -20,9 +22,16 @@ pub struct HttpServer {
     router: Router,
 }
 
+#[derive(Clone)]
+pub struct MyFilesState {
+    pub my_files: Arc<Mutex<my_files::MyFiles>>,
+}
+
 #[derive(Clone, Default)]
 pub struct HttpServerBuilder {
     router: Router,
+    my_files_builder:
+        my_files::MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed>,
     configuration_wrapper: ConfigurationWrapper,
 }
 
@@ -48,20 +57,37 @@ impl HttpServerBuilder {
         self
     }
 
-    pub async fn build(self, agent_infos: Arc<AgentData>) -> HttpServer {
+    pub fn my_files_builder(
+        mut self,
+        my_files_builder: my_files::MyFilesBuilder<
+            ConfigurationWrapperPresent,
+            ConnectionManagerPresent,
+            Sealed,
+        >,
+    ) -> Self {
+        self.my_files_builder = my_files_builder;
+        self
+    }
+
+    pub async fn build(self) -> HttpServer {
         let http_server_config: HttpServerConfig = self
             .configuration_wrapper
             .bind::<HttpServerConfig>("http_server_config")
             .unwrap_or_default();
-        let router = self.router
-            .route("/", get(routes::hello_world))
-            .route("/users", get(routes::get_users))
-            .route("/heaviest_files", get(routes::get_heaviest_files))
-            .route("/get_files", get(routes::get_files))
-            .route("/get_status", get(routes::get_status))
-            .layer(Extension(agent_infos))
-            ;
 
+        let my_files_instance = self.my_files_builder.build().unwrap();
+        info!("MyFiles instance successfully created for HTTP Server");
+        let my_files_state = MyFilesState {
+            my_files: Arc::new(Mutex::new(my_files_instance)),
+        };
+
+        let router = self
+            .router
+            .route("/", get(routes::hello_world))
+            .route(
+                "/get_files/:nb_files/sorted_by/:sort_type",
+                get(routes::get_files).with_state(my_files_state),
+            );
         HttpServer {
             http_server_config,
             router,

@@ -26,11 +26,11 @@ impl Default for AgentVersion {
 
 #[derive(Debug, Default, Serialize, Clone, Copy)]
 pub struct AgentData {
-    // agent_version: AgentVersion,
-    // pub(crate) machine_name: String,
-    pub(crate) process_id: u32,
-    // uptime: u64,
-    // watched_directories: Vec<PathBuf>,
+    agent_version: AgentVersion,
+    pub(crate) machine_name: String,
+    process_id: u32,
+    uptime: u64,
+    watched_directories: Vec<PathBuf>,
 }
 
 // #[derive(Debug, Default)]
@@ -65,35 +65,35 @@ impl AgentDataWrapperBuilder {
             .unwrap_or_default();
 
         AgentData {
-            // agent_version,
-            // machine_name: gethostname().to_str().unwrap().to_string(),
+            agent_version,
+            machine_name: gethostname().to_str().unwrap().to_string(),
             process_id: sysinfo::get_current_pid().unwrap().as_u32(),
-            // uptime: System::new_with_specifics(RefreshKind::new()).uptime(),
-            // watched_directories: directories_watch_args,
+            uptime: System::new_with_specifics(RefreshKind::new()).uptime(),
+            watched_directories: directories_watch_args,
         }
     }
 }
 
 impl AgentData {
     pub fn dump(&self) {
-        // info!("Voici le status de l'agent et ses configurations :");
-        // info!("Latest version : {}", self.agent_version.latest_version);
-        // info!("Minimal version : {}", self.agent_version.minimal_version);
-        // info!("Machine name : {:?}", self.machine_name);
-        // info!("Pid : {:?}", self.process_id);
-        // info!("Up time : {:?}", self.uptime);
-        // info!("Les dossiers pris en compte : {:?}", self.watched_directories);
+        info!("Voici le status de l'agent et ses configurations :");
+        info!("Latest version : {}", self.agent_version.latest_version);
+        info!("Minimal version : {}", self.agent_version.minimal_version);
+        info!("Machine name : {:?}", self.machine_name);
+        info!("Pid : {:?}", self.process_id);
+        info!("Up time : {:?}", self.uptime);
+        info!("Les dossiers pris en compte : {:?}", self.watched_directories);
     }
 
-    // pub fn update(&mut self) {
-    //     self.uptime = System::new_with_specifics(RefreshKind::new()).uptime();
-    // }
-    //
+    pub fn update(&mut self) {
+        self.uptime = System::new_with_specifics(RefreshKind::new()).uptime();
+    }
+
     pub fn get_pid(self) -> u32 {
         self.process_id.clone()
     }
 
-    // pub fn get_machine(self) -> String {
-    //     self.machine_name.clone()
-    // }
+    pub fn get_machine(self) -> String {
+        self.machine_name.clone()
+    }
 }
