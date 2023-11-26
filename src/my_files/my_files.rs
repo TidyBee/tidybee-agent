@@ -115,6 +115,7 @@ impl MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Seale
     }
 }
 
+#[allow(dead_code)]
 impl MyFiles {
     pub fn new(
         configuration: MyFilesDatabaseConfiguration,
