@@ -81,13 +81,10 @@ impl HttpServerBuilder {
             my_files: Arc::new(Mutex::new(my_files_instance)),
         };
 
-        let router = self
-            .router
-            .route("/", get(routes::hello_world))
-            .route(
-                "/get_files/:nb_files/sorted_by/:sort_type",
-                get(routes::get_files).with_state(my_files_state),
-            );
+        let router = self.router.route("/", get(routes::hello_world)).route(
+            "/get_files/:nb_files/sorted_by/:sort_type",
+            get(routes::get_files).with_state(my_files_state),
+        );
         HttpServer {
             http_server_config,
             router,
