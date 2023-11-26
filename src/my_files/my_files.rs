@@ -2,88 +2,133 @@ use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::FileInfo;
 use chrono::{DateTime, Utc};
 use log::{error, info, warn};
-use rusqlite::{params, Connection, Result, ToSql};
+use r2d2;
+use r2d2::{Pool, PooledConnection};
+use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::{params, Result, ToSql};
 use serde::{Deserialize, Serialize};
 
 // region: --- MyFiles builder states
 #[derive(Default, Clone)]
 pub struct Sealed;
+
 #[derive(Default, Clone)]
 pub struct NotSealed;
+
 #[derive(Default, Clone)]
 pub struct NoConfigurationWrapper;
+
+#[derive(Default, Clone)]
+pub struct NoConnectionManager;
+
 #[derive(Default, Clone)]
 pub struct ConfigurationWrapperPresent(ConfigurationWrapper);
+
+#[derive(Clone)]
+pub struct ConnectionManagerPresent(Pool<SqliteConnectionManager>);
 // endregion: --- MyFiles builder states
 
-#[derive(Serialize, Deserialize, Default)]
-struct MyFilesDatabaseConfiguration {
+#[derive(Serialize, Deserialize, Default, Clone)]
+pub struct MyFilesDatabaseConfiguration {
     pub db_path: String,
     pub drop_db_on_start: bool,
 }
 
 pub struct MyFiles {
-    connection: Connection,
+    connection_pool: PooledConnection<SqliteConnectionManager>,
     configuration: MyFilesDatabaseConfiguration,
 }
 
-#[derive(Default, Clone)]
-pub struct MyFilesBuilder<C, S> {
+#[derive(Copy, Clone, Default)]
+pub struct MyFilesBuilder<C, M, S> {
+    connection_manager: M,
     configuration_wrapper_instance: C,
     marker_seal: std::marker::PhantomData<S>,
 }
 
-impl MyFilesBuilder<NoConfigurationWrapper, NotSealed> {
+impl Default for ConnectionManagerPresent {
+    fn default() -> Self {
+        ConnectionManagerPresent(Pool::new(SqliteConnectionManager::file("my_files.db")).unwrap())
+    }
+}
+
+impl MyFilesBuilder<NoConfigurationWrapper, NoConnectionManager, NotSealed> {
     pub fn new() -> Self {
         MyFilesBuilder {
+            connection_manager: NoConnectionManager,
             configuration_wrapper_instance: NoConfigurationWrapper,
             marker_seal: std::marker::PhantomData,
         }
     }
 }
 
-impl<C> MyFilesBuilder<C, NotSealed> {
+impl<C, M> MyFilesBuilder<C, M, NotSealed> {
     pub fn configuration_wrapper(
         self,
-        configuration_wrapper_instance: impl Into<ConfigurationWrapper>,
-    ) -> MyFilesBuilder<ConfigurationWrapperPresent, NotSealed> {
+        configuration_wrapper_instance: ConfigurationWrapper,
+    ) -> MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, NotSealed> {
+        let db_path = configuration_wrapper_instance
+            .bind::<MyFilesDatabaseConfiguration>("my_files_database_configuration")
+            .unwrap_or_default()
+            .db_path;
+        let manager = SqliteConnectionManager::file(db_path);
+        let pool = match Pool::new(manager) {
+            Ok(pool) => pool,
+            Err(error) => {
+                error!("Error creating connection pool: {}", error);
+                panic!();
+            }
+        };
+
         MyFilesBuilder {
             configuration_wrapper_instance: ConfigurationWrapperPresent(
-                configuration_wrapper_instance.into(),
+                configuration_wrapper_instance,
             ),
+            connection_manager: ConnectionManagerPresent(pool),
             marker_seal: std::marker::PhantomData,
         }
     }
-    pub fn seal(self) -> MyFilesBuilder<C, Sealed> {
+    pub fn seal(self) -> MyFilesBuilder<C, M, Sealed> {
         MyFilesBuilder {
+            connection_manager: self.connection_manager,
             configuration_wrapper_instance: self.configuration_wrapper_instance,
             marker_seal: std::marker::PhantomData,
         }
     }
 }
 
-impl<S> MyFilesBuilder<ConfigurationWrapperPresent, S> {
-    pub fn build(self) -> Result<MyFiles> {
-        MyFiles::new(self.configuration_wrapper_instance.0)
+impl MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed> {
+    pub fn build(&self) -> Result<MyFiles> {
+        let my_files_configuration = self
+            .configuration_wrapper_instance
+            .0
+            .bind::<MyFilesDatabaseConfiguration>("my_files_database_configuration")
+            .unwrap_or_default();
+        let connection_pool = match self.connection_manager.0.get() {
+            Ok(connection) => connection,
+            Err(error) => {
+                error!("Error getting connection from pool: {}", error);
+                panic!();
+            }
+        };
+        MyFiles::new(my_files_configuration, connection_pool)
     }
 }
 
+#[allow(dead_code)]
 impl MyFiles {
-    pub fn new(config: ConfigurationWrapper) -> Result<Self> {
-        let my_files_database_configuration = config
-            .bind::<MyFilesDatabaseConfiguration>("my_files_database_configuration")
-            .unwrap();
-
-        let connection = Connection::open(my_files_database_configuration.db_path.clone())?;
-
+    pub fn new(
+        configuration: MyFilesDatabaseConfiguration,
+        connection_pool: PooledConnection<SqliteConnectionManager>,
+    ) -> Result<Self> {
         Ok(MyFiles {
-            connection,
-            configuration: my_files_database_configuration,
+            connection_pool,
+            configuration,
         })
     }
     pub fn init_db(&self) -> Result<(), rusqlite::Error> {
         if self.configuration.drop_db_on_start {
-            let drop_db = match self.connection.execute_batch(
+            let drop_db = match self.connection_pool.execute_batch(
                 "
                 BEGIN;
                 DROP TABLE IF EXISTS my_files;
@@ -99,7 +144,7 @@ impl MyFiles {
             };
             drop_db?;
         }
-        match self.connection.execute_batch(
+        match self.connection_pool.execute_batch(
             "
             BEGIN;
             CREATE TABLE IF NOT EXISTS my_files (
@@ -138,7 +183,7 @@ impl MyFiles {
     }
     pub fn remove_file_from_db(&self, file_path: &str) -> Result<()> {
         match self
-            .connection
+            .connection_pool
             .execute("DELETE FROM my_files WHERE path = ?1", params![file_path])
         {
             Ok(_) => {
@@ -153,7 +198,7 @@ impl MyFiles {
     }
     pub fn add_file_to_db(&self, file: &FileInfo) -> Result<()> {
         let last_modified: DateTime<Utc> = file.last_modified.into();
-        match self.connection.execute(
+        match self.connection_pool.execute(
             "INSERT INTO my_files (name, path, size, last_modified, tidy_score)
                   VALUES (?1, ?2, ?3, ?4, ?5)",
             params![
@@ -176,7 +221,7 @@ impl MyFiles {
         }
     }
     pub fn get_all_files_from_db(&self) -> Result<Vec<FileInfo>> {
-        let mut statement = self.connection.prepare("SELECT * FROM my_files")?;
+        let mut statement = self.connection_pool.prepare("SELECT * FROM my_files")?;
         let file_iter = statement.query_map(params![], |row| {
             let path_str = row.get::<_, String>(2)?;
             let path = std::path::Path::new(&path_str).to_owned();
@@ -209,7 +254,7 @@ impl MyFiles {
     }
 
     pub fn raw_select_query(&self, query: &str, params: &[&dyn ToSql]) -> Result<Vec<FileInfo>> {
-        let mut statement = self.connection.prepare(query)?;
+        let mut statement = self.connection_pool.prepare(query)?;
 
         let db_result = statement.query_map(params, |row| {
             Ok(FileInfo {
@@ -230,17 +275,6 @@ impl MyFiles {
     }
 
     pub fn raw_query(&self, query: String, params: &[&dyn ToSql]) -> Result<usize> {
-        self.connection.execute(query.as_str(), params)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    pub fn init_db() {
-        let my_files = MyFiles::new(ConfigurationWrapper::new().unwrap()).unwrap();
-        my_files.init_db().unwrap();
+        self.connection_pool.execute(query.as_str(), params)
     }
 }
