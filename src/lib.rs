@@ -34,31 +34,31 @@ pub async fn run() {
     debug!("directories_list_args = {:?}", directories_list_args);
     debug!("directories_watch_args = {:?}", directories_watch_args);
 
-            match lister::list_directories(directories_list_args) {
-                Ok(_files_vec) => {
-                    for file in _files_vec.iter() {
-                        match my_files.add_file_to_db(file) {
-                            Ok(_) => {}
-                            Err(error) => {
-                                error!("{}", error);
-                            }
-                        }
+    match lister::list_directories(directories_list_args) {
+        Ok(_files_vec) => {
+            for file in _files_vec.iter() {
+                match my_files.add_file_to_db(file) {
+                    Ok(_) => {}
+                    Err(error) => {
+                        error!("{}", error);
                     }
                 }
-                Err(error) => {
-                    error!("{}", error);
-                }
             }
-            let server = HttpServerBuilder::new()
-                .configuration_wrapper(configuration_wrapper)
-                .my_files_builder(my_files_builder)
-                .build();
-            info!("HTTP Server build");
-            info!("Directory Successfully Listed");
-            tokio::spawn(async move {
-                server.await.start().await;
-            });
-            info!("HTTP Server Started");
+        }
+        Err(error) => {
+            error!("{}", error);
+        }
+    }
+    let server = HttpServerBuilder::new()
+        .configuration_wrapper(configuration_wrapper)
+        .my_files_builder(my_files_builder)
+        .build();
+    info!("HTTP Server build");
+    info!("Directory Successfully Listed");
+    tokio::spawn(async move {
+        server.await.start().await;
+    });
+    info!("HTTP Server Started");
 
     let (sender, receiver) = crossbeam_channel::unbounded();
     let watch_directories_thread: thread::JoinHandle<()> = thread::spawn(move || {
