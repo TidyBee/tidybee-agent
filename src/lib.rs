@@ -61,9 +61,7 @@ pub async fn run() {
                 .build();
             info!("HTTP Server build");
             info!("Directory Successfully Listed");
-            tokio::spawn(async move {
-                server.await.start().await;
-            });
+            server.await.start().await;
             info!("HTTP Server Started");
 
             let (sender, receiver) = crossbeam_channel::unbounded();
