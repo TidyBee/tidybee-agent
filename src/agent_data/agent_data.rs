@@ -1,4 +1,3 @@
-use std::ffi::OsString;
 use std::path::PathBuf;
 use gethostname::gethostname;
 use log::{info};
@@ -6,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sysinfo::{PidExt, RefreshKind, System, SystemExt as SysInfoSystemExt};
 use crate::configuration_wrapper::ConfigurationWrapper;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 struct AgentVersion {
     latest_version: String,
     minimal_version: String
@@ -24,31 +23,23 @@ impl Default for AgentVersion {
     }
 }
 
-#[derive(Debug, Default, Serialize, Clone, Copy)]
+#[derive(Serialize, Clone)]
 pub struct AgentData {
     agent_version: AgentVersion,
-    pub(crate) machine_name: String,
+    machine_name: String,
     process_id: u32,
     uptime: u64,
     watched_directories: Vec<PathBuf>,
 }
 
-// #[derive(Debug, Default)]
-// pub struct AgentDataWrapper {
-//     agent_data: AgentData,
-//     system: System,
-//     mutex: Mutex<AgentData>
-// }
-
 #[derive(Default)]
-pub struct AgentDataWrapperBuilder {
-    system: System,
+pub struct AgentDataBuilder {
     configuration_wrapper: ConfigurationWrapper
 }
 
-impl AgentDataWrapperBuilder {
+impl AgentDataBuilder {
     pub(crate) fn new() -> Self {
-        AgentDataWrapperBuilder::default()
+        AgentDataBuilder::default()
     }
 
     pub fn configuration_wrapper(
@@ -89,11 +80,7 @@ impl AgentData {
         self.uptime = System::new_with_specifics(RefreshKind::new()).uptime();
     }
 
-    pub fn get_pid(self) -> u32 {
-        self.process_id.clone()
-    }
-
-    pub fn get_machine(self) -> String {
-        self.machine_name.clone()
+    pub fn dup(self) -> Self {
+        self.clone()
     }
 }

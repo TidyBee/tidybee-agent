@@ -1,13 +1,15 @@
-use std::sync::{Arc};
-use axum::{Extension, Json};
-use crate::agent_infos::AgentData;
+use axum::extract::{State};
+use axum::Json;
+use crate::agent_data::AgentData;
+use crate::http_server::http_server::AgentDataState;
 
-pub async fn get_status(state: Extension<Arc<AgentData>>) -> Json<AgentData> {
-    let pid = state.get_pid();
+pub async fn get_status(State(agent_data): State<AgentDataState>) -> Json<AgentData>{
+    let mut agent_data_cloned = agent_data
+        .agent_data
+        .lock()
+        .unwrap()
+        .clone();
 
-    Json(
-        AgentData {
-            process_id: pid
-        }
-    )
+    agent_data_cloned.update();
+    return Json(agent_data_cloned);
 }

@@ -5,6 +5,7 @@ mod lister;
 mod logger;
 mod my_files;
 mod watcher;
+mod agent_data;
 
 use crate::http_server::http_server::HttpServerBuilder;
 use log::{debug, error, info};
@@ -52,7 +53,7 @@ pub async fn run() {
     let server = HttpServerBuilder::new()
         .configuration_wrapper(configuration_wrapper)
         .my_files_builder(my_files_builder)
-        .build();
+        .build(directories_watch_args.clone());
     info!("HTTP Server build");
     info!("Directory Successfully Listed");
     tokio::spawn(async move {
