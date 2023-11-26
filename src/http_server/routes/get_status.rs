@@ -7,5 +7,5 @@ pub async fn get_status(State(agent_data): State<AgentDataState>) -> Json<AgentD
     let mut agent_data_cloned = agent_data.agent_data.lock().unwrap().clone();
 
     agent_data_cloned.update();
-    return Json(agent_data_cloned);
+    Json(agent_data_cloned)
 }
