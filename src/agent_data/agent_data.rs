@@ -38,7 +38,7 @@ pub struct AgentDataBuilder {
 }
 
 impl AgentDataBuilder {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         AgentDataBuilder::default()
     }
 
