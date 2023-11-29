@@ -13,8 +13,8 @@ struct AgentVersion {
 
 impl Default for AgentVersion {
     fn default() -> Self {
-        let latest_version = "0.0.0".to_string();
-        let minimal_version = "0.0.0".to_string();
+        let latest_version = "0.1.0".to_string();
+        let minimal_version = "0.1.0".to_string();
 
         AgentVersion {
             latest_version,
