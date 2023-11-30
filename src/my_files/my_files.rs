@@ -294,7 +294,10 @@ mod tests {
 
     #[test]
     pub fn main_test() {
-        let my_files = MyFiles::new(ConfigurationWrapper::new().unwrap()).unwrap();
+        let my_files_builder = MyFilesBuilder::new()
+            .configuration_wrapper(ConfigurationWrapper::new().unwrap())
+            .seal();
+        let my_files = my_files_builder.build().unwrap();
         my_files.init_db().unwrap();
 
         // Checking that there is no file in the database
