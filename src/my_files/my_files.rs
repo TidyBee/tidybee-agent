@@ -275,7 +275,7 @@ impl MyFiles {
     }
 
     pub fn raw_query(&self, query: String, params: &[&dyn ToSql]) -> Result<usize> {
-        self.connection.execute(query.as_str(), params)
+        self.connection_pool.execute(query.as_str(), params)
     }
 }
 
