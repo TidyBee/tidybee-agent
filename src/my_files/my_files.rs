@@ -313,20 +313,22 @@ mod tests {
         assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 10);
 
         // Using raw query
-        let file_info = my_files.raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"test-file-1"]).unwrap();
+        let file_info = my_files
+            .raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"test-file-1"])
+            .unwrap();
         assert_eq!(file_info.len(), 1);
         assert_eq!(file_info[0].name, "test-file-1");
         assert_eq!(file_info[0].size, 100);
 
-
-        let bad_file_info = 
-            match my_files.raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"xaaaaa"]) {
-                Ok(file_info) => file_info,
-                Err(error) => {
-                    assert_eq!(error, rusqlite::Error::QueryReturnedNoRows);
-                    Vec::new()
-                }
-            };
+        let bad_file_info = match my_files
+            .raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"xaaaaa"])
+        {
+            Ok(file_info) => file_info,
+            Err(error) => {
+                assert_eq!(error, rusqlite::Error::QueryReturnedNoRows);
+                Vec::new()
+            }
+        };
         assert_eq!(bad_file_info.len(), 0);
     }
 }
