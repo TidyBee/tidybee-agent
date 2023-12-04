@@ -1,10 +1,11 @@
 use crate::configuration_wrapper::ConfigurationWrapper;
-use crate::file_info::FileInfo;
+use crate::file_info::{FileInfo, TidyScore};
 use chrono::{DateTime, Utc};
 use log::{error, info, warn};
 use r2d2;
 use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::ffi::Error;
 use rusqlite::{params, Result, ToSql};
 use serde::{Deserialize, Serialize};
 
@@ -159,8 +160,8 @@ impl MyFiles {
             CREATE TABLE IF NOT EXISTS tidy_scores (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 misnamed        BOOLEAN NOT NULL,
-                misplaced       BOOLEAN NOT NULL,
-                unused          BOOLEAN NOT NULL
+                unused          BOOLEAN NOT NULL,
+                duplicated      BOOLEAN NOT NULL
             );
             CREATE TABLE IF NOT EXISTS duplicates_associative_table (
                 tidy_score_id   INTEGER NOT NULL,
@@ -252,6 +253,58 @@ impl MyFiles {
         }
         Ok(files_vec)
     }
+
+    pub fn get_tidyscore(&self, file_path: &str) -> Option<TidyScore> {
+        let mut statement = self.connection_pool.prepare(
+            "SELECT tidy_scores.misnamed, tidy_scores.misplaced, tidy_scores.unused
+            FROM my_files
+            INNER JOIN tidy_scores ON my_files.tidy_score = tidy_scores.id
+            WHERE my_files.path = ?1",
+        ).unwrap();
+        let tidy_score_iter = statement.query_map(params![file_path], |row| {
+            Ok(TidyScore {
+                misnamed: row.get::<_, bool>(0)?,
+                duplicated: Vec::new(),
+                unused: row.get::<_, bool>(2)?,
+            })
+        }).unwrap();
+        
+        tidy_score_iter.map(|tidy_score| match tidy_score {
+            Ok(tidy_score) => tidy_score,
+            Err(error) => {
+                error!("Error getting tidy_score for file {}: {}", file_path, error);
+                TidyScore::default()
+            }
+        }).next()
+    }
+
+    pub fn set_tidyscore(&self, file_path: &str, tidy_score: &TidyScore) -> Result<(), rusqlite::Error> {
+        let mut statement = self.connection_pool.prepare(
+            "INSERT INTO tidy_scores (misnamed, misplaced, unused)
+            VALUES (?1, ?2, ?3)",
+        )?;
+        let tidy_score_id = statement.insert(params![
+            tidy_score.misnamed,
+            tidy_score.duplicated.len() > 0,
+            tidy_score.unused
+        ])?;
+
+        let mut statement = self.connection_pool.prepare(
+            "UPDATE my_files
+            SET tidy_score = ?1
+            WHERE path = ?2",
+        )?;
+        match statement.execute(params![tidy_score_id, file_path]) {
+            Ok(_) => Ok(info!("tidy_score set for file {}", file_path)),
+            Err(error) => {
+                error!("Error setting tidy_score for file {}: {}", file_path, error);
+                Err(error)
+            }
+        };
+        Ok(())
+    }
+
+
 
     pub fn raw_select_query(&self, query: &str, params: &[&dyn ToSql]) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection_pool.prepare(query)?;

@@ -26,9 +26,11 @@ impl Default for FileInfo {
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct TidyScore {
     pub misnamed: bool,
-    pub misplaced: bool,
     pub unused: bool,
     pub duplicated: Vec<FileInfo>,
+
+    // Not yet implemented
+    // pub misplaced: bool,
 }
 
 impl ToSql for TidyScore {
