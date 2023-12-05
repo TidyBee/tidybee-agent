@@ -36,18 +36,20 @@ jobs:
           args: --verbose
       - name: "Deploy linux agent"
         if: ${{ matrix.os }} == "ubuntu-latest" && ${{ github.ref }} == "refs/heads/main"
-        uses: nicklasfrahm/scp-action@main
-        with:
-          direction: upload
-          host: ${{ secrets.ZONEO_HOST }}
-          username: ${{ secrets.ZONEO_AGENT_USERNAME }}
-          passphrase: ${{ secrets.ZONEO_AGENT_PASSWORD }}
-          insecure_proxy_ignore_fingerprint: true
-          port: ${{ secrets.ZONEO_SSH_PORT }}
-          source: |
-            tidybee-agent/tidybee-agent
-            config/*
-          target: "/opt/tidybee-agent"
+        run: |
+          scp -P ${{ secrets.ZONEO_SSH_PORT }} -r target/release/tidybee-agent ${{ secrets.ZONEO_AGENT_USERNAME }}:${{ secrets.ZONEO_AGENT_PASSWORD }}@${{ secrets.ZONEO_HOST }}:/opt/tidybee-agent/tidybee-agent
+        # uses: nicklasfrahm/scp-action@main
+        # with:
+        #   direction: upload
+        #   host: ${{ secrets.ZONEO_HOST }}
+        #   username: ${{ secrets.ZONEO_AGENT_USERNAME }}
+        #   passphrase: ${{ secrets.ZONEO_AGENT_PASSWORD }}
+        #   insecure_proxy_ignore_fingerprint: true
+        #   port: ${{ secrets.ZONEO_SSH_PORT }}
+        #   source: |
+        #     tidybee-agent/tidybee-agent
+        #     config/*
+        #   target: "/opt/tidybee-agent"
         
         
         
