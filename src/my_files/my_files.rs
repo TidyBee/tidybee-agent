@@ -269,13 +269,14 @@ impl MyFiles {
             })
         }).unwrap();
         
-        tidy_score_iter.map(|tidy_score| match tidy_score {
+        let score = tidy_score_iter.map(|tidy_score| match tidy_score {
             Ok(tidy_score) => tidy_score,
             Err(error) => {
                 error!("Error getting tidy_score for file {}: {}", file_path, error);
                 TidyScore::default()
             }
-        }).next()
+        }).next();
+        score
     }
 
     pub fn set_tidyscore(&self, file_path: &str, tidy_score: &TidyScore) -> Result<(), rusqlite::Error> {
