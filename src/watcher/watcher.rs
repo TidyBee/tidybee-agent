@@ -4,8 +4,6 @@ use std::time;
 
 pub fn watch_directories(
     directories: Vec<std::path::PathBuf>,
-    _file_extensions_args: Option<Vec<String>>,
-    _file_types_args: Option<String>,
     sender: crossbeam_channel::Sender<notify_debouncer_full::DebouncedEvent>,
 ) {
     let (tx, rx) = std::sync::mpsc::channel();
