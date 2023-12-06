@@ -23,6 +23,9 @@ r2d2_sqlite = "0.23.0"
 gethostname = "0.4.3"
 sysinfo = "0.29.10"
 
+[dev-dependencies]
+ctor = "0.2.5"
+
 [[bin]]
 name = "tidybee-agent"
 path = "src/main.rs"

@@ -278,3 +278,57 @@ impl MyFiles {
         self.connection_pool.execute(query.as_str(), params)
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::lister;
+
+    #[cfg(test)]
+    #[ctor::ctor]
+    fn init() {
+        env_logger::init();
+        std::env::set_var("ENV_NAME", "test");
+    }
+
+    #[test]
+    pub fn main_test() {
+        let my_files_builder = MyFilesBuilder::new()
+            .configuration_wrapper(ConfigurationWrapper::new().unwrap())
+            .seal();
+        let my_files = my_files_builder.build().unwrap();
+        my_files.init_db().unwrap();
+
+        // Checking that there is no file in the database
+        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 0);
+
+        // Adding files to the database
+        lister::list_directories(vec!["./tests/assets/test_folder".into()])
+            .unwrap()
+            .iter()
+            .for_each(|file| {
+                my_files.add_file_to_db(file).unwrap();
+            });
+        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 10);
+
+        // Using raw query
+        let file_info = my_files
+            .raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"test-file-1"])
+            .unwrap();
+        assert_eq!(file_info.len(), 1);
+        assert_eq!(file_info[0].name, "test-file-1");
+        assert_eq!(file_info[0].size, 100);
+
+        let bad_file_info = match my_files
+            .raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"xaaaaa"])
+        {
+            Ok(file_info) => file_info,
+            Err(error) => {
+                assert_eq!(error, rusqlite::Error::QueryReturnedNoRows);
+                Vec::new()
+            }
+        };
+        assert_eq!(bad_file_info.len(), 0);
+    }
+}
