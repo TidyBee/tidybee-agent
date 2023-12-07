@@ -23,7 +23,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
+          toolchain: x86_64-unknown-linux-musl
           targets: x86_64-unknown-linux-musl
       - uses: actions-rs/cargo@v1.0.1
         name: cargo build --release
