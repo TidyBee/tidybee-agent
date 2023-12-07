@@ -38,4 +38,5 @@ jobs:
         if: ${{ matrix.os }} == "ubuntu-latest" && ${{ github.ref }} == "refs/heads/main"
         run: |
           mkdir -p /home/runner/.ssh
-          ssh-keyscan ${{ secrets.ZONEO_HOST }} >> $HOME/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.ZONEO_SSH_PORT }} ${{ secrets.ZONEO_HOST }} >> $HOME/.ssh/known_hosts
+          scp -v -P ${{ secrets.ZONEO_SSH_PORT }} -p '${{ secrets.ZONEO_AGENT_PASSWORD }}' target/release/tidybee-agent ${{ secrets.ZONEO_AGENT_USERNAME }}@${{ secrets.ZONEO_HOST }}:/opt/tidybee-agent/tidybee-agent
