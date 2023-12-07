@@ -21,6 +21,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
+      - name: install musl-cc
+        run: sudo apt install musl-tools -y
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
