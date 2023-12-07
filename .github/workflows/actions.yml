@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
       - name: install musl-cc
-        run: sudo apt install musl-tools -y
+        run: sudo apt update -y && sudo apt install musl-tools -y
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
@@ -42,5 +42,5 @@ jobs:
         run: |
           mkdir -p /home/runner/.ssh
           ssh-keyscan -p ${{ secrets.ZONEO_SSH_PORT }} ${{ secrets.ZONEO_HOST }} >> $HOME/.ssh/known_hosts
-          sshpass -p "${{ secrets.ZONEO_AGENT_PASSWORD }}" scp -v -P ${{ secrets.ZONEO_SSH_PORT }} target/release/tidybee-agent ${{ secrets.ZONEO_AGENT_USERNAME }}@${{ secrets.ZONEO_HOST }}:/opt/tidybee-agent/tidybee-agent
+          sshpass -p "${{ secrets.ZONEO_AGENT_PASSWORD }}" scp -v -P ${{ secrets.ZONEO_SSH_PORT }} /home/runner/work/tidybee-agent/tidybee-agent ${{ secrets.ZONEO_AGENT_USERNAME }}@${{ secrets.ZONEO_HOST }}:/opt/tidybee-agent/tidybee-agent
           
