@@ -39,4 +39,4 @@ jobs:
         run: |
           mkdir -p /home/runner/.ssh
           ssh-keyscan -p ${{ secrets.ZONEO_SSH_PORT }} ${{ secrets.ZONEO_HOST }} >> $HOME/.ssh/known_hosts
-          scp -v -P ${{ secrets.ZONEO_SSH_PORT }} -p '${{ secrets.ZONEO_AGENT_PASSWORD }}' target/release/tidybee-agent ${{ secrets.ZONEO_AGENT_USERNAME }}@${{ secrets.ZONEO_HOST }}:/opt/tidybee-agent/tidybee-agent
+          scp -v -P ${{ secrets.ZONEO_SSH_PORT }} target/release/tidybee-agent ${{ secrets.ZONEO_AGENT_USERNAME }}:'${{ secrets.ZONEO_AGENT_PASSWORD }}'@${{ secrets.ZONEO_HOST }}:/opt/tidybee-agent/tidybee-agent
