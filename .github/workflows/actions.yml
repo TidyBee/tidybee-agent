@@ -38,3 +38,4 @@ jobs:
         if: ${{ matrix.os }} == "ubuntu-latest" && ${{ github.ref }} == "refs/heads/main"
         run: |
           mkdir -p /home/runner/.ssh
+          ssh-keyscan ${{ secrets.ZONEO_HOST }} >> $HOME/.ssh/known_hosts
