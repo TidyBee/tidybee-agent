@@ -5,7 +5,6 @@ use log::{error, info, warn};
 use r2d2;
 use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
-use rusqlite::ffi::Error;
 use rusqlite::{params, Result, ToSql};
 use serde::{Deserialize, Serialize};
 
@@ -256,7 +255,7 @@ impl MyFiles {
 
     pub fn get_tidyscore(&self, file_path: &str) -> Option<TidyScore> {
         let mut statement = self.connection_pool.prepare(
-            "SELECT tidy_scores.misnamed, tidy_scores.misplaced, tidy_scores.unused
+            "SELECT tidy_scores.misnamed, tidy_scores.duplicated, tidy_scores.unused
             FROM my_files
             INNER JOIN tidy_scores ON my_files.tidy_score = tidy_scores.id
             WHERE my_files.path = ?1",
@@ -268,7 +267,7 @@ impl MyFiles {
                 unused: row.get::<_, bool>(2)?,
             })
         }).unwrap();
-        
+
         let score = tidy_score_iter.map(|tidy_score| match tidy_score {
             Ok(tidy_score) => tidy_score,
             Err(error) => {
@@ -278,10 +277,10 @@ impl MyFiles {
         }).next();
         score
     }
-
+    // The Error type will be changed to something custom in future work on the my_files error handling
     pub fn set_tidyscore(&self, file_path: &str, tidy_score: &TidyScore) -> Result<(), rusqlite::Error> {
         let mut statement = self.connection_pool.prepare(
-            "INSERT INTO tidy_scores (misnamed, misplaced, unused)
+            "INSERT INTO tidy_scores (misnamed, duplicated, unused)
             VALUES (?1, ?2, ?3)",
         )?;
         let tidy_score_id = statement.insert(params![
@@ -295,7 +294,8 @@ impl MyFiles {
             SET tidy_score = ?1
             WHERE path = ?2",
         )?;
-        match statement.execute(params![tidy_score_id, file_path]) {
+        // The potential failure of this query will be handled in future work on the my_files error handling
+        let _ = match statement.execute(params![tidy_score_id, file_path]) {
             Ok(_) => Ok(info!("tidy_score set for file {}", file_path)),
             Err(error) => {
                 error!("Error setting tidy_score for file {}: {}", file_path, error);
@@ -384,5 +384,27 @@ mod tests {
             }
         };
         assert_eq!(bad_file_info.len(), 0);
+
+        // TidyScore manipulations
+        let dummy_score = TidyScore {
+            misnamed: false,
+            duplicated: Vec::new(),
+            unused: false,
+        };
+        my_files.set_tidyscore("./tests/assets/test_folder/test-file-1", &dummy_score)
+            .unwrap();
+        let score = my_files.get_tidyscore("./tests/assets/test_folder/test-file-1");
+        let is_missnamed = match &score {
+            Some(score) => score.misnamed,
+            None => false,
+        };
+        let is_unused = match &score {
+            Some(score) => score.unused,
+            None => false,
+        };
+        assert_eq!(is_missnamed, false);
+        assert_eq!(is_unused, false);
+
+
     }
 }
