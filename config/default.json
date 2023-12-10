@@ -12,7 +12,7 @@
     "drop_db_on_start": true
   },
   "log_level": {
-    "term": "info",
+    "term": "debug",
     "file": "warn"
   }
 }
