@@ -131,9 +131,9 @@ impl MyFiles {
             let drop_db = match self.connection_pool.execute_batch(
                 "
                 BEGIN;
-                DROP TABLE IF EXISTS my_files;
-                DROP TABLE IF EXISTS tidy_scores;
                 DROP TABLE IF EXISTS duplicates_associative_table;
+                DROP TABLE IF EXISTS tidy_scores;
+                DROP TABLE IF EXISTS my_files;
                 COMMIT;",
             ) {
                 Ok(_) => Ok(info!("Database dropped")),
@@ -163,11 +163,11 @@ impl MyFiles {
                 duplicated      BOOLEAN NOT NULL
             );
             CREATE TABLE IF NOT EXISTS duplicates_associative_table (
-                tidy_score_id   INTEGER NOT NULL,
-                my_file_id      INTEGER NOT NULL,
-                PRIMARY KEY (tidy_score_id, my_file_id),
-                FOREIGN KEY (tidy_score_id) REFERENCES tidy_scores(id),
-                FOREIGN KEY (my_file_id) REFERENCES my_files(id) ON DELETE CASCADE
+                original_file_id    INTEGER NOT NULL,
+                duplicated_file_id  INTEGER NOT NULL,
+                PRIMARY KEY (original_file_id, duplicated_file_id),
+                FOREIGN KEY (original_file_id) REFERENCES my_files(id) ON DELETE CASCADE,
+                FOREIGN KEY (duplicated_file_id) REFERENCES my_files(id) ON DELETE CASCADE
             );
             COMMIT;",
         ) {
@@ -220,6 +220,41 @@ impl MyFiles {
             }
         }
     }
+
+    pub fn add_duplicated_file_to_db(
+        &self,
+        file_path: &str,
+        duplicated_file_path: &str,
+    ) -> Result<()> {
+        let mut statement = self.connection_pool.prepare(
+            "SELECT id FROM my_files
+                WHERE path = ?1",
+        ).unwrap();
+        let file_id = statement.query_row(params![file_path], |row| row.get::<_, i64>(0)).unwrap();
+
+        let mut statement = self.connection_pool.prepare(
+            "SELECT id FROM my_files
+            WHERE path = ?1",
+        ).unwrap();
+        let duplicated_file_id = statement.query_row(params![duplicated_file_path], |row| {
+            row.get::<_, i64>(0)
+        }).unwrap();
+
+        let mut statement = self.connection_pool.prepare(
+            "INSERT INTO duplicates_associative_table (original_file_id, duplicated_file_id)
+            VALUES (?1, ?2)",
+        ).unwrap();
+        match statement.execute(params![file_id, duplicated_file_id]) {
+            Ok(_) => Ok(info!("{} added to duplicates_associative_table", file_path)),
+            Err(error) => {
+                error!("Error adding {} with id {} to duplicates_associative_table: {}", file_path, file_id, error);
+                Err(error)
+            }
+        };
+        let mut statement = self.connection_pool.prepare("
+            UPDATE INTO tidy_scores ")
+    }
+
     pub fn get_all_files_from_db(&self) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection_pool.prepare("SELECT * FROM my_files")?;
         let file_iter = statement.query_map(params![], |row| {
@@ -253,32 +288,33 @@ impl MyFiles {
         Ok(files_vec)
     }
 
-    pub fn get_tidyscore(&self, file_path: &str) -> Option<TidyScore> {
-        let mut statement = self.connection_pool.prepare(
-            "SELECT tidy_scores.misnamed, tidy_scores.duplicated, tidy_scores.unused
+    pub fn get_tidyscore(&self, file_path: &str) -> Result<TidyScore> {
+        let mut statement = self
+            .connection_pool
+            .prepare(
+                "SELECT tidy_scores.misnamed, tidy_scores.duplicated, tidy_scores.unused
             FROM my_files
             INNER JOIN tidy_scores ON my_files.tidy_score = tidy_scores.id
             WHERE my_files.path = ?1",
-        ).unwrap();
-        let tidy_score_iter = statement.query_map(params![file_path], |row| {
-            Ok(TidyScore {
-                misnamed: row.get::<_, bool>(0)?,
-                duplicated: Vec::new(),
-                unused: row.get::<_, bool>(2)?,
-            })
-        }).unwrap();
-
-        let score = tidy_score_iter.map(|tidy_score| match tidy_score {
-            Ok(tidy_score) => tidy_score,
-            Err(error) => {
-                error!("Error getting tidy_score for file {}: {}", file_path, error);
-                TidyScore::default()
-            }
-        }).next();
-        score
+            )
+            .unwrap();
+        let tidy_score = statement
+            .query_row(params![file_path], |row| {
+                Ok(TidyScore {
+                    misnamed: row.get::<_, bool>(0)?,
+                    duplicated: Vec::new(),
+                    unused: row.get::<_, bool>(2)?,
+                })
+            });
+        tidy_score
     }
+
     // The Error type will be changed to something custom in future work on the my_files error handling
-    pub fn set_tidyscore(&self, file_path: &str, tidy_score: &TidyScore) -> Result<(), rusqlite::Error> {
+    pub fn set_tidyscore(
+        &self,
+        file_path: &str,
+        tidy_score: &TidyScore,
+    ) -> Result<(), rusqlite::Error> {
         let mut statement = self.connection_pool.prepare(
             "INSERT INTO tidy_scores (misnamed, duplicated, unused)
             VALUES (?1, ?2, ?3)",
@@ -304,8 +340,6 @@ impl MyFiles {
         };
         Ok(())
     }
-
-
 
     pub fn raw_select_query(&self, query: &str, params: &[&dyn ToSql]) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection_pool.prepare(query)?;
@@ -333,6 +367,7 @@ impl MyFiles {
     }
 }
 
+// region: --- MyFiles tests
 #[cfg(test)]
 mod tests {
 
@@ -353,6 +388,8 @@ mod tests {
             .seal();
         let my_files = my_files_builder.build().unwrap();
         my_files.init_db().unwrap();
+
+        // region: --- basic tests
 
         // Checking that there is no file in the database
         assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 0);
@@ -385,26 +422,41 @@ mod tests {
         };
         assert_eq!(bad_file_info.len(), 0);
 
-        // TidyScore manipulations
+        // endregion: --- basic tests
+
+        // region: --- TidyScore tests
         let dummy_score = TidyScore {
-            misnamed: false,
+            misnamed: true,
             duplicated: Vec::new(),
-            unused: false,
+            unused: true,
         };
-        my_files.set_tidyscore("./tests/assets/test_folder/test-file-1", &dummy_score)
+        my_files
+            .set_tidyscore("./tests/assets/test_folder/test-file-1", &dummy_score)
             .unwrap();
-        let score = my_files.get_tidyscore("./tests/assets/test_folder/test-file-1");
+        let mut score = my_files.get_tidyscore("./tests/assets/test_folder/test-file-1");
         let is_missnamed = match &score {
-            Some(score) => score.misnamed,
-            None => false,
+            Ok(score) => score.misnamed,
+            Err(_) => false,
         };
         let is_unused = match &score {
-            Some(score) => score.unused,
-            None => false,
+            Ok(score) => score.unused,
+            Err(_) => false,
         };
-        assert_eq!(is_missnamed, false);
-        assert_eq!(is_unused, false);
+        assert_eq!(is_missnamed, true);
+        assert_eq!(is_unused, true);
 
+        my_files.add_duplicated_file_to_db("./tests/assets/test_folder/test-file-1", "./tests/assets/test_folder/test-file-2").unwrap();
+        my_files.add_duplicated_file_to_db("./tests/assets/test_folder/test-file-1", "./tests/assets/test_folder/test-file-3").unwrap();
+        my_files.add_duplicated_file_to_db("./tests/assets/test_folder/test-file-1", "./tests/assets/test_folder/test-file-4").unwrap();
+        score = my_files.get_tidyscore("./tests/assets/test_folder/test-file-1");
+        println!("tidy_score: {:?}", score);
+        let is_duplicated = match &score {
+            Ok(score) => score.duplicated.len() > 0,
+            Err(_) => false,
+        };
+        assert_eq!(is_duplicated, true);
 
+        // endregion: --- TidyScore tests
     }
 }
+// endregion: --- MyFiles tests

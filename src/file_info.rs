@@ -28,7 +28,6 @@ pub struct TidyScore {
     pub misnamed: bool,
     pub unused: bool,
     pub duplicated: Vec<FileInfo>,
-
     // Not yet implemented
     // pub misplaced: bool,
 }
