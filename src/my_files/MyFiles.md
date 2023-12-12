@@ -8,7 +8,7 @@
 Sqlite3 is used as the database backend. This is because it is a lightweight database that is easy to use and does not require a server to be running.
 
 
-## Databse structure
+## Database structure
 
 As of now, the database is composed as follows:
 
