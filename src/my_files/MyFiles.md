@@ -10,11 +10,11 @@ Sqlite3 is used as the database backend. This is because it is a lightweight dat
 
 ## Database structure
 
-As of now, the database is composed as follows:
+As of now, the database is composed of those tables:
 
 |Table Name| Purpose |
 |----------|---------|
-|my_files| Stores the files that are managed by the tidybee-agent program|
+|my_files| Stores some metadata on files that are managed by the tidybee-agent program|
 |tidy_scores| Stores the scores that are calculated for each file|
 |duplicates_associative_table| Stores the duplicates that are found for each file|
 
@@ -24,8 +24,7 @@ This table was created to compensate the lack of feature in sqlite3 to store arr
 
 ## Data fetching flow within the database (how it works internally)
 
-> [!NOTE]
-> This part of the documentation is more "MyFiles developer" oriented as it describes how the data is fetched from the database.
+> [!NOTE] This part of the documentation is more "MyFiles developer" oriented as it describes how the data is fetched from the database.
 
 ### Manipulating duplicates for a file
 
@@ -39,5 +38,4 @@ graph TD;
     has_duplicates -->|yes| duplicates_associative_table("lookup in `duplicates_associative_table` where `original_file_id = id`");
 ```
 
-> [!NOTE]
-> To reduce the lookup cost, it is important to set `tidy_scores.has_duplicates` to `true` when a duplicate is found for a file.
+> [!NOTE] To reduce the lookup cost, it is important to set `tidy_scores.has_duplicates` to `true` when a duplicate is found for a file.
