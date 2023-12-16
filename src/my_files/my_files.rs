@@ -1,5 +1,3 @@
-use std::path;
-use std::path::PathBuf;
 use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::{FileInfo, TidyScore};
 use chrono::{DateTime, Utc};
@@ -9,6 +7,8 @@ use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{params, Result, ToSql};
 use serde::{Deserialize, Serialize};
+use std::path;
+use std::path::PathBuf;
 
 // region: --- MyFiles builder states
 #[derive(Default, Clone)]
@@ -253,7 +253,10 @@ impl MyFiles {
             )
             .unwrap();
         let duplicated_file_id = statement
-            .query_row(params![duplicated_file_path.clone().into_os_string().to_str()], |row| row.get::<_, i64>(0))
+            .query_row(
+                params![duplicated_file_path.clone().into_os_string().to_str()],
+                |row| row.get::<_, i64>(0),
+            )
             .unwrap();
 
         let mut statement = self
@@ -264,7 +267,10 @@ impl MyFiles {
             )
             .unwrap();
         let _ = match statement.execute(params![file_id, duplicated_file_id]) {
-            Ok(_) => Ok(info!("{:?} added to duplicates_associative_table", str_filepath)),
+            Ok(_) => Ok(info!(
+                "{:?} added to duplicates_associative_table",
+                str_filepath
+            )),
             Err(error) => {
                 error!(
                     "Error adding {:?} with id {} to duplicates_associative_table: {}",
@@ -283,7 +289,10 @@ impl MyFiles {
             )
             .unwrap();
         match statement.execute(params![tidy_score_id]) {
-            Ok(_) => Ok(info!("{:?} added to duplicates_associative_table", str_filepath)),
+            Ok(_) => Ok(info!(
+                "{:?} added to duplicates_associative_table",
+                str_filepath
+            )),
             Err(error) => {
                 error!(
                     "Error adding {:?} with id {} to duplicates_associative_table: {}",
@@ -335,7 +344,7 @@ impl MyFiles {
             "SELECT duplicated FROM tidy_scores INNER JOIN my_files ON tidy_scores.id = my_files.tidy_score WHERE my_files.path = ?1",
         )?;
         let duplicated =
-            duplicate_check_stmt.query_row(params![&str_file_path], |row| Ok(row.get::<_, bool>(0)?))?;
+            duplicate_check_stmt.query_row(params![&str_file_path], |row| row.get::<_, bool>(0))?;
 
         if !duplicated {
             info!("No duplicate found while checking {:?}", file_path);
@@ -410,14 +419,16 @@ impl MyFiles {
             WHERE my_files.path = ?1",
             )
             .unwrap();
-        let tidy_score = statement.query_row(params![&str_filepath], |row| {
+
+        statement.query_row(params![&str_filepath], |row| {
             Ok(TidyScore {
                 misnamed: row.get::<_, bool>(0)?,
-                duplicated: self.fetch_duplicated_files(path::PathBuf::from(&str_filepath)).unwrap(),
+                duplicated: self
+                    .fetch_duplicated_files(path::PathBuf::from(&str_filepath))
+                    .unwrap(),
                 unused: row.get::<_, bool>(2)?,
             })
-        });
-        tidy_score
+        })
     }
 
     // The Error type will be changed to something custom in future work on the my_files error handling
@@ -434,7 +445,7 @@ impl MyFiles {
         )?;
         let tidy_score_id = statement.insert(params![
             tidy_score.misnamed,
-            tidy_score.duplicated.len() > 0,
+            !tidy_score.duplicated.is_empty(),
             tidy_score.unused
         ])?;
 
@@ -447,7 +458,10 @@ impl MyFiles {
         let _ = match statement.execute(params![tidy_score_id, str_filepath]) {
             Ok(_) => Ok(info!("tidy_score set for file {:?}", str_filepath)),
             Err(error) => {
-                error!("Error setting tidy_score for file {:?}: {}", file_path, error);
+                error!(
+                    "Error setting tidy_score for file {:?}: {}",
+                    file_path, error
+                );
                 Err(error)
             }
         };
@@ -486,7 +500,6 @@ mod tests {
 
     use super::*;
     use crate::lister;
-    use std::path;
 
     #[cfg(test)]
     #[ctor::ctor]
@@ -546,32 +559,64 @@ mod tests {
             unused: true,
         };
         my_files
-            .set_tidyscore([r"tests", "assets", "test_folder", "test-file-1"].iter().collect(), &dummy_score)
+            .set_tidyscore(
+                [r"tests", "assets", "test_folder", "test-file-1"]
+                    .iter()
+                    .collect(),
+                &dummy_score,
+            )
             .unwrap();
-        let mut score = my_files.get_tidyscore([r"tests", "assets", "test_folder", "test-file-1"].iter().collect()).unwrap();
-        let is_missnamed = score.misnamed;
+        let mut score = my_files
+            .get_tidyscore(
+                [r"tests", "assets", "test_folder", "test-file-1"]
+                    .iter()
+                    .collect(),
+            )
+            .unwrap();
+        let is_misnamed = score.misnamed;
         let is_unused = score.unused;
-        assert_eq!(is_missnamed, true);
-        assert_eq!(is_unused, true);
+        assert!(is_misnamed);
+        assert!(is_unused);
 
         my_files
             .add_duplicated_file_to_db(
-                [r"tests", "assets", "test_folder", "test-file-1"].iter().collect(),
-                [r"tests", "assets", "test_folder", "test-file-2"].iter().collect(),
-            ).unwrap();
+                [r"tests", "assets", "test_folder", "test-file-1"]
+                    .iter()
+                    .collect(),
+                [r"tests", "assets", "test_folder", "test-file-2"]
+                    .iter()
+                    .collect(),
+            )
+            .unwrap();
         my_files
             .add_duplicated_file_to_db(
-                [r"tests", "assets", "test_folder", "test-file-1"].iter().collect(),
-                [r"tests", "assets", "test_folder", "test-file-3"].iter().collect(),
-            ).unwrap();
+                [r"tests", "assets", "test_folder", "test-file-1"]
+                    .iter()
+                    .collect(),
+                [r"tests", "assets", "test_folder", "test-file-3"]
+                    .iter()
+                    .collect(),
+            )
+            .unwrap();
         my_files
             .add_duplicated_file_to_db(
-                [r"tests", "assets", "test_folder", "test-file-1"].iter().collect(),
-                [r"tests", "assets", "test_folder", "test-file-4"].iter().collect(),
-            ).unwrap();
-        score = my_files.get_tidyscore([r"tests", "assets", "test_folder", "test-file-1"].iter().collect()).unwrap();
-        let is_duplicated = score.duplicated.len() > 0;
-        assert_eq!(is_duplicated, true);
+                [r"tests", "assets", "test_folder", "test-file-1"]
+                    .iter()
+                    .collect(),
+                [r"tests", "assets", "test_folder", "test-file-4"]
+                    .iter()
+                    .collect(),
+            )
+            .unwrap();
+        score = my_files
+            .get_tidyscore(
+                [r"tests", "assets", "test_folder", "test-file-1"]
+                    .iter()
+                    .collect(),
+            )
+            .unwrap();
+        let is_duplicated = !score.duplicated.is_empty();
+        assert!(is_duplicated);
 
         // endregion: --- TidyScore tests
     }
