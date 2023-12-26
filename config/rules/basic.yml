@@ -1,0 +1,16 @@
+---
+rules:
+  - name: Rule 1
+    type: misnamed
+    pattern: /^(?:(?:^|_)\S+ *){3,}$/
+    scope: tests/assets/test_folder
+    log: warn
+  - name: Rule 2
+    type: perished
+    max: 3
+    scope: tests/assets/test_folder
+    log: log
+  - name: Rule 3
+    type: duplicated
+    scope: tests/assets/test_folder
+    log: alert
