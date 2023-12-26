@@ -27,9 +27,19 @@ impl Default for FileInfo {
 pub struct TidyScore {
     pub misnamed: bool,
     pub unused: bool,
-    pub duplicated: Vec<FileInfo>,
+    pub duplicated: Option<Vec<FileInfo>>
     // Not yet implemented
     // pub misplaced: bool,
+}
+
+impl TidyScore {
+    pub fn new(misnamed: bool, unused: bool, duplicated: Option<Vec<FileInfo>>) -> Self {
+        Self {
+            misnamed,
+            unused,
+            duplicated,
+        }
+    }
 }
 
 impl ToSql for TidyScore {

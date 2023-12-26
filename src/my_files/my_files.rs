@@ -386,7 +386,7 @@ impl MyFiles {
                 let tidy_score = statement.query_row(params![tidy_score_id], |row| {
                     Ok(TidyScore {
                         misnamed: row.get::<_, bool>(0)?,
-                        duplicated: Vec::new(),
+                        duplicated: None,
                         unused: row.get::<_, bool>(2)?,
                     })
                 })?;
@@ -423,9 +423,9 @@ impl MyFiles {
         statement.query_row(params![&str_filepath], |row| {
             Ok(TidyScore {
                 misnamed: row.get::<_, bool>(0)?,
-                duplicated: self
+                duplicated: Some(self
                     .fetch_duplicated_files(path::PathBuf::from(&str_filepath))
-                    .unwrap(),
+                    .unwrap()),
                 unused: row.get::<_, bool>(2)?,
             })
         })
@@ -443,9 +443,15 @@ impl MyFiles {
             "INSERT INTO tidy_scores (misnamed, duplicated, unused)
             VALUES (?1, ?2, ?3)",
         )?;
+
+        let duplicated_score = match &tidy_score.duplicated {
+            Some(duplicated) => !duplicated.is_empty(),
+            None => false,
+        };
+
         let tidy_score_id = statement.insert(params![
             tidy_score.misnamed,
-            !tidy_score.duplicated.is_empty(),
+            duplicated_score,
             tidy_score.unused
         ])?;
 
@@ -555,7 +561,7 @@ mod tests {
         // region: --- TidyScore tests
         let dummy_score = TidyScore {
             misnamed: true,
-            duplicated: Vec::new(),
+            duplicated: None,
             unused: true,
         };
         my_files
@@ -615,7 +621,10 @@ mod tests {
                     .collect(),
             )
             .unwrap();
-        let is_duplicated = !score.duplicated.is_empty();
+        let is_duplicated = match score.duplicated {
+            Some(duplicated) => !duplicated.is_empty(),
+            None => false,
+        };
         assert!(is_duplicated);
 
         // endregion: --- TidyScore tests
