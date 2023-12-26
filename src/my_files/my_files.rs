@@ -198,7 +198,7 @@ impl MyFiles {
             }
         }
     }
-    pub fn add_file_to_db(&self, file: &FileInfo) -> Result<()> {
+    pub fn add_file_to_db(&self, file: &FileInfo) -> Result<FileInfo,()> {
         let last_modified: DateTime<Utc> = file.last_modified.into();
         match self.connection_pool.execute(
             "INSERT INTO my_files (name, path, size, last_modified, tidy_score)
@@ -211,14 +211,17 @@ impl MyFiles {
                 file.tidy_score.as_ref()
             ],
         ) {
-            Ok(_) => Ok(info!("{} added to my_files", file.path.to_str().unwrap())),
+            Ok(_) => Ok({
+                info!("{} added to my_files", file.path.to_str().unwrap());
+                file.clone()
+            }),
             Err(error) => {
                 warn!(
                     "Error adding {} to my_files: {}",
                     file.path.to_str().unwrap(),
                     error
                 );
-                Err(error)
+                Err(())
             }
         }
     }
