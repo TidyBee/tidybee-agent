@@ -25,13 +25,18 @@ impl Default for FileInfo {
     }
 }
 
+impl PartialEq for FileInfo {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash == other.hash
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct TidyScore {
     pub misnamed: bool,
     pub unused: bool,
-    pub duplicated: Option<Vec<FileInfo>>
-    // Not yet implemented
-    // pub misplaced: bool,
+    pub duplicated: Option<Vec<FileInfo>>, // Not yet implemented
+                                           // pub misplaced: bool,
 }
 
 impl TidyScore {
