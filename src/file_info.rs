@@ -7,6 +7,7 @@ pub struct FileInfo {
     pub name: String,
     pub path: std::path::PathBuf,
     pub size: u64,
+    pub hash: Option<String>,
     pub last_modified: std::time::SystemTime,
     pub tidy_score: Option<TidyScore>,
 }
@@ -17,6 +18,7 @@ impl Default for FileInfo {
             name: "".to_string(),
             path: std::path::PathBuf::new(),
             size: 0,
+            hash: None,
             last_modified: std::time::SystemTime::UNIX_EPOCH,
             tidy_score: None,
         }

@@ -7,6 +7,7 @@ use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{params, Result, ToSql};
 use serde::{Deserialize, Serialize};
+use itertools::{Itertools, Either};
 use std::path;
 use std::path::PathBuf;
 
@@ -154,6 +155,7 @@ impl MyFiles {
                 name            TEXT NOT NULL,
                 path            TEXT NOT NULL UNIQUE,
                 size            INTEGER NOT NULL,
+                hash            TEXT DEFAULT \"\",
                 last_modified   DATE NOT NULL,
                 tidy_score      INTEGER UNIQUE,
                 FOREIGN KEY (tidy_score) REFERENCES tidy_scores(id) ON DELETE CASCADE
@@ -198,15 +200,16 @@ impl MyFiles {
             }
         }
     }
-    pub fn add_file_to_db(&self, file: &FileInfo) -> Result<FileInfo,()> {
+    pub fn add_file_to_db(&self, file: &FileInfo) -> Result<FileInfo, ()> {
         let last_modified: DateTime<Utc> = file.last_modified.into();
         match self.connection_pool.execute(
-            "INSERT INTO my_files (name, path, size, last_modified, tidy_score)
-                  VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO my_files (name, path, size, hash, last_modified, tidy_score)
+                  VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![
                 file.name,
                 file.path.to_str(),
                 file.size,
+                file.hash,
                 last_modified.to_rfc3339(),
                 file.tidy_score.as_ref()
             ],
@@ -306,35 +309,59 @@ impl MyFiles {
         }
     }
 
+
+    fn create_fileinfo_from_row(row: &rusqlite::Row) -> Result<FileInfo> {
+        let path_str = row.get::<_, String>(2)?;
+        let path = std::path::Path::new(&path_str).to_owned();
+
+        let time_str = row.get::<_, String>(5)?;
+        if DateTime::parse_from_rfc3339(&time_str).is_err() {
+            error!(
+                "MyFiles::create_fileinfo_from_row: Error parsing key: last_modified with value {}, for file {}.",
+                time_str, path_str
+            );
+        }
+        let last_modified = DateTime::parse_from_rfc3339(&time_str).unwrap().into();
+
+        let tidy_score = match row.get::<_, Option<TidyScore>>(6) {
+            Ok(tidy_score) => tidy_score,
+            Err(error) => {
+                error!(
+                    "MyFiles::create_fileinfo_from_row: Error parsing key: tidy_score for file {} : {}",
+                    path_str, error
+                );
+                None
+            }
+        };
+
+        Ok(FileInfo {
+            name: row.get::<_, String>(1)?,
+            path,
+            size: row.get::<_, u64>(3)?,
+            hash: row.get::<_, Option<String>>(4)?,
+            last_modified,
+            tidy_score,
+        })
+    }
+
     pub fn get_all_files_from_db(&self) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection_pool.prepare("SELECT * FROM my_files")?;
-        let file_iter = statement.query_map(params![], |row| {
-            let path_str = row.get::<_, String>(2)?;
-            let path = std::path::Path::new(&path_str).to_owned();
+        let file_iter_res = statement.query_map(params![], MyFiles::create_fileinfo_from_row);
 
-            let time_str = row.get::<_, String>(4)?;
-            let last_modified = match DateTime::parse_from_rfc3339(&time_str) {
-                Ok(last_modified) => last_modified.into(),
-                Err(error) => {
-                    error!(
-                        "Error parsing key: last_modified with value {}, for file {}. {}",
-                        path_str, time_str, error
-                    );
-                    std::time::SystemTime::UNIX_EPOCH
-                }
-            };
-
-            Ok(FileInfo {
-                name: row.get::<_, String>(1)?,
-                path,
-                size: row.get::<_, u64>(3)?,
-                last_modified,
-                tidy_score: row.get(5)?,
-            })
-        })?;
-        let mut files_vec: Vec<FileInfo> = Vec::new();
-        for file in file_iter {
-            files_vec.push(file.unwrap());
+        let file_iter = match file_iter_res {
+            Ok(file_iter) => file_iter,
+            Err(error) => {
+                error!("MyFiles::get_all_files_from_db: Error getting file iterator from database: {}", error);
+                return Err(error);
+            }
+        };
+        let (files_vec, errs): (Vec<FileInfo>, Vec<rusqlite::Error>) =
+            file_iter.partition_map(|file| match file {
+                Ok(file) => Either::Left(file),
+                Err(error) => Either::Right(error),
+        });
+        for err in errs {
+            error!("MyFiles::get_all_files_from_db: Error getting file from database: {:?}", err);
         }
         Ok(files_vec)
     }
@@ -360,14 +387,14 @@ impl MyFiles {
         let file_id = statement.query_row(params![&str_file_path], |row| row.get::<_, i64>(0))?;
 
         let mut statement = self.connection_pool.prepare(
-            "SELECT my_files.name, my_files.path, my_files.size, my_files.last_modified, my_files.tidy_score
+            "SELECT my_files.name, my_files.path, my_files.size, my_files.last_modified, my_files.hash, my_files.tidy_score
             FROM my_files
             INNER JOIN duplicates_associative_table ON my_files.id = duplicates_associative_table.original_file_id WHERE duplicates_associative_table.original_file_id = ?1",
         ).unwrap();
 
         let duplicated_files = statement
             .query_map(params![file_id], |row| {
-                let path_str = row.get::<_, String>(1)?;
+                let path_str = row.get::<_, String>(0)?;
                 let path = std::path::Path::new(&path_str).to_owned();
 
                 let time_str = row.get::<_, String>(3)?;
@@ -376,13 +403,13 @@ impl MyFiles {
                     Err(error) => {
                         error!(
                             "Error parsing key: last_modified with value {}, for file {}. {}",
-                            path_str, time_str, error
+                            time_str, path_str, error
                         );
                         std::time::SystemTime::UNIX_EPOCH
                     }
                 };
 
-                let tidy_score_id = row.get::<_, i64>(4)?;
+                let tidy_score_id = row.get::<_, i64>(5)?;
                 let mut statement = self.connection_pool.prepare(
                     "SELECT misnamed, duplicated, unused FROM tidy_scores WHERE id = ?1",
                 )?;
@@ -398,6 +425,7 @@ impl MyFiles {
                     name: row.get::<_, String>(0)?,
                     path,
                     size: row.get::<_, u64>(2)?,
+                    hash: row.get::<_, Option<String>>(4)?,
                     last_modified,
                     tidy_score: tidy_score.into(),
                 })
@@ -426,9 +454,10 @@ impl MyFiles {
         statement.query_row(params![&str_filepath], |row| {
             Ok(TidyScore {
                 misnamed: row.get::<_, bool>(0)?,
-                duplicated: Some(self
-                    .fetch_duplicated_files(path::PathBuf::from(&str_filepath))
-                    .unwrap()),
+                duplicated: Some(
+                    self.fetch_duplicated_files(path::PathBuf::from(&str_filepath))
+                        .unwrap(),
+                ),
                 unused: row.get::<_, bool>(2)?,
             })
         })
@@ -480,19 +509,7 @@ impl MyFiles {
     pub fn raw_select_query(&self, query: &str, params: &[&dyn ToSql]) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection_pool.prepare(query)?;
 
-        let db_result = statement.query_map(params, |row| {
-            Ok(FileInfo {
-                name: row.get::<_, String>(1)?,
-                path: std::path::Path::new(row.get::<_, String>(2)?.as_str()).to_owned(),
-                size: row.get::<_, u64>(3)?,
-                last_modified: row
-                    .get::<_, String>(4)?
-                    .parse::<DateTime<Utc>>()
-                    .unwrap()
-                    .into(),
-                tidy_score: row.get(5)?,
-            })
-        })?;
+        let db_result = statement.query_map(params, MyFiles::create_fileinfo_from_row)?;
         Ok(db_result
             .map(|file| file.unwrap())
             .collect::<Vec<FileInfo>>())
@@ -538,12 +555,17 @@ mod tests {
             .for_each(|file| {
                 my_files.add_file_to_db(file).unwrap();
             });
-        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 10);
+         assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 10);
 
         // Using raw query
-        let file_info = my_files
-            .raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"test-file-1"])
-            .unwrap();
+        let file_info = match my_files
+            .raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"test-file-1"]) {
+            Ok(file_info) => file_info,
+            Err(error) => {
+                assert_eq!(error, rusqlite::Error::QueryReturnedNoRows);
+                Vec::new()
+            }
+        };
         assert_eq!(file_info.len(), 1);
         assert_eq!(file_info[0].name, "test-file-1");
         assert_eq!(file_info[0].size, 100);
