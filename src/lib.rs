@@ -5,8 +5,8 @@ mod http_server;
 mod lister;
 mod logger;
 mod my_files;
-mod watcher;
 mod tidy_algo;
+mod watcher;
 
 use crate::http_server::http_server::HttpServerBuilder;
 use crate::tidy_algo::tidy_algo::TidyAlgo;
@@ -32,10 +32,9 @@ pub async fn run() {
     my_files.init_db().unwrap();
     info!("MyFilesDB sucessfully initialized");
 
-
     let mut tidy_algo = TidyAlgo::new();
     info!("TidyAlgo sucessfully created");
-    tidy_algo.load_rules_from_file(PathBuf::from("config/rules/basic.yml"));
+    tidy_algo.load_rules_from_file(&my_files, PathBuf::from("config/rules/basic.yml"));
     info!("TidyAlgo sucessfully loaded rules from config/rules/basic.yml");
 
     let directories_list_args: Vec<PathBuf> = vec![PathBuf::from("src")];
@@ -46,6 +45,7 @@ pub async fn run() {
     match lister::list_directories(directories_list_args) {
         Ok(_files_vec) => {
             for file in _files_vec.iter() {
+                debug!("Adding file {:?} to db", file);
                 match my_files.add_file_to_db(file) {
                     Ok(_) => {}
                     Err(error) => {

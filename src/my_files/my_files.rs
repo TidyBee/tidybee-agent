@@ -1,13 +1,13 @@
 use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::{FileInfo, TidyScore};
 use chrono::{DateTime, Utc};
+use itertools::{Either, Itertools};
 use log::{error, info, warn};
 use r2d2;
 use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{params, Result, ToSql};
 use serde::{Deserialize, Serialize};
-use itertools::{Itertools, Either};
 use std::path;
 use std::path::PathBuf;
 
@@ -309,7 +309,6 @@ impl MyFiles {
         }
     }
 
-
     fn create_fileinfo_from_row(row: &rusqlite::Row) -> Result<FileInfo> {
         let path_str = row.get::<_, String>(2)?;
         let path = std::path::Path::new(&path_str).to_owned();
@@ -351,7 +350,10 @@ impl MyFiles {
         let file_iter = match file_iter_res {
             Ok(file_iter) => file_iter,
             Err(error) => {
-                error!("MyFiles::get_all_files_from_db: Error getting file iterator from database: {}", error);
+                error!(
+                    "MyFiles::get_all_files_from_db: Error getting file iterator from database: {}",
+                    error
+                );
                 return Err(error);
             }
         };
@@ -359,9 +361,12 @@ impl MyFiles {
             file_iter.partition_map(|file| match file {
                 Ok(file) => Either::Left(file),
                 Err(error) => Either::Right(error),
-        });
+            });
         for err in errs {
-            error!("MyFiles::get_all_files_from_db: Error getting file from database: {:?}", err);
+            error!(
+                "MyFiles::get_all_files_from_db: Error getting file from database: {:?}",
+                err
+            );
         }
         Ok(files_vec)
     }
@@ -555,11 +560,12 @@ mod tests {
             .for_each(|file| {
                 my_files.add_file_to_db(file).unwrap();
             });
-         assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 10);
+        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 10);
 
         // Using raw query
         let file_info = match my_files
-            .raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"test-file-1"]) {
+            .raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"test-file-1"])
+        {
             Ok(file_info) => file_info,
             Err(error) => {
                 assert_eq!(error, rusqlite::Error::QueryReturnedNoRows);

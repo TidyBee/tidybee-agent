@@ -1,10 +1,9 @@
 use crate::file_info::FileInfo;
+use log::warn;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use log::warn;
 use xxhash_rust::xxh3::xxh3_64 as hasher;
-
 
 fn get_hash_from_file(file: &PathBuf) -> Result<String, std::io::Error> {
     let mut file = fs::File::open(file)?;
@@ -36,7 +35,7 @@ pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, std:
                             Err(_) => {
                                 warn!("Could not get hash from file: {:?}", file);
                                 None
-                            },
+                            }
                         };
                         files.push(FileInfo {
                             name: Path::new(file)

@@ -1,21 +1,27 @@
-use std::path;
-use config::{Config, ConfigError, File};
-use log::debug;
 use crate::file_info::{FileInfo, TidyScore};
+use crate::my_files::MyFiles;
 use crate::tidy_algo::tidy_rules::duplicated::duplicated;
 use crate::tidy_algo::tidy_rules::missnamed::missnamed;
 use crate::tidy_algo::tidy_rules::perished::perished;
+use config::{Config, ConfigError, File};
+use log::debug;
+use std::path;
 
 /// Represents a rule that can be applied to a file
 pub struct TidyRule {
     name: String,
     log: String,
     scope: String,
-    apply: fn(&FileInfo) -> TidyScore,
+    apply: fn(&FileInfo, &MyFiles) -> TidyScore,
 }
 
 impl TidyRule {
-    pub fn new(name: String, log: String, scope: String, apply: fn(&FileInfo) -> TidyScore) -> Self {
+    pub fn new(
+        name: String,
+        log: String,
+        scope: String,
+        apply: fn(&FileInfo, &MyFiles) -> TidyScore,
+    ) -> Self {
         Self {
             name,
             log,
@@ -37,19 +43,16 @@ pub struct TidyAlgo {
 
 impl TidyAlgo {
     pub fn new() -> Self {
-        Self {
-            rules: Vec::new(),
-        }
+        Self { rules: Vec::new() }
     }
 
     fn add_rule(&mut self, rule: TidyRule) {
         self.rules.push(Box::new(rule));
     }
 
-    pub fn load_rules_from_file(&mut self, path: path::PathBuf) {
-        let rules_config: Result<Config, ConfigError> = Config::builder()
-            .add_source(File::from(path))
-            .build();
+    pub fn load_rules_from_file(&mut self, my_files: &MyFiles, path: path::PathBuf) {
+        let rules_config: Result<Config, ConfigError> =
+            Config::builder().add_source(File::from(path)).build();
 
         let rules = match rules_config {
             Ok(config) => config.get_array("rules").unwrap(),
@@ -68,7 +71,10 @@ impl TidyAlgo {
                 "perished" => perished,
                 _ => panic!("Unknown rule"),
             };
-            debug!("Adding rule {} of type {} that will be logged as {}", name, apply_type, log);
+            debug!(
+                "Adding rule {} of type {} that will be logged as {}",
+                name, apply_type, log
+            );
             self.add_rule(TidyRule::new(name, log, scope, apply));
         }
     }
