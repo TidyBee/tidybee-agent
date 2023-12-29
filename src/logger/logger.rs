@@ -1,5 +1,7 @@
 use crate::configuration_wrapper::ConfigurationWrapper;
-use simplelog::*;
+use simplelog::{
+    ColorChoice, CombinedLogger, Config, LevelFilter, TermLogger, TerminalMode, WriteLogger,
+};
 use std::fs::File;
 
 #[derive(Debug, serde::Deserialize)]
