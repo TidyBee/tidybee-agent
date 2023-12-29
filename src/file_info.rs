@@ -45,8 +45,8 @@ impl FromSql for TidyScore {
         match value {
             ValueRef::Text(s) => {
                 let tidy_score: TidyScore =
-                match serde_json::from_str(match std::str::from_utf8(s) {
-                    Ok(s) => s,
+                    match serde_json::from_str(match core::str::from_utf8(s) {
+                        Ok(s) => s,
                         Err(_) => return Err(FromSqlError::InvalidType),
                     }) {
                         Ok(tidy_score) => tidy_score,

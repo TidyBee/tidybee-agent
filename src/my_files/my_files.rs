@@ -45,7 +45,7 @@ pub struct MyFiles {
 pub struct MyFilesBuilder<C, M, S> {
     connection_manager: M,
     configuration_wrapper_instance: C,
-    marker_seal: std::marker::PhantomData<S>,
+    marker_seal: core::marker::PhantomData<S>,
 }
 
 impl Default for ConnectionManagerPresent {
@@ -59,7 +59,7 @@ impl MyFilesBuilder<NoConfigurationWrapper, NoConnectionManager, NotSealed> {
         MyFilesBuilder {
             connection_manager: NoConnectionManager,
             configuration_wrapper_instance: NoConfigurationWrapper,
-            marker_seal: std::marker::PhantomData,
+            marker_seal: core::marker::PhantomData,
         }
     }
 }
@@ -87,14 +87,14 @@ impl<C, M> MyFilesBuilder<C, M, NotSealed> {
                 configuration_wrapper_instance,
             ),
             connection_manager: ConnectionManagerPresent(pool),
-            marker_seal: std::marker::PhantomData,
+            marker_seal: core::marker::PhantomData,
         }
     }
     pub fn seal(self) -> MyFilesBuilder<C, M, Sealed> {
         MyFilesBuilder {
             connection_manager: self.connection_manager,
             configuration_wrapper_instance: self.configuration_wrapper_instance,
-            marker_seal: std::marker::PhantomData,
+            marker_seal: core::marker::PhantomData,
         }
     }
 }

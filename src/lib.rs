@@ -36,8 +36,8 @@ pub async fn run() {
     debug!("directories_watch_args = {:?}", directories_watch_args);
 
     match lister::list_directories(directories_list_args) {
-        Ok(_files_vec) => {
-            for file in _files_vec.iter() {
+        Ok(files_vec) => {
+            for file in files_vec.iter() {
                 match my_files.add_file_to_db(file) {
                     Ok(_) => {}
                     Err(error) => {
