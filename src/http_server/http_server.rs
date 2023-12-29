@@ -44,8 +44,8 @@ pub struct HttpServerBuilder {
 
 impl Default for HttpServerConfig {
     fn default() -> Self {
-        let host = "0.0.0.0".to_string();
-        let port = "8111".to_string();
+        let host = "0.0.0.0".to_owned();
+        let port = "8111".to_owned();
 
         HttpServerConfig { host, port }
     }

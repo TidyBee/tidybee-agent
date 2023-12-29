@@ -24,7 +24,7 @@ pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, std:
                                 .unwrap()
                                 .to_str()
                                 .unwrap()
-                                .to_string(),
+                                .to_owned(),
                             path,
                             size,
                             last_modified,

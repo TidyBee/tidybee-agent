@@ -8,7 +8,7 @@ pub struct Greeting {
 
 pub async fn hello_world() -> Json<Greeting> {
     let greeting: Greeting = Greeting {
-        message: "hello world".to_string(),
+        message: "hello world".to_owned(),
     };
     Json(greeting)
 }
