@@ -254,7 +254,7 @@ impl MyFiles {
             .unwrap();
         let duplicated_file_id = statement
             .query_row(
-                params![duplicated_file_path.clone().into_os_string().to_str()],
+                params![duplicated_file_path.into_os_string().to_str()],
                 |row| row.get::<_, i64>(0),
             )
             .unwrap();
@@ -485,7 +485,7 @@ impl MyFiles {
             })
         })?;
         Ok(db_result
-            .map(|file| file.unwrap())
+            .map(core::result::Result::unwrap)
             .collect::<Vec<FileInfo>>())
     }
 

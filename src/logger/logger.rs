@@ -42,7 +42,7 @@ pub fn init_logger(
                     File::create("tidybee-agent.log").unwrap(),
                 ),
             ])
-            .map_err(|e| e.into())
+            .map_err(core::convert::Into::into)
         }
         Err(err) => Err(err.into()),
     }
