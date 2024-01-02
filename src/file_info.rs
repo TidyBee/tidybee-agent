@@ -14,7 +14,7 @@ pub struct FileInfo {
 impl Default for FileInfo {
     fn default() -> Self {
         FileInfo {
-            name: "".to_owned(),
+            name: String::new(),
             path: std::path::PathBuf::new(),
             size: 0,
             last_modified: std::time::SystemTime::UNIX_EPOCH,

@@ -55,7 +55,7 @@ impl Default for ConnectionManagerPresent {
 }
 
 impl MyFilesBuilder<NoConfigurationWrapper, NoConnectionManager, NotSealed> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         MyFilesBuilder {
             connection_manager: NoConnectionManager,
             configuration_wrapper_instance: NoConfigurationWrapper,
