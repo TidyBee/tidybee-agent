@@ -13,24 +13,22 @@ pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, std:
 
                 if path.is_dir() {
                     files.extend(list_directories(vec![path])?);
-                } else {
-                    if let Some(file) = path.to_str() {
-                        let md: fs::Metadata = fs::metadata(&path)?;
-                        let size: u64 = md.len();
-                        let last_modified: std::time::SystemTime = md.accessed()?;
-                        files.push(FileInfo {
-                            name: Path::new(file)
-                                .file_name()
-                                .unwrap()
-                                .to_str()
-                                .unwrap()
-                                .to_owned(),
-                            path,
-                            size,
-                            last_modified,
-                            ..Default::default()
-                        });
-                    }
+                } else if let Some(file) = path.to_str() {
+                    let md: fs::Metadata = fs::metadata(&path)?;
+                    let size: u64 = md.len();
+                    let last_modified: std::time::SystemTime = md.accessed()?;
+                    files.push(FileInfo {
+                        name: Path::new(file)
+                            .file_name()
+                            .unwrap()
+                            .to_str()
+                            .unwrap()
+                            .to_owned(),
+                        path,
+                        size,
+                        last_modified,
+                        ..Default::default()
+                    });
                 }
             }
         }

@@ -266,7 +266,7 @@ impl MyFiles {
             VALUES (?1, ?2)",
             )
             .unwrap();
-        let _ = match statement.execute(params![file_id, duplicated_file_id]) {
+        let _: Result<(), _> = match statement.execute(params![file_id, duplicated_file_id]) {
             Ok(_) => Ok(info!(
                 "{:?} added to duplicates_associative_table",
                 str_filepath
@@ -455,7 +455,7 @@ impl MyFiles {
             WHERE path = ?2",
         )?;
         // The potential failure of this query will be handled in future work on the my_files error handling
-        let _ = match statement.execute(params![tidy_score_id, str_filepath]) {
+        let _: Result<(), _> = match statement.execute(params![tidy_score_id, str_filepath]) {
             Ok(_) => Ok(info!("tidy_score set for file {:?}", str_filepath)),
             Err(error) => {
                 error!(
