@@ -8,6 +8,7 @@ mod my_files;
 mod tidy_algo;
 mod watcher;
 
+use crate::tidy_algo::TidyAlgo;
 use http_server::HttpServerBuilder;
 use log::{debug, error, info};
 use std::path::PathBuf;

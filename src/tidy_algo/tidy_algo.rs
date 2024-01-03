@@ -3,8 +3,9 @@ use crate::my_files::MyFiles;
 use crate::tidy_algo::tidy_rules::duplicated::duplicated;
 use crate::tidy_algo::tidy_rules::missnamed::missnamed;
 use crate::tidy_algo::tidy_rules::perished::perished;
-use config::{Config, ConfigError, File};
+use config::{Config, ConfigError, File, Value};
 use log::debug;
+use std::collections::HashMap;
 use std::path;
 
 /// Represents a rule that can be applied to a file
@@ -12,20 +13,23 @@ pub struct TidyRule {
     name: String,
     log: String,
     scope: String,
-    apply: fn(&FileInfo, &MyFiles) -> TidyScore,
+    pub params: HashMap<String, Value>,
+    apply: fn(&FileInfo, &MyFiles, HashMap<String, Value>) -> TidyScore,
 }
-
+e
 impl TidyRule {
     pub fn new(
         name: String,
         log: String,
         scope: String,
-        apply: fn(&FileInfo, &MyFiles) -> TidyScore,
+        params: HashMap<String, Value>,
+        apply: fn(&FileInfo, &MyFiles, HashMap<String, Value>) -> TidyScore,
     ) -> Self {
         Self {
             name,
             log,
             scope,
+            params,
             apply,
         }
     }
@@ -75,7 +79,7 @@ impl TidyAlgo {
                 "Adding rule {} of type {} that will be logged as {}",
                 name, apply_type, log
             );
-            self.add_rule(TidyRule::new(name, log, scope, apply));
+            self.add_rule(TidyRule::new(name, log,scope, rule, apply));
         }
     }
 }
