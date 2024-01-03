@@ -1,19 +1,60 @@
-use crate::agent_data::agent_data;
-use crate::agent_data::agent_data::AgentDataBuilder;
+use crate::agent_data;
+use crate::agent_data::{AgentData, AgentDataBuilder};
 use crate::configuration_wrapper::ConfigurationWrapper;
-use crate::http_server::routes;
+use crate::file_info::FileInfo;
 use crate::my_files;
-use crate::my_files::my_files::{ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed};
-use axum::routing::get;
-use axum::Router;
+use crate::my_files::{ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed};
+use axum::{extract::Path, extract::State, routing::get, Json, Router};
 use log::{error, info};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+#[derive(Serialize)]
+struct Greeting {
+    message: String,
+}
+
+async fn hello_world() -> Json<Greeting> {
+    let greeting: Greeting = Greeting {
+        message: "hello world".to_owned(),
+    };
+    Json(greeting)
+}
+
+async fn get_status(State(agent_data): State<AgentDataState>) -> Json<AgentData> {
+    let mut agent_data_cloned = agent_data.agent_data.lock().unwrap().clone();
+
+    agent_data_cloned.update();
+    Json(agent_data_cloned)
+}
+
+async fn get_files(
+    State(my_files): State<MyFilesState>,
+    Path((number_of_files, sort_by)): Path<(usize, String)>,
+) -> Json<Vec<FileInfo>> {
+    let mut files_vec: Vec<FileInfo> = my_files
+        .my_files
+        .lock()
+        .unwrap()
+        .get_all_files_from_db()
+        .unwrap();
+
+    files_vec.sort_by(|a, b| match sort_by.to_lowercase().as_str() {
+        "size" => b.size.cmp(&a.size),
+        "last_update" => b.last_modified.cmp(&a.last_modified),
+        _ => {
+            error!("Invalid sort parameter in get_files route. Defaulting to size.");
+            b.size.cmp(&a.size)
+        }
+    });
+    let result = files_vec.into_iter().take(number_of_files).collect();
+    Json(result)
+}
+
 #[derive(Debug, Deserialize, Clone)]
-pub struct HttpServerConfig {
+struct HttpServerConfig {
     host: String,
     port: String,
 }
@@ -25,13 +66,13 @@ pub struct HttpServer {
 }
 
 #[derive(Clone)]
-pub struct MyFilesState {
-    pub my_files: Arc<Mutex<my_files::MyFiles>>,
+struct MyFilesState {
+    my_files: Arc<Mutex<my_files::MyFiles>>,
 }
 
 #[derive(Clone)]
-pub struct AgentDataState {
-    pub agent_data: Arc<Mutex<agent_data::AgentData>>,
+struct AgentDataState {
+    agent_data: Arc<Mutex<agent_data::AgentData>>,
 }
 
 #[derive(Clone, Default)]
@@ -99,15 +140,12 @@ impl HttpServerBuilder {
         };
         let router = self
             .router
-            .route("/", get(routes::hello_world))
+            .route("/", get(hello_world))
             .route(
                 "/get_files/:nb_files/sorted_by/:sort_type",
-                get(routes::get_files).with_state(my_files_state),
+                get(get_files).with_state(my_files_state),
             )
-            .route(
-                "/get_status",
-                get(routes::get_status).with_state(agent_data_state),
-            );
+            .route("/get_status", get(get_status).with_state(agent_data_state));
         HttpServer {
             http_server_config,
             router,

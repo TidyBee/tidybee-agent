@@ -2,7 +2,6 @@ use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::{FileInfo, TidyScore};
 use chrono::{DateTime, Utc};
 use log::{error, info, warn};
-use r2d2;
 use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{params, Result, ToSql};

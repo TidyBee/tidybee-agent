@@ -7,7 +7,7 @@ mod logger;
 mod my_files;
 mod watcher;
 
-use crate::http_server::http_server::HttpServerBuilder;
+use http_server::HttpServerBuilder;
 use log::{debug, error, info};
 use std::path::PathBuf;
 use std::process;
