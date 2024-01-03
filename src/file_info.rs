@@ -15,7 +15,7 @@ pub struct FileInfo {
 impl Default for FileInfo {
     fn default() -> Self {
         FileInfo {
-            name: "".to_string(),
+            name: String::new(),
             path: std::path::PathBuf::new(),
             size: 0,
             hash: None,
@@ -62,7 +62,7 @@ impl FromSql for TidyScore {
         match value {
             ValueRef::Text(s) => {
                 let tidy_score: TidyScore =
-                    match serde_json::from_str(match std::str::from_utf8(s) {
+                    match serde_json::from_str(match core::str::from_utf8(s) {
                         Ok(s) => s,
                         Err(_) => return Err(FromSqlError::InvalidType),
                     }) {

@@ -13,8 +13,8 @@ struct AgentVersion {
 
 impl Default for AgentVersion {
     fn default() -> Self {
-        let latest_version = "0.1.0".to_string();
-        let minimal_version = "0.1.0".to_string();
+        let latest_version = "0.1.0".to_owned();
+        let minimal_version = "0.1.0".to_owned();
 
         AgentVersion {
             latest_version,
@@ -58,7 +58,7 @@ impl AgentDataBuilder {
 
         AgentData {
             agent_version,
-            machine_name: gethostname().to_str().unwrap().to_string(),
+            machine_name: gethostname().to_str().unwrap().to_owned(),
             process_id: sysinfo::get_current_pid().unwrap().as_u32(),
             uptime: System::new_with_specifics(RefreshKind::new()).uptime(),
             watched_directories: directories_watch_args,

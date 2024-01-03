@@ -3,7 +3,6 @@ use crate::file_info::{FileInfo, TidyScore};
 use chrono::{DateTime, Utc};
 use itertools::{Either, Itertools};
 use log::{error, info, warn};
-use r2d2;
 use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{params, Result, ToSql};
@@ -46,7 +45,7 @@ pub struct MyFiles {
 pub struct MyFilesBuilder<C, M, S> {
     connection_manager: M,
     configuration_wrapper_instance: C,
-    marker_seal: std::marker::PhantomData<S>,
+    marker_seal: core::marker::PhantomData<S>,
 }
 
 impl Default for ConnectionManagerPresent {
@@ -56,11 +55,11 @@ impl Default for ConnectionManagerPresent {
 }
 
 impl MyFilesBuilder<NoConfigurationWrapper, NoConnectionManager, NotSealed> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         MyFilesBuilder {
             connection_manager: NoConnectionManager,
             configuration_wrapper_instance: NoConfigurationWrapper,
-            marker_seal: std::marker::PhantomData,
+            marker_seal: core::marker::PhantomData,
         }
     }
 }
@@ -88,14 +87,14 @@ impl<C, M> MyFilesBuilder<C, M, NotSealed> {
                 configuration_wrapper_instance,
             ),
             connection_manager: ConnectionManagerPresent(pool),
-            marker_seal: std::marker::PhantomData,
+            marker_seal: core::marker::PhantomData,
         }
     }
     pub fn seal(self) -> MyFilesBuilder<C, M, Sealed> {
         MyFilesBuilder {
             connection_manager: self.connection_manager,
             configuration_wrapper_instance: self.configuration_wrapper_instance,
-            marker_seal: std::marker::PhantomData,
+            marker_seal: core::marker::PhantomData,
         }
     }
 }
@@ -260,7 +259,7 @@ impl MyFiles {
             .unwrap();
         let duplicated_file_id = statement
             .query_row(
-                params![duplicated_file_path.clone().into_os_string().to_str()],
+                params![duplicated_file_path.into_os_string().to_str()],
                 |row| row.get::<_, i64>(0),
             )
             .unwrap();
@@ -272,7 +271,7 @@ impl MyFiles {
             VALUES (?1, ?2)",
             )
             .unwrap();
-        let _ = match statement.execute(params![file_id, duplicated_file_id]) {
+        let _: Result<(), _> = match statement.execute(params![file_id, duplicated_file_id]) {
             Ok(_) => Ok(info!(
                 "{:?} added to duplicates_associative_table",
                 str_filepath
@@ -498,7 +497,7 @@ impl MyFiles {
             WHERE path = ?2",
         )?;
         // The potential failure of this query will be handled in future work on the my_files error handling
-        let _ = match statement.execute(params![tidy_score_id, str_filepath]) {
+        let _: Result<(), _> = match statement.execute(params![tidy_score_id, str_filepath]) {
             Ok(_) => Ok(info!("tidy_score set for file {:?}", str_filepath)),
             Err(error) => {
                 error!(
@@ -516,7 +515,7 @@ impl MyFiles {
 
         let db_result = statement.query_map(params, MyFiles::create_fileinfo_from_row)?;
         Ok(db_result
-            .map(|file| file.unwrap())
+            .map(core::result::Result::unwrap)
             .collect::<Vec<FileInfo>>())
     }
 

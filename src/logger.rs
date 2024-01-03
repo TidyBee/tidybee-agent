@@ -1,5 +1,7 @@
 use crate::configuration_wrapper::ConfigurationWrapper;
-use simplelog::*;
+use simplelog::{
+    ColorChoice, CombinedLogger, Config, LevelFilter, TermLogger, TerminalMode, WriteLogger,
+};
 use std::fs::File;
 
 #[derive(Debug, serde::Deserialize)]
@@ -40,7 +42,7 @@ pub fn init_logger(
                     File::create("tidybee-agent.log").unwrap(),
                 ),
             ])
-            .map_err(|e| e.into())
+            .map_err(core::convert::Into::into)
         }
         Err(err) => Err(err.into()),
     }
