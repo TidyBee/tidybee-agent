@@ -7,7 +7,7 @@ mod logger;
 mod my_files;
 mod watcher;
 
-use crate::http_server::http_server::HttpServerBuilder;
+use http_server::HttpServerBuilder;
 use log::{debug, error, info};
 use std::path::PathBuf;
 use std::process;
@@ -36,8 +36,8 @@ pub async fn run() {
     debug!("directories_watch_args = {:?}", directories_watch_args);
 
     match lister::list_directories(directories_list_args) {
-        Ok(_files_vec) => {
-            for file in _files_vec.iter() {
+        Ok(files_vec) => {
+            for file in files_vec.iter() {
                 match my_files.add_file_to_db(file) {
                     Ok(_) => {}
                     Err(error) => {
