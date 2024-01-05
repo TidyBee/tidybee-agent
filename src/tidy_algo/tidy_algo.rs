@@ -16,7 +16,7 @@ pub struct TidyRule {
     pub params: HashMap<String, Value>,
     apply: fn(&FileInfo, &MyFiles, HashMap<String, Value>) -> TidyScore,
 }
-e
+
 impl TidyRule {
     pub fn new(
         name: String,
