@@ -1,4 +1,5 @@
 mod agent_data;
+mod configuration;
 mod configuration_wrapper;
 mod file_info;
 mod http_server;
@@ -9,17 +10,16 @@ mod watcher;
 
 use http_server::HttpServerBuilder;
 use log::{debug, error, info};
-use std::path::PathBuf;
-use std::process;
 use std::thread;
 
 pub async fn run() {
     let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
         configuration_wrapper::ConfigurationWrapper::new().unwrap();
-    if logger::init_logger(&configuration_wrapper).is_err() {
-        process::exit(1);
-    }
-    info!("Command-line Arguments Parsed");
+    let config = configuration::Configuration::default();
+    logger::init(
+        config.term_log_level.as_str(),
+        config.file_log_level.as_str(),
+    );
 
     let my_files_builder = my_files::MyFilesBuilder::new()
         .configuration_wrapper(configuration_wrapper.clone())
@@ -30,12 +30,7 @@ pub async fn run() {
     my_files.init_db().unwrap();
     info!("MyFilesDB sucessfully initialized");
 
-    let directories_list_args: Vec<PathBuf> = vec![PathBuf::from("src")];
-    let directories_watch_args: Vec<PathBuf> = vec![PathBuf::from("src")];
-    debug!("directories_list_args = {:?}", directories_list_args);
-    debug!("directories_watch_args = {:?}", directories_watch_args);
-
-    match lister::list_directories(directories_list_args) {
+    match lister::list_directories(config.directories_list_args) {
         Ok(files_vec) => {
             for file in files_vec.iter() {
                 match my_files.add_file_to_db(file) {
@@ -53,7 +48,7 @@ pub async fn run() {
     let server = HttpServerBuilder::new()
         .configuration_wrapper(configuration_wrapper.clone())
         .my_files_builder(my_files_builder)
-        .build(directories_watch_args.clone(), configuration_wrapper);
+        .build(config.directories_watch_args.clone(), configuration_wrapper);
     info!("HTTP Server build");
     info!("Directory Successfully Listed");
     tokio::spawn(async move {
@@ -63,7 +58,7 @@ pub async fn run() {
 
     let (sender, receiver) = crossbeam_channel::unbounded();
     let watch_directories_thread: thread::JoinHandle<()> = thread::spawn(move || {
-        watcher::watch_directories(directories_watch_args.clone(), sender);
+        watcher::watch_directories(config.directories_watch_args.clone(), sender);
     });
     info!("File Events Watcher Started");
     for event in receiver {
