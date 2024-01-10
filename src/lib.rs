@@ -22,7 +22,7 @@ pub async fn run() {
     );
 
     let my_files_builder = my_files::MyFilesBuilder::new()
-        .configuration_wrapper(configuration_wrapper.clone())
+        .configuration_wrapper(configuration_wrapper)
         .seal();
 
     let my_files: my_files::MyFiles = my_files_builder.build().unwrap();
@@ -46,9 +46,8 @@ pub async fn run() {
         }
     }
     let server = HttpServerBuilder::new()
-        .configuration_wrapper(configuration_wrapper.clone())
         .my_files_builder(my_files_builder)
-        .build(config.directories_watch_args.clone(), configuration_wrapper);
+        .build(config.directories_watch_args.clone());
     info!("HTTP Server build");
     info!("Directory Successfully Listed");
     tokio::spawn(async move {

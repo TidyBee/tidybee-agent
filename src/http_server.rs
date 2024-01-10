@@ -1,12 +1,11 @@
 use crate::agent_data;
 use crate::agent_data::{AgentData, AgentDataBuilder};
-use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::FileInfo;
 use crate::my_files;
 use crate::my_files::{ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed};
 use axum::{extract::Path, extract::State, routing::get, Json, Router};
 use log::{error, info};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -53,15 +52,8 @@ async fn get_files(
     Json(result)
 }
 
-#[derive(Debug, Deserialize, Clone)]
-struct HttpServerConfig {
-    host: String,
-    port: String,
-}
-
 #[derive(Clone, Default)]
 pub struct HttpServer {
-    http_server_config: HttpServerConfig,
     router: Router,
 }
 
@@ -80,29 +72,11 @@ pub struct HttpServerBuilder {
     router: Router,
     my_files_builder:
         my_files::MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed>,
-    configuration_wrapper: ConfigurationWrapper,
-}
-
-impl Default for HttpServerConfig {
-    fn default() -> Self {
-        let host = "0.0.0.0".to_owned();
-        let port = "8111".to_owned();
-
-        HttpServerConfig { host, port }
-    }
 }
 
 impl HttpServerBuilder {
     pub fn new() -> Self {
         HttpServerBuilder::default()
-    }
-
-    pub fn configuration_wrapper(
-        mut self,
-        configuration_wrapper: impl Into<ConfigurationWrapper>,
-    ) -> Self {
-        self.configuration_wrapper = configuration_wrapper.into();
-        self
     }
 
     pub fn my_files_builder(
@@ -120,12 +94,7 @@ impl HttpServerBuilder {
     pub async fn build(
         self,
         directories_watch_args: Vec<PathBuf>,
-        configuration_wrapper: ConfigurationWrapper,
     ) -> HttpServer {
-        let http_server_config: HttpServerConfig = self
-            .configuration_wrapper
-            .bind::<HttpServerConfig>("http_server_config")
-            .unwrap_or_default();
         let my_files_instance = self.my_files_builder.build().unwrap();
         info!("MyFiles instance successfully created for HTTP Server");
         let my_files_state = MyFilesState {
@@ -134,7 +103,6 @@ impl HttpServerBuilder {
         let agent_data_state = AgentDataState {
             agent_data: Arc::new(Mutex::new(
                 AgentDataBuilder::new()
-                    .configuration_wrapper(configuration_wrapper)
                     .build(directories_watch_args),
             )),
         };
@@ -146,38 +114,17 @@ impl HttpServerBuilder {
                 get(get_files).with_state(my_files_state),
             )
             .route("/get_status", get(get_status).with_state(agent_data_state));
-        HttpServer {
-            http_server_config,
-            router,
-        }
+        HttpServer { router }
     }
 }
 
 impl HttpServer {
     pub async fn start(self) {
-        let addr: SocketAddr = match format!(
-            "{}:{}",
-            self.http_server_config.host, self.http_server_config.port
-        )
-        .parse()
-        {
-            Ok(addr) => addr,
-            Err(_) => {
-                let default_config: HttpServerConfig = HttpServerConfig::default();
-                error!(
-                    "Invalid host or port: {}:{}, defaulting to {}:{}",
-                    self.http_server_config.host,
-                    self.http_server_config.port,
-                    default_config.host,
-                    default_config.port
-                );
-                format!("{}:{}", default_config.host, default_config.port)
-                    .parse()
-                    .unwrap()
-            }
-        };
+        let addr: SocketAddr = "0.0.0.0:8111"
+            .parse()
+            .expect("Unable to parse socket address");
 
-        info!("Http Server running at {}", addr.to_string());
+        info!("Http Server running at {addr}");
         axum::Server::bind(&addr)
             .serve(self.router.into_make_service())
             .await
