@@ -1,7 +1,6 @@
 {
   "http_server_config": {
-    "host": "0.0.0.0",
-    "port": "8111"
+    "address": "0.0.0.0:8111"
   },
   "agent_config": {
     "latest_version": "0.1.0",

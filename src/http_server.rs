@@ -54,6 +54,7 @@ async fn get_files(
 
 #[derive(Clone, Default)]
 pub struct HttpServer {
+    address: String,
     router: Router,
 }
 
@@ -91,20 +92,14 @@ impl HttpServerBuilder {
         self
     }
 
-    pub async fn build(
-        self,
-        directories_watch_args: Vec<PathBuf>,
-    ) -> HttpServer {
+    pub async fn build(self, dirs_watch: Vec<PathBuf>, address: String) -> HttpServer {
         let my_files_instance = self.my_files_builder.build().unwrap();
         info!("MyFiles instance successfully created for HTTP Server");
         let my_files_state = MyFilesState {
             my_files: Arc::new(Mutex::new(my_files_instance)),
         };
         let agent_data_state = AgentDataState {
-            agent_data: Arc::new(Mutex::new(
-                AgentDataBuilder::new()
-                    .build(directories_watch_args),
-            )),
+            agent_data: Arc::new(Mutex::new(AgentDataBuilder::new().build(dirs_watch))),
         };
         let router = self
             .router
@@ -114,15 +109,13 @@ impl HttpServerBuilder {
                 get(get_files).with_state(my_files_state),
             )
             .route("/get_status", get(get_status).with_state(agent_data_state));
-        HttpServer { router }
+        HttpServer { address, router }
     }
 }
 
 impl HttpServer {
     pub async fn start(self) {
-        let addr: SocketAddr = "0.0.0.0:8111"
-            .parse()
-            .expect("Unable to parse socket address");
+        let addr: SocketAddr = self.address.parse().unwrap();
 
         info!("Http Server running at {addr}");
         axum::Server::bind(&addr)
