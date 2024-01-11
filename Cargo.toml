@@ -22,6 +22,7 @@ r2d2 = "0.8.10"
 r2d2_sqlite = "0.23.0"
 gethostname = "0.4.3"
 sysinfo = "0.29.10"
+serde_derive = "1.0.8"
 
 [dev-dependencies]
 ctor = "0.2.5"

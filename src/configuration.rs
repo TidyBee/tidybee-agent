@@ -1,5 +1,7 @@
-use std::path::PathBuf;
+use config::{Config, File};
+use std::path::{Path, PathBuf};
 
+#[derive(Debug, Default, serde_derive::Deserialize, PartialEq, Eq)]
 pub struct Configuration {
     pub term_log_level: String,
     pub file_log_level: String,
@@ -9,6 +11,16 @@ pub struct Configuration {
 }
 
 impl Configuration {
+    pub fn init() -> Self {
+        let config = Config::builder()
+            .add_source(File::from(Path::new("config/configuration.json")))
+            .build()
+            .unwrap();
+        let app: Configuration = config.try_deserialize().unwrap();
+        app
+    }
+
+    #[allow(dead_code)]
     pub fn default() -> Self {
         Self {
             term_log_level: String::from("debug"),

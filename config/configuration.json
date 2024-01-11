@@ -1,0 +1,11 @@
+{
+  "term_log_level": "warn",
+  "file_log_level": "warn",
+  "directories_list_args": [
+    "src"
+  ],
+  "directories_watch_args": [
+    "src"
+  ],
+  "http_server_address": "0.0.0.0:8111"
+}

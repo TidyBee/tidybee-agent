@@ -15,7 +15,7 @@ use std::thread;
 pub async fn run() {
     let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
         configuration_wrapper::ConfigurationWrapper::new().unwrap();
-    let config = configuration::Configuration::default();
+    let config = configuration::Configuration::init();
     logger::init(
         config.term_log_level.as_str(),
         config.file_log_level.as_str(),
