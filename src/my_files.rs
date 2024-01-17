@@ -559,7 +559,7 @@ mod tests {
             .for_each(|file| {
                 my_files.add_file_to_db(file).unwrap();
             });
-        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 10);
+        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 13);
 
         // Using raw query
         let file_info = match my_files
