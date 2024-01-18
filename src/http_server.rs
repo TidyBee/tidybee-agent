@@ -19,7 +19,7 @@ struct Greeting {
 
 #[derive(Deserialize)]
 struct GetFilesParams {
-    number_of_files: usize,
+    amount: usize,
     sort_by: String,
 }
 
@@ -56,7 +56,7 @@ async fn get_files(
             b.size.cmp(&a.size)
         }
     });
-    let result = files_vec.into_iter().take(query_params.number_of_files).collect();
+    let result = files_vec.into_iter().take(query_params.amount).collect();
     Json(result)
 }
 
@@ -148,10 +148,7 @@ impl HttpServerBuilder {
         let router = self
             .router
             .route("/", get(hello_world))
-            .route(
-                "/get_files",
-                get(get_files).with_state(my_files_state),
-            )
+            .route("/get_files", get(get_files).with_state(my_files_state))
             .route("/get_status", get(get_status).with_state(agent_data_state));
         HttpServer {
             http_server_config,
