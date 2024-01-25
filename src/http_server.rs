@@ -99,7 +99,7 @@ impl HttpServerBuilder {
         self
     }
 
-    pub async fn build(self, dirs_watch: Vec<PathBuf>, address: String) -> HttpServer {
+    pub fn build(self, dirs_watch: Vec<PathBuf>, address: String) -> HttpServer {
         let my_files_instance = self.my_files_builder.build().unwrap();
         info!("MyFiles instance successfully created for HTTP Server");
         let my_files_state = MyFilesState {

@@ -1,7 +1,7 @@
 use config::{Config, File};
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Default, serde_derive::Deserialize, PartialEq, Eq)]
+#[derive(Debug, serde_derive::Deserialize, PartialEq, Eq)]
 pub struct Configuration {
     pub term_log_level: String,
     pub file_log_level: String,
