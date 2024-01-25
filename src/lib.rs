@@ -32,7 +32,7 @@ pub async fn run() {
 
     match lister::list_directories(config.directories_list_args) {
         Ok(files_vec) => {
-            for file in files_vec.iter() {
+            for file in &files_vec {
                 match my_files.add_file_to_db(file) {
                     Ok(_) => {}
                     Err(error) => {
