@@ -1585,6 +1585,7 @@ dependencies = [
  "env_logger",
  "gethostname",
  "itertools",
+ "lazy_static",
  "log",
  "notify",
  "notify-debouncer-full",

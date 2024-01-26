@@ -5,6 +5,7 @@ use crate::file_info::FileInfo;
 use crate::my_files;
 use crate::my_files::{ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed};
 use axum::{extract::Path, extract::State, routing::get, Json, Router};
+use lazy_static::lazy_static;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
@@ -12,6 +13,18 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;
+
+lazy_static! {
+    static ref AGENT_LOGGING_LEVEL: std::collections::HashMap<String, Level> = {
+        let mut m = std::collections::HashMap::new();
+        m.insert("trace".to_owned(), Level::TRACE);
+        m.insert("debug".to_owned(), Level::DEBUG);
+        m.insert("info".to_owned(), Level::INFO);
+        m.insert("warn".to_owned(), Level::WARN);
+        m.insert("error".to_owned(), Level::ERROR);
+        m
+    };
+}
 
 #[derive(Serialize)]
 struct Greeting {
@@ -59,6 +72,7 @@ async fn get_files(
 struct HttpServerConfig {
     host: String,
     port: String,
+    logging_level: String,
 }
 
 #[derive(Clone, Default)]
@@ -89,8 +103,13 @@ impl Default for HttpServerConfig {
     fn default() -> Self {
         let host = "0.0.0.0".to_owned();
         let port = "8111".to_owned();
+        let logging_level = "info".to_owned();
 
-        HttpServerConfig { host, port }
+        HttpServerConfig {
+            host,
+            port,
+            logging_level,
+        }
     }
 }
 
@@ -141,6 +160,18 @@ impl HttpServerBuilder {
             )),
         };
 
+        let server_logging_level: Level =
+            match AGENT_LOGGING_LEVEL.get(&http_server_config.logging_level) {
+                Some(level) => level.clone(),
+                None => {
+                    error!(
+                        "Invalid logging level: {}. Defaulting to info.",
+                        http_server_config.logging_level
+                    );
+                    Level::INFO
+                }
+            };
+
         let router = self
             .router
             .route("/", get(hello_world))
@@ -151,8 +182,9 @@ impl HttpServerBuilder {
             .route("/get_status", get(get_status).with_state(agent_data_state))
             .layer(
                 TraceLayer::new_for_http()
-                    .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
-                    .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+                    .make_span_with(trace::DefaultMakeSpan::new().level(server_logging_level))
+                    .on_response(trace::DefaultOnResponse::new().level(server_logging_level))
+                    .on_failure(trace::DefaultOnFailure::new().level(Level::ERROR)),
             );
         HttpServer {
             http_server_config,
