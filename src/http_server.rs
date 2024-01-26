@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use tower_http::trace::{self, TraceLayer};
+use tracing::Level;
 
 #[derive(Serialize)]
 struct Greeting {
@@ -138,6 +140,7 @@ impl HttpServerBuilder {
                     .build(directories_watch_args),
             )),
         };
+
         let router = self
             .router
             .route("/", get(hello_world))
@@ -145,7 +148,12 @@ impl HttpServerBuilder {
                 "/get_files/:nb_files/sorted_by/:sort_type",
                 get(get_files).with_state(my_files_state),
             )
-            .route("/get_status", get(get_status).with_state(agent_data_state));
+            .route("/get_status", get(get_status).with_state(agent_data_state))
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                    .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+            );
         HttpServer {
             http_server_config,
             router,
@@ -176,11 +184,15 @@ impl HttpServer {
                     .unwrap()
             }
         };
+        let tcp_listener = match tokio::net::TcpListener::bind::<SocketAddr>(addr.into()).await {
+            Ok(tcp_listener) => tcp_listener,
+            Err(e) => {
+                error!("Failed to bind to {}: {}", addr.to_string(), e);
+                return;
+            }
+        };
 
         info!("Http Server running at {}", addr.to_string());
-        axum::Server::bind(&addr)
-            .serve(self.router.into_make_service())
-            .await
-            .unwrap();
+        axum::serve(tcp_listener, self.router).await.unwrap();
     }
 }

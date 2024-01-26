@@ -16,11 +16,20 @@ use std::process;
 use std::thread;
 
 pub async fn run() {
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .compact()
+        .init();
+
     let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
         configuration_wrapper::ConfigurationWrapper::new().unwrap();
-    if logger::init_logger(&configuration_wrapper).is_err() {
-        process::exit(1);
-    }
+    // match logger::init_logger(&configuration_wrapper) {
+    //     Ok(_) => {}
+    //     Err(err) => {
+    //         error!("Failed to initialize logger: {}", err);
+    //         process::exit(1);
+    //     }
+    // }
     info!("Command-line Arguments Parsed");
 
     let my_files_builder = my_files::MyFilesBuilder::new()
@@ -57,6 +66,7 @@ pub async fn run() {
             error!("{}", error);
         }
     }
+
     let server = HttpServerBuilder::new()
         .configuration_wrapper(configuration_wrapper.clone())
         .my_files_builder(my_files_builder)

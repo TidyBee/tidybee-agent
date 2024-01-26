@@ -3,7 +3,7 @@ use gethostname::gethostname;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use sysinfo::{PidExt, RefreshKind, System, SystemExt as SysInfoSystemExt};
+use sysinfo::{RefreshKind, System};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct AgentVersion {
@@ -60,7 +60,7 @@ impl AgentDataBuilder {
             agent_version,
             machine_name: gethostname().to_str().unwrap().to_owned(),
             process_id: sysinfo::get_current_pid().unwrap().as_u32(),
-            uptime: System::new_with_specifics(RefreshKind::new()).uptime(),
+            uptime: sysinfo::System::uptime(),
             watched_directories: directories_watch_args,
         }
     }
@@ -88,6 +88,6 @@ impl AgentData {
     }
 
     pub fn update(&mut self) {
-        self.uptime = System::new_with_specifics(RefreshKind::new()).uptime();
+        self.uptime = sysinfo::System::uptime();
     }
 }
