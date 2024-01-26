@@ -3,7 +3,6 @@ mod configuration_wrapper;
 mod file_info;
 mod http_server;
 mod lister;
-mod logger;
 mod my_files;
 mod tidy_algo;
 mod watcher;
@@ -12,24 +11,25 @@ use crate::tidy_algo::TidyAlgo;
 use http_server::HttpServerBuilder;
 use log::{debug, error, info};
 use std::path::PathBuf;
-use std::process;
 use std::thread;
 
 pub async fn run() {
-    tracing_subscriber::fmt()
-        .with_target(false)
-        .compact()
-        .init();
+    match std::env::var("TIDY_BACKTRACE") {
+        Ok(env) => {
+            if env == "1" {
+                tracing_subscriber::fmt().with_target(true).pretty().init();
+            }
+        }
+        Err(_) => {
+            tracing_subscriber::fmt()
+                .with_target(false)
+                .compact()
+                .init();
+        }
+    };
 
     let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
         configuration_wrapper::ConfigurationWrapper::new().unwrap();
-    // match logger::init_logger(&configuration_wrapper) {
-    //     Ok(_) => {}
-    //     Err(err) => {
-    //         error!("Failed to initialize logger: {}", err);
-    //         process::exit(1);
-    //     }
-    // }
     info!("Command-line Arguments Parsed");
 
     let my_files_builder = my_files::MyFilesBuilder::new()

@@ -1,7 +1,8 @@
 {
   "http_server_config": {
     "host": "0.0.0.0",
-    "port": "8111"
+    "port": "8111",
+    "log_level": "debug"
   },
   "agent_config": {
     "latest_version": "0.1.0",
