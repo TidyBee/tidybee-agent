@@ -1,10 +1,9 @@
 use crate::agent_data;
 use crate::agent_data::{AgentData, AgentDataBuilder};
-use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::FileInfo;
 use crate::my_files;
 use crate::my_files::{ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed};
-use axum::{extract::Path, extract::State, routing::get, Json, Router};
+use axum::{extract::Query, extract::State, routing::get, Json, Router};
 use lazy_static::lazy_static;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
@@ -31,6 +30,12 @@ struct Greeting {
     message: String,
 }
 
+#[derive(Deserialize)]
+struct GetFilesParams {
+    amount: usize,
+    sort_by: String,
+}
+
 async fn hello_world() -> Json<Greeting> {
     let greeting: Greeting = Greeting {
         message: "hello world".to_owned(),
@@ -47,7 +52,7 @@ async fn get_status(State(agent_data): State<AgentDataState>) -> Json<AgentData>
 
 async fn get_files(
     State(my_files): State<MyFilesState>,
-    Path((number_of_files, sort_by)): Path<(usize, String)>,
+    Query(query_params): Query<GetFilesParams>,
 ) -> Json<Vec<FileInfo>> {
     let mut files_vec: Vec<FileInfo> = my_files
         .my_files
@@ -56,7 +61,7 @@ async fn get_files(
         .get_all_files_from_db()
         .unwrap();
 
-    files_vec.sort_by(|a, b| match sort_by.to_lowercase().as_str() {
+    files_vec.sort_by(|a, b| match query_params.sort_by.to_lowercase().as_str() {
         "size" => b.size.cmp(&a.size),
         "last_update" => b.last_modified.cmp(&a.last_modified),
         _ => {
@@ -64,20 +69,13 @@ async fn get_files(
             b.size.cmp(&a.size)
         }
     });
-    let result = files_vec.into_iter().take(number_of_files).collect();
+    let result = files_vec.into_iter().take(query_params.amount).collect();
     Json(result)
-}
-
-#[derive(Debug, Deserialize, Clone)]
-struct HttpServerConfig {
-    host: String,
-    port: String,
-    logging_level: String,
 }
 
 #[derive(Clone, Default)]
 pub struct HttpServer {
-    http_server_config: HttpServerConfig,
+    address: String,
     router: Router,
 }
 
@@ -96,34 +94,11 @@ pub struct HttpServerBuilder {
     router: Router,
     my_files_builder:
         my_files::MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed>,
-    configuration_wrapper: ConfigurationWrapper,
-}
-
-impl Default for HttpServerConfig {
-    fn default() -> Self {
-        let host = "0.0.0.0".to_owned();
-        let port = "8111".to_owned();
-        let logging_level = "info".to_owned();
-
-        HttpServerConfig {
-            host,
-            port,
-            logging_level,
-        }
-    }
 }
 
 impl HttpServerBuilder {
     pub fn new() -> Self {
         HttpServerBuilder::default()
-    }
-
-    pub fn configuration_wrapper(
-        mut self,
-        configuration_wrapper: impl Into<ConfigurationWrapper>,
-    ) -> Self {
-        self.configuration_wrapper = configuration_wrapper.into();
-        self
     }
 
     pub fn my_files_builder(
@@ -138,35 +113,23 @@ impl HttpServerBuilder {
         self
     }
 
-    pub async fn build(
-        self,
-        directories_watch_args: Vec<PathBuf>,
-        configuration_wrapper: ConfigurationWrapper,
-    ) -> HttpServer {
-        let http_server_config: HttpServerConfig = self
-            .configuration_wrapper
-            .bind::<HttpServerConfig>("http_server_config")
-            .unwrap_or_default();
+    pub fn build(self, dirs_watch: Vec<PathBuf>, address: String, logging_level: String) -> HttpServer {
         let my_files_instance = self.my_files_builder.build().unwrap();
         info!("MyFiles instance successfully created for HTTP Server");
         let my_files_state = MyFilesState {
             my_files: Arc::new(Mutex::new(my_files_instance)),
         };
         let agent_data_state = AgentDataState {
-            agent_data: Arc::new(Mutex::new(
-                AgentDataBuilder::new()
-                    .configuration_wrapper(configuration_wrapper)
-                    .build(directories_watch_args),
-            )),
+            agent_data: Arc::new(Mutex::new(AgentDataBuilder::new().build(dirs_watch))),
         };
 
         let server_logging_level: Level =
-            match AGENT_LOGGING_LEVEL.get(&http_server_config.logging_level) {
+            match AGENT_LOGGING_LEVEL.get(&logging_level) {
                 Some(level) => level.clone(),
                 None => {
                     error!(
                         "Invalid logging level: {}. Defaulting to info.",
-                        http_server_config.logging_level
+                        logging_level
                     );
                     Level::INFO
                 }
@@ -187,7 +150,7 @@ impl HttpServerBuilder {
                     .on_failure(trace::DefaultOnFailure::new().level(Level::ERROR)),
             );
         HttpServer {
-            http_server_config,
+            address,
             router,
         }
     }
@@ -195,23 +158,18 @@ impl HttpServerBuilder {
 
 impl HttpServer {
     pub async fn start(self) {
-        let addr: SocketAddr = match format!(
-            "{}:{}",
-            self.http_server_config.host, self.http_server_config.port
-        )
+        let addr: SocketAddr = match self.address
         .parse()
         {
             Ok(addr) => addr,
             Err(_) => {
-                let default_config: HttpServerConfig = HttpServerConfig::default();
+                let default_config: HttpServer = HttpServer::default();
                 error!(
-                    "Invalid host or port: {}:{}, defaulting to {}:{}",
-                    self.http_server_config.host,
-                    self.http_server_config.port,
-                    default_config.host,
-                    default_config.port
+                    "Invalid host or port: {}, defaulting to {}",
+                    self.address,
+                    default_config.address
                 );
-                format!("{}:{}", default_config.host, default_config.port)
+                format!("{}", default_config.address)
                     .parse()
                     .unwrap()
             }

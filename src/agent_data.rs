@@ -42,14 +42,6 @@ impl AgentDataBuilder {
         AgentDataBuilder::default()
     }
 
-    pub fn configuration_wrapper(
-        mut self,
-        configuration_wrapper: impl Into<ConfigurationWrapper>,
-    ) -> Self {
-        self.configuration_wrapper = configuration_wrapper.into();
-        self
-    }
-
     pub fn build(self, directories_watch_args: Vec<PathBuf>) -> AgentData {
         let agent_version: AgentVersion = self
             .configuration_wrapper

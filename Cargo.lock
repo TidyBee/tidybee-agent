@@ -1593,6 +1593,7 @@ dependencies = [
  "r2d2_sqlite",
  "rusqlite",
  "serde",
+ "serde_derive",
  "serde_json",
  "simplelog",
  "sysinfo",
