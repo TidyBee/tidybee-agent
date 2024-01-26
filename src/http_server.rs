@@ -2,7 +2,7 @@ use crate::agent_data;
 use crate::agent_data::{AgentData, AgentDataBuilder};
 use crate::file_info::FileInfo;
 use crate::my_files;
-use crate::my_files::{ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed};
+use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
 use axum::{extract::Query, extract::State, routing::get, Json, Router};
 use lazy_static::lazy_static;
 use log::{error, info};
@@ -93,7 +93,7 @@ struct AgentDataState {
 pub struct HttpServerBuilder {
     router: Router,
     my_files_builder:
-        my_files::MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed>,
+        my_files::MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed>,
 }
 
 impl HttpServerBuilder {
@@ -104,7 +104,7 @@ impl HttpServerBuilder {
     pub fn my_files_builder(
         mut self,
         my_files_builder: my_files::MyFilesBuilder<
-            ConfigurationWrapperPresent,
+            ConfigurationPresent,
             ConnectionManagerPresent,
             Sealed,
         >,

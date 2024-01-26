@@ -34,7 +34,8 @@ pub async fn run() {
     let config = configuration::Configuration::init();
 
     let my_files_builder = my_files::MyFilesBuilder::new()
-        .configuration_wrapper(configuration_wrapper)
+        // .configuration_wrapper(configuration_wrapper)
+        .configure(config.my_files_configuration)
         .seal();
 
     let my_files: my_files::MyFiles = my_files_builder.build().unwrap();

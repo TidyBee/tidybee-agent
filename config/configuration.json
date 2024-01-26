@@ -8,5 +8,9 @@
     "src"
   ],
   "http_server_address": "0.0.0.0:8111",
-  "http_server_logging_level": "info"
+  "http_server_logging_level": "info",
+  "my_files_configuration": {
+    "db_path": "./my_files.db",
+    "drop_db_on_start": true
+  }
 }

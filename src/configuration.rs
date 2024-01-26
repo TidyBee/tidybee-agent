@@ -1,5 +1,12 @@
 use config::{Config, File};
+use serde::{Serialize, Deserialize};
 use std::path::{Path, PathBuf};
+
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, Eq)]
+pub struct MyFilesConfiguration {
+    pub db_path: String,
+    pub drop_db_on_start: bool,
+}
 
 #[derive(Debug, serde_derive::Deserialize, PartialEq, Eq)]
 pub struct Configuration {
@@ -9,6 +16,7 @@ pub struct Configuration {
     pub http_server_logging_level: String,
     pub directories_list_args: Vec<PathBuf>,
     pub directories_watch_args: Vec<PathBuf>,
+    pub my_files_configuration: MyFilesConfiguration,
 }
 
 impl Configuration {
@@ -30,6 +38,10 @@ impl Configuration {
             http_server_logging_level: String::from("info"),
             directories_list_args: vec![PathBuf::from("src")],
             directories_watch_args: vec![PathBuf::from("src")],
+            my_files_configuration: MyFilesConfiguration {
+                db_path: String::from("my_files.db"),
+                drop_db_on_start: false,
+            },
         }
     }
 }
