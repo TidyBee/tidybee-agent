@@ -33,8 +33,11 @@ pub struct Configuration {
 
 impl Configuration {
     pub fn init() -> Self {
+        let env = std::env::var("ENV").unwrap_or_else(|_| "development".into());
+
         let builder = Config::builder()
             .add_source(File::from(Path::new("config/configuration.json")))
+            .add_source(File::with_name(&format!("config/{}.json", env)).required(false))
             .build()
             .unwrap();
         let config: Configuration = builder.try_deserialize().unwrap();
