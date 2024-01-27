@@ -1,33 +1,43 @@
 use config::{Config, File};
+use serde_derive::Deserialize;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, serde_derive::Deserialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize)]
+pub struct FileLister {
+    pub dir: Vec<PathBuf>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct FileWatcher {
+    pub dir: Vec<PathBuf>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct HttpServer {
+    pub address: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LogLevel {
+    pub term: String,
+    pub file: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Configuration {
-    pub term_log_level: String,
-    pub file_log_level: String,
-    pub http_server_address: String,
-    pub directories_list_args: Vec<PathBuf>,
-    pub directories_watch_args: Vec<PathBuf>,
+    pub file_lister: FileLister,
+    pub file_watcher: FileWatcher,
+    pub http_server: HttpServer,
+    pub log_level: LogLevel,
 }
 
 impl Configuration {
     pub fn init() -> Self {
-        let config = Config::builder()
+        let builder = Config::builder()
             .add_source(File::from(Path::new("config/configuration.json")))
             .build()
             .unwrap();
-        let app: Configuration = config.try_deserialize().unwrap();
-        app
-    }
-
-    #[allow(dead_code)]
-    pub fn default() -> Self {
-        Self {
-            term_log_level: String::from("debug"),
-            file_log_level: String::from("warn"),
-            http_server_address: String::from("0.0.0.0:8111"),
-            directories_list_args: vec![PathBuf::from("src")],
-            directories_watch_args: vec![PathBuf::from("src")],
-        }
+        let config: Configuration = builder.try_deserialize().unwrap();
+        config
     }
 }
