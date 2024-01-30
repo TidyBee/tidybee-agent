@@ -3,32 +3,39 @@ use serde_derive::Deserialize;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize)]
-pub struct FileLister {
+pub struct AgentData {
+    pub latest_version: String,
+    pub minimal_version: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct FileListerConfig {
     pub dir: Vec<PathBuf>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct FileWatcher {
+pub struct FileWatcherConfig {
     pub dir: Vec<PathBuf>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct HttpServer {
+pub struct HttpServerConfig {
     pub address: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct LogLevel {
-    pub term: String,
-    pub file: String,
+pub struct LoggerConfig {
+    pub term_level: String,
+    pub file_level: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Configuration {
-    pub file_lister: FileLister,
-    pub file_watcher: FileWatcher,
-    pub http_server: HttpServer,
-    pub log_level: LogLevel,
+    pub agent_data: AgentData,
+    pub file_lister_config: FileListerConfig,
+    pub file_watcher_config: FileWatcherConfig,
+    pub http_server_config: HttpServerConfig,
+    pub logger_config: LoggerConfig,
 }
 
 impl Configuration {
@@ -37,7 +44,7 @@ impl Configuration {
 
         let builder = Config::builder()
             .add_source(File::from(Path::new("config/configuration.json")))
-            .add_source(File::with_name(&format!("config/{}.json", env)).required(false))
+            .add_source(File::with_name(&format!("config/{env}.json")).required(false))
             .build()
             .unwrap();
         let config: Configuration = builder.try_deserialize().unwrap();

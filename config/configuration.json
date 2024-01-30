@@ -1,17 +1,21 @@
 {
-  "log_level": {
-    "term": "debug",
-    "file": "warn"
+  "agent_data": {
+    "latest_version": "0.1.0",
+    "minimal_version": "0.1.0"
   },
-  "http_server": {
+  "logger_config": {
+    "term_level": "debug",
+    "file_level": "warn"
+  },
+  "http_server_config": {
     "address": "0.0.0.0:8111"
   },
-  "file_watcher": {
+  "file_watcher_config": {
     "dir": [
       "./src"
     ]
   },
-  "file_lister": {
+  "file_lister_config": {
     "dir": [
       "./src"
     ]
