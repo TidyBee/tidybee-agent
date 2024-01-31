@@ -113,7 +113,12 @@ impl HttpServerBuilder {
         self
     }
 
-    pub fn build(self, dirs_watch: Vec<PathBuf>, address: String, logging_level: String) -> HttpServer {
+    pub fn build(
+        self,
+        dirs_watch: Vec<PathBuf>,
+        address: String,
+        logging_level: String,
+    ) -> HttpServer {
         let my_files_instance = self.my_files_builder.build().unwrap();
         info!("MyFiles instance successfully created for HTTP Server");
         let my_files_state = MyFilesState {
@@ -123,17 +128,16 @@ impl HttpServerBuilder {
             agent_data: Arc::new(Mutex::new(AgentDataBuilder::new().build(dirs_watch))),
         };
 
-        let server_logging_level: Level =
-            match AGENT_LOGGING_LEVEL.get(&logging_level) {
-                Some(level) => level.clone(),
-                None => {
-                    error!(
-                        "Invalid logging level: {}. Defaulting to info.",
-                        logging_level
-                    );
-                    Level::INFO
-                }
-            };
+        let server_logging_level: Level = match AGENT_LOGGING_LEVEL.get(&logging_level) {
+            Some(level) => level.clone(),
+            None => {
+                error!(
+                    "Invalid logging level: {}. Defaulting to info.",
+                    logging_level
+                );
+                Level::INFO
+            }
+        };
 
         let router = self
             .router
@@ -149,29 +153,21 @@ impl HttpServerBuilder {
                     .on_response(trace::DefaultOnResponse::new().level(server_logging_level))
                     .on_failure(trace::DefaultOnFailure::new().level(Level::ERROR)),
             );
-        HttpServer {
-            address,
-            router,
-        }
+        HttpServer { address, router }
     }
 }
 
 impl HttpServer {
     pub async fn start(self) {
-        let addr: SocketAddr = match self.address
-        .parse()
-        {
+        let addr: SocketAddr = match self.address.parse() {
             Ok(addr) => addr,
             Err(_) => {
                 let default_config: HttpServer = HttpServer::default();
                 error!(
                     "Invalid host or port: {}, defaulting to {}",
-                    self.address,
-                    default_config.address
+                    self.address, default_config.address
                 );
-                format!("{}", default_config.address)
-                    .parse()
-                    .unwrap()
+                format!("{}", default_config.address).parse().unwrap()
             }
         };
         let tcp_listener = match tokio::net::TcpListener::bind::<SocketAddr>(addr.into()).await {

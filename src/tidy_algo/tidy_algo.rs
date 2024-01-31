@@ -79,7 +79,7 @@ impl TidyAlgo {
                 "Adding rule {} of type {} that will be logged as {}",
                 name, apply_type, log
             );
-            self.add_rule(TidyRule::new(name, log,scope, rule, apply));
+            self.add_rule(TidyRule::new(name, log, scope, rule, apply));
         }
     }
 }

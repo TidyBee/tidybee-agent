@@ -1,14 +1,18 @@
-use std::collections::HashMap;
 use config::Value;
 use log::warn;
 use regex::Regex;
+use std::collections::HashMap;
 
 use crate::{
     file_info::{FileInfo, TidyScore},
     my_files::MyFiles,
 };
 
-pub fn missnamed(file_info: &FileInfo, _my_files: &MyFiles, raw_params: HashMap<String, Value>) -> TidyScore {
+pub fn missnamed(
+    file_info: &FileInfo,
+    _my_files: &MyFiles,
+    raw_params: HashMap<String, Value>,
+) -> TidyScore {
     let pattern = raw_params.get("pattern");
     let mut new_score = match file_info.tidy_score.clone() {
         Some(score) => score,

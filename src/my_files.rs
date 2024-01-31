@@ -62,7 +62,8 @@ impl<C, M> MyFilesBuilder<C, M, NotSealed> {
         self,
         configuration_instance: MyFilesConfiguration,
     ) -> MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, NotSealed> {
-        let connection_manager = SqliteConnectionManager::file(configuration_instance.db_path.clone());
+        let connection_manager =
+            SqliteConnectionManager::file(configuration_instance.db_path.clone());
         let pool = match Pool::new(connection_manager) {
             Ok(pool) => pool,
             Err(error) => {
@@ -87,9 +88,7 @@ impl<C, M> MyFilesBuilder<C, M, NotSealed> {
 
 impl MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed> {
     pub fn build(&self) -> Result<MyFiles> {
-        let my_files_configuration = self
-            .configuration_instance
-            .0.clone();
+        let my_files_configuration = self.configuration_instance.0.clone();
         let connection_pool = match self.connection_manager.0.get() {
             Ok(connection) => connection,
             Err(error) => {
@@ -570,13 +569,11 @@ mod tests {
         lister::list_directories(vec![directory_path])
             .unwrap()
             .iter()
-            .for_each(|file| {
-                match my_files.add_file_to_db(file) {
-                    Ok(_) => (),
-                    Err(err) => {
-                        error!("Error adding file to database: {}", err);
-                        panic!();
-                    },
+            .for_each(|file| match my_files.add_file_to_db(file) {
+                Ok(_) => (),
+                Err(err) => {
+                    error!("Error adding file to database: {}", err);
+                    panic!();
                 }
             });
         assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 13);
