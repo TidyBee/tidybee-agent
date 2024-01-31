@@ -140,6 +140,7 @@ impl MyFiles {
                 size            INTEGER NOT NULL,
                 hash            TEXT DEFAULT \"\",
                 last_modified   DATE NOT NULL,
+                last_accessed   DATE NOT NULL,
                 tidy_score      INTEGER UNIQUE,
                 FOREIGN KEY (tidy_score) REFERENCES tidy_scores(id) ON DELETE CASCADE
             );
@@ -296,7 +297,7 @@ impl MyFiles {
         let path_str = row.get::<_, String>(2)?;
         let path = std::path::Path::new(&path_str).to_owned();
 
-        let time_str = row.get::<_, String>(5)?;
+        let mut time_str = row.get::<_, String>(5)?;
         if DateTime::parse_from_rfc3339(&time_str).is_err() {
             error!(
                 "MyFiles::create_fileinfo_from_row: Error parsing key: last_modified with value {}, for file {}.",
@@ -305,7 +306,19 @@ impl MyFiles {
         }
         let last_modified = DateTime::parse_from_rfc3339(&time_str).unwrap().into();
 
-        let tidy_score = match row.get::<_, Option<TidyScore>>(6) {
+        time_str = row.get::<_, String>(6)?;
+        let last_accessed = match DateTime::parse_from_rfc3339(&time_str) {
+            Ok(last_accessed) => last_accessed.into(),
+            Err(error) => {
+                error!(
+                    "MyFiles::create_fileinfo_from_row: Error parsing key: last_accessed with value {}, for file {}. {}",
+                    time_str, path_str, error
+                );
+                std::time::SystemTime::UNIX_EPOCH
+            }
+        };
+
+        let tidy_score = match row.get::<_, Option<TidyScore>>(7) {
             Ok(tidy_score) => tidy_score,
             Err(error) => {
                 error!(
@@ -322,6 +335,7 @@ impl MyFiles {
             size: row.get::<_, u64>(3)?,
             hash: row.get::<_, Option<String>>(4)?,
             last_modified,
+            last_accessed,
             tidy_score,
         })
     }
@@ -375,7 +389,7 @@ impl MyFiles {
         let file_id = statement.query_row(params![&str_file_path], |row| row.get::<_, i64>(0))?;
 
         let mut statement = self.connection_pool.prepare(
-            "SELECT my_files.name, my_files.path, my_files.size, my_files.last_modified, my_files.hash, my_files.tidy_score
+            "SELECT my_files.name, my_files.path, my_files.size, my_files.last_modified, my_files.last_accessed, my_files.hash, my_files.tidy_score
             FROM my_files
             INNER JOIN duplicates_associative_table ON my_files.id = duplicates_associative_table.original_file_id WHERE duplicates_associative_table.original_file_id = ?1",
         ).unwrap();
@@ -385,7 +399,7 @@ impl MyFiles {
                 let path_str = row.get::<_, String>(0)?;
                 let path = std::path::Path::new(&path_str).to_owned();
 
-                let time_str = row.get::<_, String>(3)?;
+                let mut time_str = row.get::<_, String>(3)?;
                 let last_modified = match DateTime::parse_from_rfc3339(&time_str) {
                     Ok(last_modified) => last_modified.into(),
                     Err(error) => {
@@ -397,7 +411,19 @@ impl MyFiles {
                     }
                 };
 
-                let tidy_score_id = row.get::<_, i64>(5)?;
+                time_str = row.get::<_, String>(4)?;
+                let last_accessed = match DateTime::parse_from_rfc3339(&time_str) {
+                    Ok(last_accessed) => last_accessed.into(),
+                    Err(error) => {
+                        error!(
+                            "Error parsing key: last_accessed with value {}, for file {}. {}",
+                            time_str, path_str, error
+                        );
+                        std::time::SystemTime::UNIX_EPOCH
+                    }
+                };
+
+                let tidy_score_id = row.get::<_, i64>(6)?;
                 let mut statement = self.connection_pool.prepare(
                     "SELECT misnamed, duplicated, unused FROM tidy_scores WHERE id = ?1",
                 )?;
@@ -413,8 +439,9 @@ impl MyFiles {
                     name: row.get::<_, String>(0)?,
                     path,
                     size: row.get::<_, u64>(2)?,
-                    hash: row.get::<_, Option<String>>(4)?,
+                    hash: row.get::<_, Option<String>>(5)?,
                     last_modified,
+                    last_accessed,
                     tidy_score: tidy_score.into(),
                 })
             })

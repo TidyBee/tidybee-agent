@@ -25,7 +25,8 @@ pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, std:
                 } else if let Some(file) = path.to_str() {
                     let md: fs::Metadata = fs::metadata(&path)?;
                     let size: u64 = md.len();
-                    let last_modified: std::time::SystemTime = md.accessed()?;
+                    let last_modified: std::time::SystemTime = md.modified()?;
+                    let last_accessed: std::time::SystemTime = md.accessed()?;
                     let file_signature = get_file_signature(&path);
                     files.push(FileInfo {
                         name: Path::new(file)
@@ -38,6 +39,7 @@ pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, std:
                         size,
                         hash: Some(file_signature.to_string()),
                         last_modified,
+                        last_accessed,
                         ..Default::default()
                     });
                 }

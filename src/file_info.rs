@@ -11,6 +11,7 @@ pub struct FileInfo {
     pub size: u64,
     pub hash: Option<String>,
     pub last_modified: SystemTime,
+    pub last_accessed: SystemTime,
     pub tidy_score: Option<TidyScore>,
 }
 
@@ -22,6 +23,7 @@ impl Default for FileInfo {
             size: 0,
             hash: None,
             last_modified: SystemTime::UNIX_EPOCH,
+            last_accessed: SystemTime::UNIX_EPOCH,
             tidy_score: None,
         }
     }
