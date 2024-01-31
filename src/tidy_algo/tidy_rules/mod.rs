@@ -1,3 +1,3 @@
 pub mod duplicated;
-pub mod missnamed;
+pub mod misnamed;
 pub mod perished;

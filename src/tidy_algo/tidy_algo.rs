@@ -1,7 +1,7 @@
 use crate::file_info::{FileInfo, TidyScore};
 use crate::my_files::MyFiles;
 use crate::tidy_algo::tidy_rules::duplicated::duplicated;
-use crate::tidy_algo::tidy_rules::missnamed::missnamed;
+use crate::tidy_algo::tidy_rules::misnamed::missnamed;
 use crate::tidy_algo::tidy_rules::perished::perished;
 use config::{Config, ConfigError, File, Value};
 use log::debug;

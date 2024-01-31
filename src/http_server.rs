@@ -142,10 +142,7 @@ impl HttpServerBuilder {
         let router = self
             .router
             .route("/", get(hello_world))
-            .route(
-                "/get_files",
-                get(get_files).with_state(my_files_state),
-            )
+            .route("/get_files", get(get_files).with_state(my_files_state))
             .route("/get_status", get(get_status).with_state(agent_data_state))
             .layer(
                 TraceLayer::new_for_http()
@@ -170,7 +167,7 @@ impl HttpServer {
                 format!("{}", default_config.address).parse().unwrap()
             }
         };
-        let tcp_listener = match tokio::net::TcpListener::bind::<SocketAddr>(addr.into()).await {
+        let tcp_listener = match tokio::net::TcpListener::bind::<SocketAddr>(addr).await {
             Ok(tcp_listener) => tcp_listener,
             Err(e) => {
                 error!("Failed to bind to {}: {}", addr.to_string(), e);
