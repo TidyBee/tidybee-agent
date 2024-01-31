@@ -28,13 +28,10 @@ pub async fn run() {
         }
     };
 
-    let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
-        configuration_wrapper::ConfigurationWrapper::new().unwrap();
     info!("Command-line Arguments Parsed");
     let config = configuration::Configuration::init();
 
     let my_files_builder = my_files::MyFilesBuilder::new()
-        // .configuration_wrapper(configuration_wrapper)
         .configure(config.my_files_configuration)
         .seal();
 

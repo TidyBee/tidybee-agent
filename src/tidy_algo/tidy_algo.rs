@@ -54,7 +54,7 @@ impl TidyAlgo {
         self.rules.push(Box::new(rule));
     }
 
-    pub fn load_rules_from_file(&mut self, my_files: &MyFiles, path: path::PathBuf) {
+    pub fn load_rules_from_file(&mut self, _my_files: &MyFiles, path: path::PathBuf) {
         let rules_config: Result<Config, ConfigError> =
             Config::builder().add_source(File::from(path)).build();
 

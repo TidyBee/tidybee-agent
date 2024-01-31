@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use config::Value;
-use log::{error, info};
+use log::{error};
 
 use crate::{
     file_info::{FileInfo, TidyScore},
@@ -9,7 +9,7 @@ use crate::{
 };
 
 // TODO: Change return type to Result<TidyScore, Error> after implementing error handling
-pub fn duplicated(candidate: &FileInfo, my_files: &MyFiles, raw_params: HashMap<String, Value>) -> TidyScore {
+pub fn duplicated(candidate: &FileInfo, my_files: &MyFiles, _raw_params: HashMap<String, Value>) -> TidyScore {
     let mut duplicated_files: Vec<FileInfo> = Vec::new();
     let mut tidy_score = candidate.tidy_score.clone();
 

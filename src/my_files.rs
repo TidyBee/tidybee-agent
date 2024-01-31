@@ -1,5 +1,4 @@
 use crate::configuration::MyFilesConfiguration;
-use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::{FileInfo, TidyScore};
 use chrono::{DateTime, Utc};
 use itertools::{Either, Itertools};
@@ -7,7 +6,6 @@ use log::{error, info, warn};
 use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{params, Result, ToSql};
-use serde::{Deserialize, Serialize};
 use std::path;
 use std::path::PathBuf;
 
@@ -24,24 +22,12 @@ pub struct NoConfiguration;
 #[derive(Default, Clone)]
 pub struct ConfigurationPresent(MyFilesConfiguration);
 
-// #[derive(Default, Clone)]
-// pub struct NoConfigurationWrapper;
-
 #[derive(Default, Clone)]
 pub struct NoConnectionManager;
-
-// #[derive(Default, Clone)]
-// pub struct ConfigurationPresent(ConfigurationWrapper);
 
 #[derive(Clone)]
 pub struct ConnectionManagerPresent(Pool<SqliteConnectionManager>);
 // endregion: --- MyFiles builder states
-
-// #[derive(Serialize, Deserialize, Default, Clone)]
-// pub struct MyFilesDatabaseConfiguration {
-//     pub db_path: String,
-//     pub drop_db_on_start: bool,
-// }
 
 pub struct MyFiles {
     connection_pool: PooledConnection<SqliteConnectionManager>,
@@ -90,31 +76,6 @@ impl<C, M> MyFilesBuilder<C, M, NotSealed> {
             marker_seal: core::marker::PhantomData,
         }
     }
-    // pub fn configuration_wrapper(
-    //     self,
-    //     configuration_wrapper_instance: ConfigurationWrapper,
-    // ) -> MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, NotSealed> {
-    //     let db_path = configuration_wrapper_instance
-    //         .bind::<MyFilesConfiguration>("my_files_database_configuration")
-    //         .unwrap_or_default()
-    //         .db_path;
-    //     let manager = SqliteConnectionManager::file(db_path);
-    //     let pool = match Pool::new(manager) {
-    //         Ok(pool) => pool,
-    //         Err(error) => {
-    //             error!("Error creating connection pool: {}", error);
-    //             panic!();
-    //         }
-    //     };
-
-    //     MyFilesBuilder {
-    //         configuration_instance: ConfigurationPresent(
-    //             configuration_instance,
-    //         ),
-    //         connection_manager: ConnectionManagerPresent(pool),
-    //         marker_seal: core::marker::PhantomData,
-    //     }
-    // }
     pub fn seal(self) -> MyFilesBuilder<C, M, Sealed> {
         MyFilesBuilder {
             connection_manager: self.connection_manager,
