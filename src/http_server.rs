@@ -143,7 +143,7 @@ impl HttpServerBuilder {
             .router
             .route("/", get(hello_world))
             .route(
-                "/get_files/:nb_files/sorted_by/:sort_type",
+                "/get_files",
                 get(get_files).with_state(my_files_state),
             )
             .route("/get_status", get(get_status).with_state(agent_data_state))
