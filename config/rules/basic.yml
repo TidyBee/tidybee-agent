@@ -7,7 +7,7 @@ rules:
     log: warn
   - name: Rule 2
     type: perished
-    max: 3
+    max: 3 day
     scope: tests/assets/test_folder
     log: log
   - name: Rule 3
