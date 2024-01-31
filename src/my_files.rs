@@ -184,17 +184,19 @@ impl MyFiles {
             }
         }
     }
-    pub fn add_file_to_db(&self, file: &FileInfo) -> Result<FileInfo, ()> {
+    pub fn add_file_to_db(&self, file: &FileInfo) -> Result<FileInfo> {
         let last_modified: DateTime<Utc> = file.last_modified.into();
+        let last_accessed: DateTime<Utc> = file.last_accessed.into();
         match self.connection_pool.execute(
-            "INSERT INTO my_files (name, path, size, hash, last_modified, tidy_score)
-                  VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO my_files (name, path, size, hash, last_modified, last_accessed, tidy_score)
+                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 file.name,
                 file.path.to_str(),
                 file.size,
                 file.hash,
                 last_modified.to_rfc3339(),
+                last_accessed.to_rfc3339(),
                 file.tidy_score.as_ref()
             ],
         ) {
@@ -208,7 +210,7 @@ impl MyFiles {
                     file.path.to_str().unwrap(),
                     error
                 );
-                Err(())
+                Err(error)
             }
         }
     }
@@ -569,7 +571,13 @@ mod tests {
             .unwrap()
             .iter()
             .for_each(|file| {
-                my_files.add_file_to_db(file).unwrap();
+                match my_files.add_file_to_db(file) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        error!("Error adding file to database: {}", err);
+                        panic!();
+                    },
+                }
             });
         assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 13);
 
