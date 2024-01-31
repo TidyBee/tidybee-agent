@@ -1,3 +1,4 @@
+use crate::configuration::MyFilesConfiguration;
 use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::{FileInfo, TidyScore};
 use chrono::{DateTime, Utc};
@@ -18,33 +19,39 @@ pub struct Sealed;
 pub struct NotSealed;
 
 #[derive(Default, Clone)]
-pub struct NoConfigurationWrapper;
+pub struct NoConfiguration;
+
+#[derive(Default, Clone)]
+pub struct ConfigurationPresent(MyFilesConfiguration);
+
+// #[derive(Default, Clone)]
+// pub struct NoConfigurationWrapper;
 
 #[derive(Default, Clone)]
 pub struct NoConnectionManager;
 
-#[derive(Default, Clone)]
-pub struct ConfigurationWrapperPresent(ConfigurationWrapper);
+// #[derive(Default, Clone)]
+// pub struct ConfigurationPresent(ConfigurationWrapper);
 
 #[derive(Clone)]
 pub struct ConnectionManagerPresent(Pool<SqliteConnectionManager>);
 // endregion: --- MyFiles builder states
 
-#[derive(Serialize, Deserialize, Default, Clone)]
-pub struct MyFilesDatabaseConfiguration {
-    pub db_path: String,
-    pub drop_db_on_start: bool,
-}
+// #[derive(Serialize, Deserialize, Default, Clone)]
+// pub struct MyFilesDatabaseConfiguration {
+//     pub db_path: String,
+//     pub drop_db_on_start: bool,
+// }
 
 pub struct MyFiles {
     connection_pool: PooledConnection<SqliteConnectionManager>,
-    configuration: MyFilesDatabaseConfiguration,
+    configuration: MyFilesConfiguration,
 }
 
 #[derive(Copy, Clone, Default)]
 pub struct MyFilesBuilder<C, M, S> {
     connection_manager: M,
-    configuration_wrapper_instance: C,
+    configuration_instance: C,
     marker_seal: core::marker::PhantomData<S>,
 }
 
@@ -54,58 +61,74 @@ impl Default for ConnectionManagerPresent {
     }
 }
 
-impl MyFilesBuilder<NoConfigurationWrapper, NoConnectionManager, NotSealed> {
+impl MyFilesBuilder<NoConfiguration, NoConnectionManager, NotSealed> {
     pub const fn new() -> Self {
         MyFilesBuilder {
             connection_manager: NoConnectionManager,
-            configuration_wrapper_instance: NoConfigurationWrapper,
+            configuration_instance: NoConfiguration,
             marker_seal: core::marker::PhantomData,
         }
     }
 }
 
 impl<C, M> MyFilesBuilder<C, M, NotSealed> {
-    pub fn configuration_wrapper(
+    pub fn configure(
         self,
-        configuration_wrapper_instance: ConfigurationWrapper,
-    ) -> MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, NotSealed> {
-        let db_path = configuration_wrapper_instance
-            .bind::<MyFilesDatabaseConfiguration>("my_files_database_configuration")
-            .unwrap_or_default()
-            .db_path;
-        let manager = SqliteConnectionManager::file(db_path);
-        let pool = match Pool::new(manager) {
+        configuration_instance: MyFilesConfiguration,
+    ) -> MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, NotSealed> {
+        let connection_manager = SqliteConnectionManager::file(configuration_instance.db_path.clone());
+        let pool = match Pool::new(connection_manager) {
             Ok(pool) => pool,
             Err(error) => {
                 error!("Error creating connection pool: {}", error);
                 panic!();
             }
         };
-
         MyFilesBuilder {
-            configuration_wrapper_instance: ConfigurationWrapperPresent(
-                configuration_wrapper_instance,
-            ),
             connection_manager: ConnectionManagerPresent(pool),
+            configuration_instance: ConfigurationPresent(configuration_instance),
             marker_seal: core::marker::PhantomData,
         }
     }
+    // pub fn configuration_wrapper(
+    //     self,
+    //     configuration_wrapper_instance: ConfigurationWrapper,
+    // ) -> MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, NotSealed> {
+    //     let db_path = configuration_wrapper_instance
+    //         .bind::<MyFilesConfiguration>("my_files_database_configuration")
+    //         .unwrap_or_default()
+    //         .db_path;
+    //     let manager = SqliteConnectionManager::file(db_path);
+    //     let pool = match Pool::new(manager) {
+    //         Ok(pool) => pool,
+    //         Err(error) => {
+    //             error!("Error creating connection pool: {}", error);
+    //             panic!();
+    //         }
+    //     };
+
+    //     MyFilesBuilder {
+    //         configuration_instance: ConfigurationPresent(
+    //             configuration_instance,
+    //         ),
+    //         connection_manager: ConnectionManagerPresent(pool),
+    //         marker_seal: core::marker::PhantomData,
+    //     }
+    // }
     pub fn seal(self) -> MyFilesBuilder<C, M, Sealed> {
         MyFilesBuilder {
             connection_manager: self.connection_manager,
-            configuration_wrapper_instance: self.configuration_wrapper_instance,
+            configuration_instance: self.configuration_instance,
             marker_seal: core::marker::PhantomData,
         }
     }
 }
 
-impl MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed> {
+impl MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed> {
     pub fn build(&self) -> Result<MyFiles> {
         let my_files_configuration = self
-            .configuration_wrapper_instance
-            .0
-            .bind::<MyFilesDatabaseConfiguration>("my_files_database_configuration")
-            .unwrap_or_default();
+            .configuration_instance
+            .0.clone();
         let connection_pool = match self.connection_manager.0.get() {
             Ok(connection) => connection,
             Err(error) => {
@@ -120,7 +143,7 @@ impl MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Seale
 #[allow(dead_code)]
 impl MyFiles {
     pub fn new(
-        configuration: MyFilesDatabaseConfiguration,
+        configuration: MyFilesConfiguration,
         connection_pool: PooledConnection<SqliteConnectionManager>,
     ) -> Result<Self> {
         Ok(MyFiles {
@@ -529,7 +552,7 @@ impl MyFiles {
 mod tests {
 
     use super::*;
-    use crate::lister;
+    use crate::{configuration, lister};
 
     #[cfg(test)]
     #[ctor::ctor]
@@ -540,8 +563,9 @@ mod tests {
 
     #[test]
     pub fn main_test() {
+        let config = configuration::Configuration::init();
         let my_files_builder = MyFilesBuilder::new()
-            .configuration_wrapper(ConfigurationWrapper::new().unwrap())
+            .configure(config.my_files_configuration)
             .seal();
         let my_files = my_files_builder.build().unwrap();
         my_files.init_db().unwrap();

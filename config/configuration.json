@@ -1,0 +1,16 @@
+{
+  "term_log_level": "warn",
+  "file_log_level": "warn",
+  "directories_list_args": [
+    "src"
+  ],
+  "directories_watch_args": [
+    "src"
+  ],
+  "http_server_address": "0.0.0.0:8111",
+  "http_server_logging_level": "info",
+  "my_files_configuration": {
+    "db_path": "./my_files.db",
+    "drop_db_on_start": true
+  }
+}
