@@ -11,7 +11,7 @@ on:
 env:
   BIN_NAME: tidybee_agent
   ARTIFACT_DIR: github_artifacts
-  LINUX_AMD64_TARGET: x86_64-unknown-linux-musl
+  LINUX_AMD64_TARGET: x86_64-unknown-linux-gnu
   LINUX_ARM64_TARGET: aarch64-unknown-linux-musl
   MACOS_TARGET: x86_64-apple-darwin
   WINDOWS_TARGET: x86_64-pc-windows-msvc
@@ -24,7 +24,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
+            target: x86_64-unknown-linux-gnu
             rust_channel: stable
           - os: macos-latest
             target: x86_64-apple-darwin
