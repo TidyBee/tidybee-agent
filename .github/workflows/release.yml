@@ -55,7 +55,7 @@ jobs:
       - name: Move Linux binaries
         if: matrix.os == 'ubuntu-latest'
         run:
-          mv ./target/${{ matrix.target }}/release/${{ env.BIN_NAME }} ${{ env.ARTIFACT_DIR }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ matrix.target }}/${{ env.BIN_NAME }}
+          mv ./target/release/${{ env.BIN_NAME }} ${{ env.ARTIFACT_DIR }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ matrix.target }}/${{ env.BIN_NAME }}
 
       - name: Move MacOS binaries
         if: matrix.os == 'macos-latest'
