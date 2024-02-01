@@ -39,7 +39,6 @@ jobs:
         with:
           toolchain: ${{ matrix.rust_channel }}
           targets: ${{ matrix.target }}
-          override: true
 
       - name: cargo build
         env:
