@@ -26,9 +26,6 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             rust_channel: stable
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-musl
-            rust_channel: stable
           - os: macos-latest
             target: x86_64-apple-darwin
             rust_channel: stable
@@ -55,7 +52,9 @@ jobs:
           echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=/usr/aarch64-linux-gnu/bin/ld" >> $GITHUB_ENV
 
       - name: cargo build
-        run: cargo build --release --target ${{ matrix.target }} --verbose
+        env:
+          RUSTUP_TOOLCHAIN: ${{ matrix.rust_channel }}-${{ matrix.target }}
+        run: cargo build --release --verbose
 
       - name: Create artifact dir
         run: |
