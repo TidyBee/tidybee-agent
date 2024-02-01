@@ -7,15 +7,17 @@ use axum::{extract::Query, extract::State, routing::get, Json, Router};
 use lazy_static::lazy_static;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use tokio::net::TcpListener;
 use tower_http::trace::{self, TraceLayer};
 use tracing::Level;
 
 lazy_static! {
-    static ref AGENT_LOGGING_LEVEL: std::collections::HashMap<String, Level> = {
-        let mut m = std::collections::HashMap::new();
+    static ref AGENT_LOGGING_LEVEL: HashMap<String, Level> = {
+        let mut m = HashMap::new();
         m.insert("trace".to_owned(), Level::TRACE);
         m.insert("debug".to_owned(), Level::DEBUG);
         m.insert("info".to_owned(), Level::INFO);
@@ -128,16 +130,16 @@ impl HttpServerBuilder {
             agent_data: Arc::new(Mutex::new(AgentDataBuilder::new().build(dirs_watch))),
         };
 
-        let server_logging_level: Level = match AGENT_LOGGING_LEVEL.get(&logging_level) {
-            Some(level) => level.clone(),
-            None => {
+        let server_logging_level: Level = AGENT_LOGGING_LEVEL.get(&logging_level).map_or_else(
+            || {
                 error!(
                     "Invalid logging level: {}. Defaulting to info.",
                     logging_level
                 );
                 Level::INFO
-            }
-        };
+            },
+            |level| *level,
+        );
 
         let router = self
             .router
@@ -164,10 +166,10 @@ impl HttpServer {
                     "Invalid host or port: {}, defaulting to {}",
                     self.address, default_config.address
                 );
-                format!("{}", default_config.address).parse().unwrap()
+                default_config.address.parse().unwrap()
             }
         };
-        let tcp_listener = match tokio::net::TcpListener::bind::<SocketAddr>(addr).await {
+        let tcp_listener = match TcpListener::bind::<SocketAddr>(addr).await {
             Ok(tcp_listener) => tcp_listener,
             Err(e) => {
                 error!("Failed to bind to {}: {}", addr.to_string(), e);
