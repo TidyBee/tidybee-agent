@@ -4,25 +4,35 @@ mod configuration_wrapper;
 mod file_info;
 mod http_server;
 mod lister;
-mod logger;
 mod my_files;
+mod tidy_algo;
 mod watcher;
 
+use crate::tidy_algo::TidyAlgo;
 use http_server::HttpServerBuilder;
 use log::{debug, error, info};
-use std::thread;
+use std::{path::PathBuf, thread};
 
 pub async fn run() {
-    let configuration_wrapper: configuration_wrapper::ConfigurationWrapper =
-        configuration_wrapper::ConfigurationWrapper::new().unwrap();
+    match std::env::var("TIDY_BACKTRACE") {
+        Ok(env) => {
+            if env == "1" {
+                tracing_subscriber::fmt().with_target(true).pretty().init();
+            }
+        }
+        Err(_) => {
+            tracing_subscriber::fmt()
+                .with_target(false)
+                .compact()
+                .init();
+        }
+    };
+
+    info!("Command-line Arguments Parsed");
     let config = configuration::Configuration::init();
-    logger::init(
-        config.logger_config.term_level.as_str(),
-        config.logger_config.file_level.as_str(),
-    );
 
     let my_files_builder = my_files::MyFilesBuilder::new()
-        .configuration_wrapper(configuration_wrapper)
+        .configure(config.my_files_configuration)
         .seal();
 
     let my_files: my_files::MyFiles = my_files_builder.build().unwrap();
@@ -30,13 +40,18 @@ pub async fn run() {
     my_files.init_db().unwrap();
     info!("MyFilesDB sucessfully initialized");
 
+    let mut tidy_algo = TidyAlgo::new();
+    info!("TidyAlgo sucessfully created");
+    tidy_algo.load_rules_from_file(&my_files, PathBuf::from("config/rules/basic.yml"));
+    info!("TidyAlgo sucessfully loaded rules from config/rules/basic.yml");
+
     match lister::list_directories(config.file_lister_config.dir) {
         Ok(files_vec) => {
             for file in &files_vec {
                 match my_files.add_file_to_db(file) {
                     Ok(_) => {}
                     Err(error) => {
-                        error!("{}", error);
+                        error!("{:?}", error);
                     }
                 }
             }
@@ -45,11 +60,13 @@ pub async fn run() {
             error!("{}", error);
         }
     }
+
     let server = HttpServerBuilder::new()
         .my_files_builder(my_files_builder)
         .build(
             config.file_watcher_config.dir.clone(),
             config.http_server_config.address,
+            config.http_server_logging_level,
         );
     info!("HTTP Server build");
     info!("Directory Successfully Listed");

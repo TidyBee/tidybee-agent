@@ -1,5 +1,6 @@
 {
   "http_server_config": {
+    "log_level": "debug",
     "address": "0.0.0.0:8111"
   },
   "agent_config": {

@@ -9,7 +9,9 @@ pub struct FileInfo {
     pub name: String,
     pub path: PathBuf,
     pub size: u64,
+    pub hash: Option<String>,
     pub last_modified: SystemTime,
+    pub last_accessed: SystemTime,
     pub tidy_score: Option<TidyScore>,
 }
 
@@ -19,9 +21,17 @@ impl Default for FileInfo {
             name: String::new(),
             path: PathBuf::new(),
             size: 0,
+            hash: None,
             last_modified: SystemTime::UNIX_EPOCH,
+            last_accessed: SystemTime::UNIX_EPOCH,
             tidy_score: None,
         }
+    }
+}
+
+impl PartialEq for FileInfo {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash == other.hash
     }
 }
 
@@ -29,9 +39,18 @@ impl Default for FileInfo {
 pub struct TidyScore {
     pub misnamed: bool,
     pub unused: bool,
-    pub duplicated: Vec<FileInfo>,
-    // Not yet implemented
-    // pub misplaced: bool,
+    pub duplicated: Option<Vec<FileInfo>>, // Not yet implemented
+                                           // pub misplaced: bool,
+}
+
+impl TidyScore {
+    pub fn new(misnamed: bool, unused: bool, duplicated: Option<Vec<FileInfo>>) -> Self {
+        Self {
+            misnamed,
+            unused,
+            duplicated,
+        }
+    }
 }
 
 impl ToSql for TidyScore {

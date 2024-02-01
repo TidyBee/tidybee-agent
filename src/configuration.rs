@@ -1,5 +1,5 @@
 use config::{Config, File};
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize)]
@@ -29,13 +29,21 @@ pub struct LoggerConfig {
     pub file_level: String,
 }
 
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, Eq)]
+pub struct MyFilesConfiguration {
+    pub db_path: String,
+    pub drop_db_on_start: bool,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Configuration {
     pub agent_data: AgentData,
     pub file_lister_config: FileListerConfig,
     pub file_watcher_config: FileWatcherConfig,
     pub http_server_config: HttpServerConfig,
+    pub http_server_logging_level: String,
     pub logger_config: LoggerConfig,
+    pub my_files_configuration: MyFilesConfiguration,
 }
 
 impl Configuration {
