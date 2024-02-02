@@ -6,7 +6,6 @@ on:
     # change when in prod
     # tags:
     #   - "v*"
-  
 
 env:
   BIN_NAME: tidybee-agent
@@ -48,15 +47,12 @@ jobs:
       - name: Create artifact dir
         run: |
           mkdir -p ${{ env.ARTIFACT_DIR }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ matrix.target }}
-      
-      - name: debug directory
-        run: ls -R ./target
-        
+
       - name: Move binaries
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
         run:
           mv ./target/release/${{ env.BIN_NAME }} ${{ env.ARTIFACT_DIR }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ matrix.target }}/${{ env.BIN_NAME }}
-      
+
       - name: Move windows binaries
         if: matrix.os == 'windows-latest'
         shell: bash
@@ -68,4 +64,37 @@ jobs:
         with:
           name: ${{ matrix.target }}
           path: ./${{ env.ARTIFACT_DIR }}
-          
+
+  release:
+    name: Github Rlease
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create a Release
+        id: create_release
+        uses: elgohr/Github-Release-Action@v5
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          title: ${{ github.ref_name }}
+
+      - name: Download Linux Binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.BIN_NAME }}-${{ env.LINUX_AMD64_TARGET }}-${{ github.ref_name }}
+
+      - name: Download MacOS Binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.BIN_NAME }}-${{ env.MACOS_TARGET }}-${{ github.ref_name }}
+
+      - name: Download Windows Binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.BIN_NAME }}-${{ env.WINDOWS_TARGET }}-${{ github.ref_name }}
+
+      - name: Upload artifacts to the release
+        run: |
+          gh release upload ${{ github.ref_name }} ${{ env.BIN_NAME }}-${{ env.LINUX_AMD64_TARGET }}-${{ github.ref_name }} --clobber
+          gh release upload ${{ github.ref_name }} ${{ env.BIN_NAME }}-${{ env.MACOS_TARGET }}-${{ github.ref_name }} --clobber
+          gh release upload ${{ github.ref_name }} ${{ env.BIN_NAME }}-${{ env.WINDOWS_TARGET }}-${{ github.ref_name }} --clobber
