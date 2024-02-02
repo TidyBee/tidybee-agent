@@ -43,7 +43,7 @@ pub struct Configuration {
     pub http_server_config: HttpServerConfig,
     pub http_server_logging_level: String,
     pub logger_config: LoggerConfig,
-    pub my_files_configuration: MyFilesConfiguration,
+    pub my_files_config: MyFilesConfiguration,
 }
 
 impl Configuration {

@@ -44,7 +44,7 @@ pub struct TidyScore {
 }
 
 impl TidyScore {
-    pub fn new(misnamed: bool, unused: bool, duplicated: Option<Vec<FileInfo>>) -> Self {
+    pub const fn new(misnamed: bool, unused: bool, duplicated: Option<Vec<FileInfo>>) -> Self {
         Self {
             misnamed,
             unused,

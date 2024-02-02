@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::path;
 
 /// Represents a rule that can be applied to a file
+#[allow(dead_code)]
 pub struct TidyRule {
     name: String,
     log: String,
@@ -46,7 +47,7 @@ pub struct TidyAlgo {
 }
 
 impl TidyAlgo {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self { rules: Vec::new() }
     }
 
@@ -60,7 +61,7 @@ impl TidyAlgo {
 
         let rules = match rules_config {
             Ok(config) => config.get_array("rules").unwrap(),
-            Err(error) => panic!("Error while loading rules: {}", error),
+            Err(error) => panic!("Error while loading rules: {error}"),
         };
 
         for rule in rules {

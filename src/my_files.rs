@@ -1,6 +1,7 @@
 use crate::configuration::MyFilesConfiguration;
 use crate::file_info::{FileInfo, TidyScore};
 use chrono::{DateTime, Utc};
+use core::marker::PhantomData;
 use itertools::{Either, Itertools};
 use log::{error, info, warn};
 use r2d2::{Pool, PooledConnection};
@@ -38,7 +39,7 @@ pub struct MyFiles {
 pub struct MyFilesBuilder<C, M, S> {
     connection_manager: M,
     configuration_instance: C,
-    marker_seal: core::marker::PhantomData<S>,
+    marker_seal: PhantomData<S>,
 }
 
 impl Default for ConnectionManagerPresent {
@@ -52,7 +53,7 @@ impl MyFilesBuilder<NoConfiguration, NoConnectionManager, NotSealed> {
         MyFilesBuilder {
             connection_manager: NoConnectionManager,
             configuration_instance: NoConfiguration,
-            marker_seal: core::marker::PhantomData,
+            marker_seal: PhantomData,
         }
     }
 }
@@ -74,21 +75,21 @@ impl<C, M> MyFilesBuilder<C, M, NotSealed> {
         MyFilesBuilder {
             connection_manager: ConnectionManagerPresent(pool),
             configuration_instance: ConfigurationPresent(configuration_instance),
-            marker_seal: core::marker::PhantomData,
+            marker_seal: PhantomData,
         }
     }
     pub fn seal(self) -> MyFilesBuilder<C, M, Sealed> {
         MyFilesBuilder {
             connection_manager: self.connection_manager,
             configuration_instance: self.configuration_instance,
-            marker_seal: core::marker::PhantomData,
+            marker_seal: PhantomData,
         }
     }
 }
 
 impl MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed> {
     pub fn build(&self) -> Result<MyFiles> {
-        let my_files_configuration = self.configuration_instance.0.clone();
+        let my_files_config = self.configuration_instance.0.clone();
         let connection_pool = match self.connection_manager.0.get() {
             Ok(connection) => connection,
             Err(error) => {
@@ -96,7 +97,7 @@ impl MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed> {
                 panic!();
             }
         };
-        MyFiles::new(my_files_configuration, connection_pool)
+        MyFiles::new(my_files_config, connection_pool)
     }
 }
 
@@ -541,7 +542,7 @@ impl MyFiles {
 mod tests {
 
     use super::*;
-    use crate::{configuration, lister};
+    use crate::{configuration, file_lister};
 
     #[cfg(test)]
     #[ctor::ctor]
@@ -554,7 +555,7 @@ mod tests {
     pub fn main_test() {
         let config = configuration::Configuration::init();
         let my_files_builder = MyFilesBuilder::new()
-            .configure(config.my_files_configuration)
+            .configure(config.my_files_config)
             .seal();
         let my_files = my_files_builder.build().unwrap();
         my_files.init_db().unwrap();
@@ -566,7 +567,7 @@ mod tests {
 
         // Adding files to the database
         let directory_path = [r"tests", "assets", "test_folder"].iter().collect();
-        lister::list_directories(vec![directory_path])
+        file_lister::list_directories(vec![directory_path])
             .unwrap()
             .iter()
             .for_each(|file| match my_files.add_file_to_db(file) {
