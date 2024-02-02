@@ -66,7 +66,7 @@ pub async fn run() {
         .build(
             config.file_watcher_config.dir.clone(),
             config.http_server_config.address,
-            config.http_server_logging_level,
+            config.http_server_config.log_level,
         );
     info!("HTTP Server build");
     info!("Directory Successfully Listed");

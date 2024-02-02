@@ -1,5 +1,6 @@
 use config::{Config, File};
 use serde_derive::{Deserialize, Serialize};
+use std::env::var as env_var;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize)]
@@ -21,6 +22,7 @@ pub struct FileWatcherConfig {
 #[derive(Debug, Deserialize)]
 pub struct HttpServerConfig {
     pub address: String,
+    pub log_level: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -41,14 +43,13 @@ pub struct Configuration {
     pub file_lister_config: FileListerConfig,
     pub file_watcher_config: FileWatcherConfig,
     pub http_server_config: HttpServerConfig,
-    pub http_server_logging_level: String,
     pub logger_config: LoggerConfig,
     pub my_files_config: MyFilesConfiguration,
 }
 
 impl Configuration {
     pub fn init() -> Self {
-        let env = std::env::var("ENV").unwrap_or_else(|_| "development".into());
+        let env = env_var("ENV").unwrap_or_else(|_| "development".into());
 
         let builder = Config::builder()
             .add_source(File::from(Path::new("config/configuration.json")))
@@ -57,5 +58,33 @@ impl Configuration {
             .unwrap();
         let config: Configuration = builder.try_deserialize().unwrap();
         config
+    }
+
+    #[allow(dead_code)]
+    pub fn default() -> Self {
+        Self {
+            agent_data: AgentData {
+                latest_version: String::new(),
+                minimal_version: String::new(),
+            },
+            file_lister_config: FileListerConfig {
+                dir: vec![PathBuf::from("src")],
+            },
+            file_watcher_config: FileWatcherConfig {
+                dir: vec![PathBuf::from("src")],
+            },
+            http_server_config: HttpServerConfig {
+                address: String::from("0.0.0.0:8111"),
+                log_level: String::from("info"),
+            },
+            logger_config: LoggerConfig {
+                term_level: String::from("debug"),
+                file_level: String::from("warn"),
+            },
+            my_files_config: MyFilesConfiguration {
+                db_path: String::from("my_files.db"),
+                drop_db_on_start: false,
+            },
+        }
     }
 }
