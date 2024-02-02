@@ -11,7 +11,6 @@ env:
   BIN_NAME: tidybee-agent
   ARTIFACT_DIR: github_artifacts
   LINUX_AMD64_TARGET: x86_64-unknown-linux-gnu
-  LINUX_ARM64_TARGET: aarch64-unknown-linux-musl
   MACOS_TARGET: x86_64-apple-darwin
   WINDOWS_TARGET: x86_64-pc-windows-msvc
 
@@ -69,6 +68,9 @@ jobs:
     name: Github Rlease
     needs: build
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        targets: [x86_64-unknown-linux-gnu, x86_64-apple-darwin, x86_64-pc-windows-msvc]
     steps:
       - uses: actions/checkout@v4
 
@@ -80,20 +82,25 @@ jobs:
         with:
           title: ${{ github.ref_name }}
 
-      - name: Download Linux Binaries
+      - name: Download artifacts
         uses: actions/download-artifact@v2
         with:
-          name: ${{ env.BIN_NAME }}-${{ env.LINUX_AMD64_TARGET }}-${{ github.ref_name }}
+          name: ${{ matrix.targets }}
 
-      - name: Download MacOS Binaries
-        uses: actions/download-artifact@v2
-        with:
-          name: ${{ env.BIN_NAME }}-${{ env.MACOS_TARGET }}-${{ github.ref_name }}
+      # - name: Download Linux Binaries
+      #   uses: actions/download-artifact@v2
+      #   with:
+      #     name: ${{ env.BIN_NAME }}-${{ env.LINUX_AMD64_TARGET }}-${{ github.ref_name }}
 
-      - name: Download Windows Binaries
-        uses: actions/download-artifact@v2
-        with:
-          name: ${{ env.BIN_NAME }}-${{ env.WINDOWS_TARGET }}-${{ github.ref_name }}
+      # - name: Download MacOS Binaries
+      #   uses: actions/download-artifact@v2
+      #   with:
+      #     name: ${{ env.BIN_NAME }}-${{ env.MACOS_TARGET }}-${{ github.ref_name }}
+
+      # - name: Download Windows Binaries
+      #   uses: actions/download-artifact@v2
+      #   with:
+      #     name: ${{ env.BIN_NAME }}-${{ env.WINDOWS_TARGET }}-${{ github.ref_name }}
 
       - name: Upload artifacts to the release
         run: |
