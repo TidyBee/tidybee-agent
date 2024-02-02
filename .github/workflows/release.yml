@@ -68,9 +68,6 @@ jobs:
     name: Github Rlease
     needs: build
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        targets: [x86_64-unknown-linux-gnu, x86_64-apple-darwin, x86_64-pc-windows-msvc]
     steps:
       - uses: actions/checkout@v4
 
@@ -82,28 +79,23 @@ jobs:
         with:
           title: ${{ github.ref_name }}
 
-      - name: Download artifacts
+      - name: Download Linux Binaries
         uses: actions/download-artifact@v2
         with:
-          name: ${{ matrix.targets }}
+          name: ${{ env.LINUX_AMD64_TARGET }}
 
-      # - name: Download Linux Binaries
-      #   uses: actions/download-artifact@v2
-      #   with:
-      #     name: ${{ env.BIN_NAME }}-${{ env.LINUX_AMD64_TARGET }}-${{ github.ref_name }}
+      - name: Download MacOS Binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.MACOS_TARGET }}
 
-      # - name: Download MacOS Binaries
-      #   uses: actions/download-artifact@v2
-      #   with:
-      #     name: ${{ env.BIN_NAME }}-${{ env.MACOS_TARGET }}-${{ github.ref_name }}
-
-      # - name: Download Windows Binaries
-      #   uses: actions/download-artifact@v2
-      #   with:
-      #     name: ${{ env.BIN_NAME }}-${{ env.WINDOWS_TARGET }}-${{ github.ref_name }}
+      - name: Download Windows Binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.WINDOWS_TARGET }}
 
       - name: Upload artifacts to the release
         run: |
-          gh release upload ${{ github.ref_name }} ${{ env.BIN_NAME }}-${{ env.LINUX_AMD64_TARGET }}-${{ github.ref_name }} --clobber
-          gh release upload ${{ github.ref_name }} ${{ env.BIN_NAME }}-${{ env.MACOS_TARGET }}-${{ github.ref_name }} --clobber
-          gh release upload ${{ github.ref_name }} ${{ env.BIN_NAME }}-${{ env.WINDOWS_TARGET }}-${{ github.ref_name }} --clobber
+          gh release upload ${{ github.ref_name }} ${{ env.LINUX_AMD64_TARGET }} --clobber
+          gh release upload ${{ github.ref_name }} ${{ env.MACOS_TARGET }} --clobber
+          gh release upload ${{ github.ref_name }} ${{ env.WINDOWS_TARGET }} --clobber
