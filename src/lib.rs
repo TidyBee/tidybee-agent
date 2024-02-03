@@ -1,6 +1,5 @@
 mod agent_data;
 mod configuration;
-mod configuration_wrapper;
 mod file_info;
 mod file_lister;
 mod file_watcher;
@@ -64,6 +63,8 @@ pub async fn run() {
     let server = HttpServerBuilder::new()
         .my_files_builder(my_files_builder)
         .build(
+            config.agent_data.latest_version.clone(),
+            config.agent_data.minimal_version.clone(),
             config.file_watcher_config.dir.clone(),
             config.http_server_config.address,
             config.http_server_config.log_level,

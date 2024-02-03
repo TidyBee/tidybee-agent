@@ -1,7 +1,7 @@
 use crate::file_info::{FileInfo, TidyScore};
 use crate::my_files::MyFiles;
 use crate::tidy_algo::tidy_rules::duplicated::duplicated;
-use crate::tidy_algo::tidy_rules::misnamed::missnamed;
+use crate::tidy_algo::tidy_rules::misnamed::misnamed;
 use crate::tidy_algo::tidy_rules::perished::perished;
 use config::{Config, ConfigError, File, Value};
 use log::debug;
@@ -72,7 +72,7 @@ impl TidyAlgo {
             let apply_type = rule.get("type").unwrap().clone().into_string().unwrap();
             let apply = match apply_type.as_str() {
                 "duplicated" => duplicated,
-                "misnamed" => missnamed,
+                "misnamed" => misnamed,
                 "perished" => perished,
                 _ => panic!("Unknown rule"),
             };

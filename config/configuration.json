@@ -8,9 +8,9 @@
     "file_level": "warn"
   },
   "http_server_config": {
+    "log_level": "info",
     "address": "0.0.0.0:8111"
   },
-  "http_server_logging_level": "info",
   "my_files_config": {
     "db_path": "./my_files.db",
     "drop_db_on_start": true

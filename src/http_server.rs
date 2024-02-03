@@ -1,5 +1,5 @@
 use crate::agent_data;
-use crate::agent_data::{AgentData, AgentDataBuilder};
+use crate::agent_data::AgentData;
 use crate::file_info::FileInfo;
 use crate::my_files;
 use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
@@ -117,6 +117,8 @@ impl HttpServerBuilder {
 
     pub fn build(
         self,
+        latest_version: String,
+        minimal_version: String,
         dirs_watch: Vec<PathBuf>,
         address: String,
         logging_level: String,
@@ -127,7 +129,11 @@ impl HttpServerBuilder {
             my_files: Arc::new(Mutex::new(my_files_instance)),
         };
         let agent_data_state = AgentDataState {
-            agent_data: Arc::new(Mutex::new(AgentDataBuilder::new().build(dirs_watch))),
+            agent_data: Arc::new(Mutex::new(AgentData::build(
+                latest_version,
+                minimal_version,
+                dirs_watch,
+            ))),
         };
 
         let server_logging_level: Level = AGENT_LOGGING_LEVEL.get(&logging_level).map_or_else(
