@@ -47,21 +47,8 @@ pub struct Configuration {
     pub my_files_config: MyFilesConfiguration,
 }
 
-impl Configuration {
-    pub fn init() -> Self {
-        let env = env_var("ENV").unwrap_or_else(|_| "development".into());
-
-        let builder = Config::builder()
-            .add_source(File::from(Path::new("config/configuration.json")))
-            .add_source(File::with_name(&format!("config/{env}.json")).required(false))
-            .build()
-            .unwrap();
-        let config: Configuration = builder.try_deserialize().unwrap();
-        config
-    }
-
-    #[allow(dead_code)]
-    pub fn default() -> Self {
+impl Default for Configuration {
+    fn default() -> Self {
         Self {
             agent_data: AgentData {
                 latest_version: String::new(),
@@ -86,5 +73,19 @@ impl Configuration {
                 drop_db_on_start: false,
             },
         }
+    }
+}
+
+impl Configuration {
+    pub fn init() -> Self {
+        let env = env_var("ENV").unwrap_or_else(|_| "development".into());
+
+        let builder = Config::builder()
+            .add_source(File::from(Path::new("config/default.json")))
+            .add_source(File::with_name(&format!("config/{env}.json")).required(false))
+            .build()
+            .unwrap();
+        let config: Configuration = builder.try_deserialize().unwrap_or_default();
+        config
     }
 }
