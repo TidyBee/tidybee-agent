@@ -1,16 +1,31 @@
 use crate::agent_data;
-use crate::agent_data::{AgentData, AgentDataBuilder};
-use crate::configuration_wrapper::ConfigurationWrapper;
+use crate::agent_data::AgentData;
 use crate::file_info::FileInfo;
 use crate::my_files;
-use crate::my_files::{ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed};
-use axum::extract::Query;
-use axum::{extract::Path, extract::State, routing::get, Json, Router};
+use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
+use axum::{extract::Query, extract::State, routing::get, Json, Router};
+use lazy_static::lazy_static;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use tokio::net::TcpListener;
+use tower_http::trace::{self, TraceLayer};
+use tracing::Level;
+
+lazy_static! {
+    static ref AGENT_LOGGING_LEVEL: HashMap<String, Level> = {
+        let mut m = HashMap::new();
+        m.insert("trace".to_owned(), Level::TRACE);
+        m.insert("debug".to_owned(), Level::DEBUG);
+        m.insert("info".to_owned(), Level::INFO);
+        m.insert("warn".to_owned(), Level::WARN);
+        m.insert("error".to_owned(), Level::ERROR);
+        m
+    };
+}
 
 #[derive(Serialize)]
 struct Greeting {
@@ -60,15 +75,9 @@ async fn get_files(
     Json(result)
 }
 
-#[derive(Debug, Deserialize, Clone)]
-struct HttpServerConfig {
-    host: String,
-    port: String,
-}
-
 #[derive(Clone, Default)]
 pub struct HttpServer {
-    http_server_config: HttpServerConfig,
+    address: String,
     router: Router,
 }
 
@@ -86,17 +95,7 @@ struct AgentDataState {
 pub struct HttpServerBuilder {
     router: Router,
     my_files_builder:
-        my_files::MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed>,
-    configuration_wrapper: ConfigurationWrapper,
-}
-
-impl Default for HttpServerConfig {
-    fn default() -> Self {
-        let host = "0.0.0.0".to_owned();
-        let port = "8111".to_owned();
-
-        HttpServerConfig { host, port }
-    }
+        my_files::MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed>,
 }
 
 impl HttpServerBuilder {
@@ -104,18 +103,10 @@ impl HttpServerBuilder {
         HttpServerBuilder::default()
     }
 
-    pub fn configuration_wrapper(
-        mut self,
-        configuration_wrapper: impl Into<ConfigurationWrapper>,
-    ) -> Self {
-        self.configuration_wrapper = configuration_wrapper.into();
-        self
-    }
-
     pub fn my_files_builder(
         mut self,
         my_files_builder: my_files::MyFilesBuilder<
-            ConfigurationWrapperPresent,
+            ConfigurationPresent,
             ConnectionManagerPresent,
             Sealed,
         >,
@@ -124,67 +115,75 @@ impl HttpServerBuilder {
         self
     }
 
-    pub async fn build(
+    pub fn build(
         self,
-        directories_watch_args: Vec<PathBuf>,
-        configuration_wrapper: ConfigurationWrapper,
+        latest_version: String,
+        minimal_version: String,
+        dirs_watch: Vec<PathBuf>,
+        address: String,
+        logging_level: String,
     ) -> HttpServer {
-        let http_server_config: HttpServerConfig = self
-            .configuration_wrapper
-            .bind::<HttpServerConfig>("http_server_config")
-            .unwrap_or_default();
         let my_files_instance = self.my_files_builder.build().unwrap();
         info!("MyFiles instance successfully created for HTTP Server");
         let my_files_state = MyFilesState {
             my_files: Arc::new(Mutex::new(my_files_instance)),
         };
         let agent_data_state = AgentDataState {
-            agent_data: Arc::new(Mutex::new(
-                AgentDataBuilder::new()
-                    .configuration_wrapper(configuration_wrapper)
-                    .build(directories_watch_args),
-            )),
+            agent_data: Arc::new(Mutex::new(AgentData::build(
+                latest_version,
+                minimal_version,
+                dirs_watch,
+            ))),
         };
+
+        let server_logging_level: Level = AGENT_LOGGING_LEVEL.get(&logging_level).map_or_else(
+            || {
+                error!(
+                    "Invalid logging level: {}. Defaulting to info.",
+                    logging_level
+                );
+                Level::INFO
+            },
+            |level| *level,
+        );
+
         let router = self
             .router
             .route("/", get(hello_world))
             .route("/get_files", get(get_files).with_state(my_files_state))
-            .route("/get_status", get(get_status).with_state(agent_data_state));
-        HttpServer {
-            http_server_config,
-            router,
-        }
+            .route("/get_status", get(get_status).with_state(agent_data_state))
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(trace::DefaultMakeSpan::new().level(server_logging_level))
+                    .on_response(trace::DefaultOnResponse::new().level(server_logging_level))
+                    .on_failure(trace::DefaultOnFailure::new().level(Level::ERROR)),
+            );
+        HttpServer { address, router }
     }
 }
 
 impl HttpServer {
     pub async fn start(self) {
-        let addr: SocketAddr = match format!(
-            "{}:{}",
-            self.http_server_config.host, self.http_server_config.port
-        )
-        .parse()
-        {
+        let addr: SocketAddr = match self.address.parse() {
             Ok(addr) => addr,
             Err(_) => {
-                let default_config: HttpServerConfig = HttpServerConfig::default();
+                let default_config: HttpServer = HttpServer::default();
                 error!(
-                    "Invalid host or port: {}:{}, defaulting to {}:{}",
-                    self.http_server_config.host,
-                    self.http_server_config.port,
-                    default_config.host,
-                    default_config.port
+                    "Invalid host or port: {}, defaulting to {}",
+                    self.address, default_config.address
                 );
-                format!("{}:{}", default_config.host, default_config.port)
-                    .parse()
-                    .unwrap()
+                default_config.address.parse().unwrap()
+            }
+        };
+        let tcp_listener = match TcpListener::bind::<SocketAddr>(addr).await {
+            Ok(tcp_listener) => tcp_listener,
+            Err(e) => {
+                error!("Failed to bind to {}: {}", addr.to_string(), e);
+                return;
             }
         };
 
         info!("Http Server running at {}", addr.to_string());
-        axum::Server::bind(&addr)
-            .serve(self.router.into_make_service())
-            .await
-            .unwrap();
+        axum::serve(tcp_listener, self.router).await.unwrap();
     }
 }

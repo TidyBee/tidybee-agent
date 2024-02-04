@@ -1,26 +1,12 @@
-use crate::configuration_wrapper::ConfigurationWrapper;
 use gethostname::gethostname;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use sysinfo::{PidExt, RefreshKind, System, SystemExt as SysInfoSystemExt};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct AgentVersion {
     latest_version: String,
     minimal_version: String,
-}
-
-impl Default for AgentVersion {
-    fn default() -> Self {
-        let latest_version = "0.1.0".to_owned();
-        let minimal_version = "0.1.0".to_owned();
-
-        AgentVersion {
-            latest_version,
-            minimal_version,
-        }
-    }
 }
 
 #[derive(Serialize, Clone)]
@@ -32,42 +18,25 @@ pub struct AgentData {
     watched_directories: Vec<PathBuf>,
 }
 
-#[derive(Default)]
-pub struct AgentDataBuilder {
-    configuration_wrapper: ConfigurationWrapper,
-}
-
-impl AgentDataBuilder {
-    pub fn new() -> Self {
-        AgentDataBuilder::default()
-    }
-
-    pub fn configuration_wrapper(
-        mut self,
-        configuration_wrapper: impl Into<ConfigurationWrapper>,
-    ) -> Self {
-        self.configuration_wrapper = configuration_wrapper.into();
-        self
-    }
-
-    pub fn build(self, directories_watch_args: Vec<PathBuf>) -> AgentData {
-        let agent_version: AgentVersion = self
-            .configuration_wrapper
-            .bind::<AgentVersion>("agent_config")
-            .unwrap_or_default();
-
+#[allow(dead_code)]
+impl AgentData {
+    pub fn build(
+        latest_versionn: String,
+        minimal_versionn: String,
+        directories_watch_args: Vec<PathBuf>,
+    ) -> AgentData {
         AgentData {
-            agent_version,
+            agent_version: AgentVersion {
+                latest_version: latest_versionn,
+                minimal_version: minimal_versionn,
+            },
             machine_name: gethostname().to_str().unwrap().to_owned(),
             process_id: sysinfo::get_current_pid().unwrap().as_u32(),
-            uptime: System::new_with_specifics(RefreshKind::new()).uptime(),
+            uptime: sysinfo::System::uptime(),
             watched_directories: directories_watch_args,
         }
     }
-}
 
-#[allow(dead_code)]
-impl AgentData {
     pub fn dump(&self) {
         info!(
             "Agent's status and his configuration below :\n
@@ -88,6 +57,6 @@ impl AgentData {
     }
 
     pub fn update(&mut self) {
-        self.uptime = System::new_with_specifics(RefreshKind::new()).uptime();
+        self.uptime = sysinfo::System::uptime();
     }
 }

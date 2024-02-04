@@ -1,11 +1,12 @@
-use crate::configuration_wrapper::ConfigurationWrapper;
+use crate::configuration::MyFilesConfiguration;
 use crate::file_info::{FileInfo, TidyScore};
 use chrono::{DateTime, Utc};
+use core::marker::PhantomData;
+use itertools::{Either, Itertools};
 use log::{error, info, warn};
 use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{params, Result, ToSql};
-use serde::{Deserialize, Serialize};
 use std::path;
 use std::path::PathBuf;
 
@@ -17,34 +18,28 @@ pub struct Sealed;
 pub struct NotSealed;
 
 #[derive(Default, Clone)]
-pub struct NoConfigurationWrapper;
+pub struct NoConfiguration;
+
+#[derive(Default, Clone)]
+pub struct ConfigurationPresent(MyFilesConfiguration);
 
 #[derive(Default, Clone)]
 pub struct NoConnectionManager;
-
-#[derive(Default, Clone)]
-pub struct ConfigurationWrapperPresent(ConfigurationWrapper);
 
 #[derive(Clone)]
 pub struct ConnectionManagerPresent(Pool<SqliteConnectionManager>);
 // endregion: --- MyFiles builder states
 
-#[derive(Serialize, Deserialize, Default, Clone)]
-pub struct MyFilesDatabaseConfiguration {
-    pub db_path: String,
-    pub drop_db_on_start: bool,
-}
-
 pub struct MyFiles {
     connection_pool: PooledConnection<SqliteConnectionManager>,
-    configuration: MyFilesDatabaseConfiguration,
+    configuration: MyFilesConfiguration,
 }
 
 #[derive(Copy, Clone, Default)]
 pub struct MyFilesBuilder<C, M, S> {
     connection_manager: M,
-    configuration_wrapper_instance: C,
-    marker_seal: core::marker::PhantomData<S>,
+    configuration_instance: C,
+    marker_seal: PhantomData<S>,
 }
 
 impl Default for ConnectionManagerPresent {
@@ -53,58 +48,48 @@ impl Default for ConnectionManagerPresent {
     }
 }
 
-impl MyFilesBuilder<NoConfigurationWrapper, NoConnectionManager, NotSealed> {
+impl MyFilesBuilder<NoConfiguration, NoConnectionManager, NotSealed> {
     pub const fn new() -> Self {
         MyFilesBuilder {
             connection_manager: NoConnectionManager,
-            configuration_wrapper_instance: NoConfigurationWrapper,
-            marker_seal: core::marker::PhantomData,
+            configuration_instance: NoConfiguration,
+            marker_seal: PhantomData,
         }
     }
 }
 
 impl<C, M> MyFilesBuilder<C, M, NotSealed> {
-    pub fn configuration_wrapper(
+    pub fn configure(
         self,
-        configuration_wrapper_instance: ConfigurationWrapper,
-    ) -> MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, NotSealed> {
-        let db_path = configuration_wrapper_instance
-            .bind::<MyFilesDatabaseConfiguration>("my_files_database_configuration")
-            .unwrap_or_default()
-            .db_path;
-        let manager = SqliteConnectionManager::file(db_path);
-        let pool = match Pool::new(manager) {
+        configuration_instance: MyFilesConfiguration,
+    ) -> MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, NotSealed> {
+        let connection_manager =
+            SqliteConnectionManager::file(configuration_instance.db_path.clone());
+        let pool = match Pool::new(connection_manager) {
             Ok(pool) => pool,
             Err(error) => {
                 error!("Error creating connection pool: {}", error);
                 panic!();
             }
         };
-
         MyFilesBuilder {
-            configuration_wrapper_instance: ConfigurationWrapperPresent(
-                configuration_wrapper_instance,
-            ),
             connection_manager: ConnectionManagerPresent(pool),
-            marker_seal: core::marker::PhantomData,
+            configuration_instance: ConfigurationPresent(configuration_instance),
+            marker_seal: PhantomData,
         }
     }
     pub fn seal(self) -> MyFilesBuilder<C, M, Sealed> {
         MyFilesBuilder {
             connection_manager: self.connection_manager,
-            configuration_wrapper_instance: self.configuration_wrapper_instance,
-            marker_seal: core::marker::PhantomData,
+            configuration_instance: self.configuration_instance,
+            marker_seal: PhantomData,
         }
     }
 }
 
-impl MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed> {
+impl MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed> {
     pub fn build(&self) -> Result<MyFiles> {
-        let my_files_configuration = self
-            .configuration_wrapper_instance
-            .0
-            .bind::<MyFilesDatabaseConfiguration>("my_files_database_configuration")
-            .unwrap_or_default();
+        let my_files_config = self.configuration_instance.0.clone();
         let connection_pool = match self.connection_manager.0.get() {
             Ok(connection) => connection,
             Err(error) => {
@@ -112,14 +97,14 @@ impl MyFilesBuilder<ConfigurationWrapperPresent, ConnectionManagerPresent, Seale
                 panic!();
             }
         };
-        MyFiles::new(my_files_configuration, connection_pool)
+        MyFiles::new(my_files_config, connection_pool)
     }
 }
 
 #[allow(dead_code)]
 impl MyFiles {
     pub fn new(
-        configuration: MyFilesDatabaseConfiguration,
+        configuration: MyFilesConfiguration,
         connection_pool: PooledConnection<SqliteConnectionManager>,
     ) -> Result<Self> {
         Ok(MyFiles {
@@ -153,7 +138,9 @@ impl MyFiles {
                 name            TEXT NOT NULL,
                 path            TEXT NOT NULL UNIQUE,
                 size            INTEGER NOT NULL,
+                hash            TEXT DEFAULT \"\",
                 last_modified   DATE NOT NULL,
+                last_accessed   DATE NOT NULL,
                 tidy_score      INTEGER UNIQUE,
                 FOREIGN KEY (tidy_score) REFERENCES tidy_scores(id) ON DELETE CASCADE
             );
@@ -197,20 +184,26 @@ impl MyFiles {
             }
         }
     }
-    pub fn add_file_to_db(&self, file: &FileInfo) -> Result<()> {
+    pub fn add_file_to_db(&self, file: &FileInfo) -> Result<FileInfo> {
         let last_modified: DateTime<Utc> = file.last_modified.into();
+        let last_accessed: DateTime<Utc> = file.last_accessed.into();
         match self.connection_pool.execute(
-            "INSERT INTO my_files (name, path, size, last_modified, tidy_score)
-                  VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO my_files (name, path, size, hash, last_modified, last_accessed, tidy_score)
+                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 file.name,
                 file.path.to_str(),
                 file.size,
+                file.hash,
                 last_modified.to_rfc3339(),
+                last_accessed.to_rfc3339(),
                 file.tidy_score.as_ref()
             ],
         ) {
-            Ok(_) => Ok(info!("{} added to my_files", file.path.to_str().unwrap())),
+            Ok(_) => Ok({
+                info!("{} added to my_files", file.path.to_str().unwrap());
+                file.clone()
+            }),
             Err(error) => {
                 warn!(
                     "Error adding {} to my_files: {}",
@@ -302,35 +295,77 @@ impl MyFiles {
         }
     }
 
+    fn create_fileinfo_from_row(row: &rusqlite::Row) -> Result<FileInfo> {
+        let path_str = row.get::<_, String>(2)?;
+        let path = std::path::Path::new(&path_str).to_owned();
+
+        let mut time_str = row.get::<_, String>(5)?;
+        if DateTime::parse_from_rfc3339(&time_str).is_err() {
+            error!(
+                "MyFiles::create_fileinfo_from_row: Error parsing key: last_modified with value {}, for file {}.",
+                time_str, path_str
+            );
+        }
+        let last_modified = DateTime::parse_from_rfc3339(&time_str).unwrap().into();
+
+        time_str = row.get::<_, String>(6)?;
+        let last_accessed = match DateTime::parse_from_rfc3339(&time_str) {
+            Ok(last_accessed) => last_accessed.into(),
+            Err(error) => {
+                error!(
+                    "MyFiles::create_fileinfo_from_row: Error parsing key: last_accessed with value {}, for file {}. {}",
+                    time_str, path_str, error
+                );
+                std::time::SystemTime::UNIX_EPOCH
+            }
+        };
+
+        let tidy_score = match row.get::<_, Option<TidyScore>>(7) {
+            Ok(tidy_score) => tidy_score,
+            Err(error) => {
+                error!(
+                    "MyFiles::create_fileinfo_from_row: Error parsing key: tidy_score for file {} : {}",
+                    path_str, error
+                );
+                None
+            }
+        };
+
+        Ok(FileInfo {
+            name: row.get::<_, String>(1)?,
+            path,
+            size: row.get::<_, u64>(3)?,
+            hash: row.get::<_, Option<String>>(4)?,
+            last_modified,
+            last_accessed,
+            tidy_score,
+        })
+    }
+
     pub fn get_all_files_from_db(&self) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection_pool.prepare("SELECT * FROM my_files")?;
-        let file_iter = statement.query_map(params![], |row| {
-            let path_str = row.get::<_, String>(2)?;
-            let path = std::path::Path::new(&path_str).to_owned();
+        let file_iter_res = statement.query_map(params![], MyFiles::create_fileinfo_from_row);
 
-            let time_str = row.get::<_, String>(4)?;
-            let last_modified = match DateTime::parse_from_rfc3339(&time_str) {
-                Ok(last_modified) => last_modified.into(),
-                Err(error) => {
-                    error!(
-                        "Error parsing key: last_modified with value {}, for file {}. {}",
-                        path_str, time_str, error
-                    );
-                    std::time::SystemTime::UNIX_EPOCH
-                }
-            };
-
-            Ok(FileInfo {
-                name: row.get::<_, String>(1)?,
-                path,
-                size: row.get::<_, u64>(3)?,
-                last_modified,
-                tidy_score: row.get(5)?,
-            })
-        })?;
-        let mut files_vec: Vec<FileInfo> = Vec::new();
-        for file in file_iter {
-            files_vec.push(file.unwrap());
+        let file_iter = match file_iter_res {
+            Ok(file_iter) => file_iter,
+            Err(error) => {
+                error!(
+                    "MyFiles::get_all_files_from_db: Error getting file iterator from database: {}",
+                    error
+                );
+                return Err(error);
+            }
+        };
+        let (files_vec, errs): (Vec<FileInfo>, Vec<rusqlite::Error>) =
+            file_iter.partition_map(|file| match file {
+                Ok(file) => Either::Left(file),
+                Err(error) => Either::Right(error),
+            });
+        for err in errs {
+            error!(
+                "MyFiles::get_all_files_from_db: Error getting file from database: {:?}",
+                err
+            );
         }
         Ok(files_vec)
     }
@@ -356,36 +391,48 @@ impl MyFiles {
         let file_id = statement.query_row(params![&str_file_path], |row| row.get::<_, i64>(0))?;
 
         let mut statement = self.connection_pool.prepare(
-            "SELECT my_files.name, my_files.path, my_files.size, my_files.last_modified, my_files.tidy_score
+            "SELECT my_files.name, my_files.path, my_files.size, my_files.last_modified, my_files.last_accessed, my_files.hash, my_files.tidy_score
             FROM my_files
             INNER JOIN duplicates_associative_table ON my_files.id = duplicates_associative_table.original_file_id WHERE duplicates_associative_table.original_file_id = ?1",
         ).unwrap();
 
         let duplicated_files = statement
             .query_map(params![file_id], |row| {
-                let path_str = row.get::<_, String>(1)?;
+                let path_str = row.get::<_, String>(0)?;
                 let path = std::path::Path::new(&path_str).to_owned();
 
-                let time_str = row.get::<_, String>(3)?;
+                let mut time_str = row.get::<_, String>(3)?;
                 let last_modified = match DateTime::parse_from_rfc3339(&time_str) {
                     Ok(last_modified) => last_modified.into(),
                     Err(error) => {
                         error!(
                             "Error parsing key: last_modified with value {}, for file {}. {}",
-                            path_str, time_str, error
+                            time_str, path_str, error
                         );
                         std::time::SystemTime::UNIX_EPOCH
                     }
                 };
 
-                let tidy_score_id = row.get::<_, i64>(4)?;
+                time_str = row.get::<_, String>(4)?;
+                let last_accessed = match DateTime::parse_from_rfc3339(&time_str) {
+                    Ok(last_accessed) => last_accessed.into(),
+                    Err(error) => {
+                        error!(
+                            "Error parsing key: last_accessed with value {}, for file {}. {}",
+                            time_str, path_str, error
+                        );
+                        std::time::SystemTime::UNIX_EPOCH
+                    }
+                };
+
+                let tidy_score_id = row.get::<_, i64>(6)?;
                 let mut statement = self.connection_pool.prepare(
                     "SELECT misnamed, duplicated, unused FROM tidy_scores WHERE id = ?1",
                 )?;
                 let tidy_score = statement.query_row(params![tidy_score_id], |row| {
                     Ok(TidyScore {
                         misnamed: row.get::<_, bool>(0)?,
-                        duplicated: Vec::new(),
+                        duplicated: None,
                         unused: row.get::<_, bool>(2)?,
                     })
                 })?;
@@ -394,7 +441,9 @@ impl MyFiles {
                     name: row.get::<_, String>(0)?,
                     path,
                     size: row.get::<_, u64>(2)?,
+                    hash: row.get::<_, Option<String>>(5)?,
                     last_modified,
+                    last_accessed,
                     tidy_score: tidy_score.into(),
                 })
             })
@@ -422,9 +471,10 @@ impl MyFiles {
         statement.query_row(params![&str_filepath], |row| {
             Ok(TidyScore {
                 misnamed: row.get::<_, bool>(0)?,
-                duplicated: self
-                    .fetch_duplicated_files(path::PathBuf::from(&str_filepath))
-                    .unwrap(),
+                duplicated: Some(
+                    self.fetch_duplicated_files(path::PathBuf::from(&str_filepath))
+                        .unwrap(),
+                ),
                 unused: row.get::<_, bool>(2)?,
             })
         })
@@ -442,9 +492,15 @@ impl MyFiles {
             "INSERT INTO tidy_scores (misnamed, duplicated, unused)
             VALUES (?1, ?2, ?3)",
         )?;
+
+        let duplicated_score = match &tidy_score.duplicated {
+            Some(duplicated) => !duplicated.is_empty(),
+            None => false,
+        };
+
         let tidy_score_id = statement.insert(params![
             tidy_score.misnamed,
-            !tidy_score.duplicated.is_empty(),
+            duplicated_score,
             tidy_score.unused
         ])?;
 
@@ -470,19 +526,7 @@ impl MyFiles {
     pub fn raw_select_query(&self, query: &str, params: &[&dyn ToSql]) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection_pool.prepare(query)?;
 
-        let db_result = statement.query_map(params, |row| {
-            Ok(FileInfo {
-                name: row.get::<_, String>(1)?,
-                path: std::path::Path::new(row.get::<_, String>(2)?.as_str()).to_owned(),
-                size: row.get::<_, u64>(3)?,
-                last_modified: row
-                    .get::<_, String>(4)?
-                    .parse::<DateTime<Utc>>()
-                    .unwrap()
-                    .into(),
-                tidy_score: row.get(5)?,
-            })
-        })?;
+        let db_result = statement.query_map(params, MyFiles::create_fileinfo_from_row)?;
         Ok(db_result
             .map(core::result::Result::unwrap)
             .collect::<Vec<FileInfo>>())
@@ -498,7 +542,7 @@ impl MyFiles {
 mod tests {
 
     use super::*;
-    use crate::lister;
+    use crate::{configuration, file_lister};
 
     #[cfg(test)]
     #[ctor::ctor]
@@ -509,8 +553,9 @@ mod tests {
 
     #[test]
     pub fn main_test() {
+        let config = configuration::Configuration::init();
         let my_files_builder = MyFilesBuilder::new()
-            .configuration_wrapper(ConfigurationWrapper::new().unwrap())
+            .configure(config.my_files_config)
             .seal();
         let my_files = my_files_builder.build().unwrap();
         my_files.init_db().unwrap();
@@ -522,18 +567,28 @@ mod tests {
 
         // Adding files to the database
         let directory_path = [r"tests", "assets", "test_folder"].iter().collect();
-        lister::list_directories(vec![directory_path])
+        file_lister::list_directories(vec![directory_path])
             .unwrap()
             .iter()
-            .for_each(|file| {
-                my_files.add_file_to_db(file).unwrap();
+            .for_each(|file| match my_files.add_file_to_db(file) {
+                Ok(_) => (),
+                Err(err) => {
+                    error!("Error adding file to database: {}", err);
+                    panic!();
+                }
             });
-        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 10);
+        assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 13);
 
         // Using raw query
-        let file_info = my_files
+        let file_info = match my_files
             .raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"test-file-1"])
-            .unwrap();
+        {
+            Ok(file_info) => file_info,
+            Err(error) => {
+                assert_eq!(error, rusqlite::Error::QueryReturnedNoRows);
+                Vec::new()
+            }
+        };
         assert_eq!(file_info.len(), 1);
         assert_eq!(file_info[0].name, "test-file-1");
         assert_eq!(file_info[0].size, 100);
@@ -554,7 +609,7 @@ mod tests {
         // region: --- TidyScore tests
         let dummy_score = TidyScore {
             misnamed: true,
-            duplicated: Vec::new(),
+            duplicated: None,
             unused: true,
         };
         my_files
@@ -614,7 +669,10 @@ mod tests {
                     .collect(),
             )
             .unwrap();
-        let is_duplicated = !score.duplicated.is_empty();
+        let is_duplicated = match score.duplicated {
+            Some(duplicated) => !duplicated.is_empty(),
+            None => false,
+        };
         assert!(is_duplicated);
 
         // endregion: --- TidyScore tests

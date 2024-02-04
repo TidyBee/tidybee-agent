@@ -1,13 +1,17 @@
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, Value, ValueRef};
 use rusqlite::ToSql;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::time::SystemTime;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileInfo {
     pub name: String,
-    pub path: std::path::PathBuf,
+    pub path: PathBuf,
     pub size: u64,
-    pub last_modified: std::time::SystemTime,
+    pub hash: Option<String>,
+    pub last_modified: SystemTime,
+    pub last_accessed: SystemTime,
     pub tidy_score: Option<TidyScore>,
 }
 
@@ -15,11 +19,19 @@ impl Default for FileInfo {
     fn default() -> Self {
         FileInfo {
             name: String::new(),
-            path: std::path::PathBuf::new(),
+            path: PathBuf::new(),
             size: 0,
-            last_modified: std::time::SystemTime::UNIX_EPOCH,
+            hash: None,
+            last_modified: SystemTime::UNIX_EPOCH,
+            last_accessed: SystemTime::UNIX_EPOCH,
             tidy_score: None,
         }
+    }
+}
+
+impl PartialEq for FileInfo {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash == other.hash
     }
 }
 
@@ -27,9 +39,18 @@ impl Default for FileInfo {
 pub struct TidyScore {
     pub misnamed: bool,
     pub unused: bool,
-    pub duplicated: Vec<FileInfo>,
-    // Not yet implemented
-    // pub misplaced: bool,
+    pub duplicated: Option<Vec<FileInfo>>, // Not yet implemented
+                                           // pub misplaced: bool,
+}
+
+impl TidyScore {
+    pub const fn new(misnamed: bool, unused: bool, duplicated: Option<Vec<FileInfo>>) -> Self {
+        Self {
+            misnamed,
+            unused,
+            duplicated,
+        }
+    }
 }
 
 impl ToSql for TidyScore {
