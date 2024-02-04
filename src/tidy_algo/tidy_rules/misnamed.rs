@@ -8,7 +8,7 @@ use crate::{
     my_files::MyFiles,
 };
 
-pub fn missnamed(
+pub fn misnamed(
     file_info: &FileInfo,
     _my_files: &MyFiles,
     raw_params: HashMap<String, Value>,
@@ -20,13 +20,13 @@ pub fn missnamed(
     };
 
     if pattern.is_none() {
-        warn!("No pattern provided for missnamed rule");
+        warn!("No pattern provided for misnamed rule");
         return new_score.clone();
     } else {
         let pattern_str = match pattern.unwrap().clone().into_string() {
             Ok(pattern) => pattern,
             Err(_) => {
-                warn!("Pattern provided for missnamed rule is not a string");
+                warn!("Pattern provided for misnamed rule is not a string");
                 return new_score;
             }
         };

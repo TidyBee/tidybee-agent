@@ -1,14 +1,13 @@
 mod agent_data;
 mod configuration;
-mod configuration_wrapper;
 mod file_info;
+mod file_lister;
+mod file_watcher;
 mod http_server;
-mod lister;
 mod my_files;
 mod tidy_algo;
-mod watcher;
 
-use crate::tidy_algo::TidyAlgo;
+use crate::tidy_algo::tidy_algo::TidyAlgo;
 use http_server::HttpServerBuilder;
 use log::{debug, error, info};
 use std::{path::PathBuf, thread};
@@ -32,7 +31,7 @@ pub async fn run() {
     let config = configuration::Configuration::init();
 
     let my_files_builder = my_files::MyFilesBuilder::new()
-        .configure(config.my_files_configuration)
+        .configure(config.my_files_config)
         .seal();
 
     let my_files: my_files::MyFiles = my_files_builder.build().unwrap();
@@ -45,12 +44,7 @@ pub async fn run() {
     tidy_algo.load_rules_from_file(&my_files, PathBuf::from("config/rules/basic.yml"));
     info!("TidyAlgo sucessfully loaded rules from config/rules/basic.yml");
 
-    let directories_list_args: Vec<PathBuf> = vec![PathBuf::from("src")];
-    let directories_watch_args: Vec<PathBuf> = vec![PathBuf::from("src")];
-    debug!("directories_list_args = {:?}", directories_list_args);
-    debug!("directories_watch_args = {:?}", directories_watch_args);
-
-    match lister::list_directories(directories_list_args) {
+    match file_lister::list_directories(config.file_lister_config.dir) {
         Ok(files_vec) => {
             for file in &files_vec {
                 match my_files.add_file_to_db(file) {
@@ -69,9 +63,11 @@ pub async fn run() {
     let server = HttpServerBuilder::new()
         .my_files_builder(my_files_builder)
         .build(
-            config.directories_watch_args.clone(),
-            config.http_server_address,
-            config.http_server_logging_level,
+            config.agent_data.latest_version.clone(),
+            config.agent_data.minimal_version.clone(),
+            config.file_watcher_config.dir.clone(),
+            config.http_server_config.address,
+            config.http_server_config.log_level,
         );
     info!("HTTP Server build");
     info!("Directory Successfully Listed");
@@ -82,7 +78,7 @@ pub async fn run() {
 
     let (sender, receiver) = crossbeam_channel::unbounded();
     let watch_directories_thread: thread::JoinHandle<()> = thread::spawn(move || {
-        watcher::watch_directories(config.directories_watch_args.clone(), sender);
+        file_watcher::watch_directories(config.file_watcher_config.dir.clone(), sender);
     });
     info!("File Events Watcher Started");
     for event in receiver {

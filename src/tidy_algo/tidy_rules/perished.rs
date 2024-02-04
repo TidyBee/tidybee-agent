@@ -1,5 +1,4 @@
 use config::Value;
-use core::time;
 use lazy_static::lazy_static;
 use log::warn;
 use std::collections::HashMap;
@@ -18,7 +17,7 @@ pub fn perished(
         static ref PERISHED_VALID_UNITS: Vec<&'static str> = vec!["day", "week", "month", "year"];
     }
 
-    let last_modified = file_info.last_modified.clone();
+    let _last_modified = file_info.last_modified;
 
     let time_string_raw: String = match raw_params.get("max") {
         Some(time_string) => match time_string.clone().into_string() {
@@ -37,8 +36,8 @@ pub fn perished(
         }
     };
 
-    let mut max_time_split = time_string_raw.split(" ");
-    let time_amount = match max_time_split.next() {
+    let mut max_time_split = time_string_raw.split(' ');
+    let _time_amount = match max_time_split.next() {
         Some(time_amount) => match time_amount.parse::<u64>() {
             Ok(time_amount) => time_amount,
             Err(err) => {
@@ -54,7 +53,7 @@ pub fn perished(
             return TidyScore::new(false, false, None);
         }
     };
-    let time_unit = match max_time_split.next() {
+    let _time_unit = match max_time_split.next() {
         Some(time_unit) => {
             if PERISHED_VALID_UNITS.contains(&time_unit) {
                 time_unit

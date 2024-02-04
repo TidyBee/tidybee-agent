@@ -1,7 +1,7 @@
 use crate::file_info::{FileInfo, TidyScore};
 use crate::my_files::MyFiles;
 use crate::tidy_algo::tidy_rules::duplicated::duplicated;
-use crate::tidy_algo::tidy_rules::misnamed::missnamed;
+use crate::tidy_algo::tidy_rules::misnamed::misnamed;
 use crate::tidy_algo::tidy_rules::perished::perished;
 use config::{Config, ConfigError, File, Value};
 use log::debug;
@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::path;
 
 /// Represents a rule that can be applied to a file
+#[allow(dead_code)]
 pub struct TidyRule {
     name: String,
     log: String,
@@ -46,7 +47,7 @@ pub struct TidyAlgo {
 }
 
 impl TidyAlgo {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self { rules: Vec::new() }
     }
 
@@ -60,7 +61,7 @@ impl TidyAlgo {
 
         let rules = match rules_config {
             Ok(config) => config.get_array("rules").unwrap(),
-            Err(error) => panic!("Error while loading rules: {}", error),
+            Err(error) => panic!("Error while loading rules: {error}"),
         };
 
         for rule in rules {
@@ -71,7 +72,7 @@ impl TidyAlgo {
             let apply_type = rule.get("type").unwrap().clone().into_string().unwrap();
             let apply = match apply_type.as_str() {
                 "duplicated" => duplicated,
-                "misnamed" => missnamed,
+                "misnamed" => misnamed,
                 "perished" => perished,
                 _ => panic!("Unknown rule"),
             };
