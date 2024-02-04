@@ -4,6 +4,7 @@ use crate::configuration_wrapper::ConfigurationWrapper;
 use crate::file_info::FileInfo;
 use crate::my_files;
 use crate::my_files::{ConfigurationWrapperPresent, ConnectionManagerPresent, Sealed};
+use axum::extract::Query;
 use axum::{extract::Path, extract::State, routing::get, Json, Router};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
@@ -14,6 +15,12 @@ use std::sync::{Arc, Mutex};
 #[derive(Serialize)]
 struct Greeting {
     message: String,
+}
+
+#[derive(Deserialize)]
+struct GetFilesParams {
+    amount: usize,
+    sort_by: String,
 }
 
 async fn hello_world() -> Json<Greeting> {
@@ -32,7 +39,7 @@ async fn get_status(State(agent_data): State<AgentDataState>) -> Json<AgentData>
 
 async fn get_files(
     State(my_files): State<MyFilesState>,
-    Path((number_of_files, sort_by)): Path<(usize, String)>,
+    Query(query_params): Query<GetFilesParams>,
 ) -> Json<Vec<FileInfo>> {
     let mut files_vec: Vec<FileInfo> = my_files
         .my_files
@@ -41,7 +48,7 @@ async fn get_files(
         .get_all_files_from_db()
         .unwrap();
 
-    files_vec.sort_by(|a, b| match sort_by.to_lowercase().as_str() {
+    files_vec.sort_by(|a, b| match query_params.sort_by.to_lowercase().as_str() {
         "size" => b.size.cmp(&a.size),
         "last_update" => b.last_modified.cmp(&a.last_modified),
         _ => {
@@ -49,7 +56,7 @@ async fn get_files(
             b.size.cmp(&a.size)
         }
     });
-    let result = files_vec.into_iter().take(number_of_files).collect();
+    let result = files_vec.into_iter().take(query_params.amount).collect();
     Json(result)
 }
 
@@ -141,10 +148,7 @@ impl HttpServerBuilder {
         let router = self
             .router
             .route("/", get(hello_world))
-            .route(
-                "/get_files/:nb_files/sorted_by/:sort_type",
-                get(get_files).with_state(my_files_state),
-            )
+            .route("/get_files", get(get_files).with_state(my_files_state))
             .route("/get_status", get(get_status).with_state(agent_data_state));
         HttpServer {
             http_server_config,
