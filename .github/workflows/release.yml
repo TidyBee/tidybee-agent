@@ -77,8 +77,8 @@ jobs:
           path: ${{ env.ARTIFACT_DIR }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Debug directory
-        run: ls -la
+      - name: Debug artifact directory
+        run: ls -la ${{ env.ARTIFACT_DIR }}
 
       - name: Create a Release
         env:
