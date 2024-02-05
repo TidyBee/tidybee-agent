@@ -18,6 +18,7 @@ jobs:
   build:
     name: Build artifacts
     runs-on: ${{ matrix.os }}
+    id: build
     strategy:
       matrix:
         include:
