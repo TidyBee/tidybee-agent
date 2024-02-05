@@ -2,10 +2,8 @@ name: Release
 
 on:
   push:
-    branches: main
-    # change when in prod
-    # tags:
-    #   - "v*"
+    tags:
+      - "v*"
 
 env:
   BIN_NAME: tidybee-agent
