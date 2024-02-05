@@ -48,13 +48,13 @@ jobs:
       - name: Move binaries
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
         run:
-          mv ./target/release/${{ env.BIN_NAME }} ${{ env.ARTIFACT_DIR }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ matrix.target }}/${{ env.BIN_NAME }}
+          mv ./target/release/${{ env.BIN_NAME }} ${{ env.ARTIFACT_DIR }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ matrix.target }}/${{ matrix.os }}-${{ env.BIN_NAME }}
 
       - name: Move windows binaries
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
-          cp ./target/release/${{ env.BIN_NAME }}.exe ./${{ env.ARTIFACT_DIR }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ matrix.target }}/${{ env.BIN_NAME }}.exe
+          cp ./target/release/${{ env.BIN_NAME }}.exe ./${{ env.ARTIFACT_DIR }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ matrix.target }}/${{ matrix.os }}-${{ env.BIN_NAME }}.exe
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -78,13 +78,13 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Debug artifact directory
-        run: ls -la ${{ env.ARTIFACT_DIR }}
+        run: ls -lRa ${{ env.ARTIFACT_DIR }}
 
       - name: Create a Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create ${{ github.ref_name }} \
-            ${{ env.ARTIFACT_DIR }}/${{ env.LINUX_AMD64_TARGET }}/${{ env.LINUX_AMD64_TARGET }} \
-            ${{ env.ARTIFACT_DIR }}/${{ env.MACOS_TARGET }}/${{ env.MACOS_TARGET }} \
-            ${{ env.ARTIFACT_DIR }}/${{ env.WINDOWS_TARGET }}/${{ env.WINDOWS_TARGET }} --title ${{ github.ref_name }} --generate-notes
+            ${{ env.ARTIFACT_DIR }}/${{ env.LINUX_AMD64_TARGET }}/ubuntu-latest-${{ env.LINUX_AMD64_TARGET }} \
+            ${{ env.ARTIFACT_DIR }}/${{ env.MACOS_TARGET }}/macos-latest-${{ env.MACOS_TARGET }} \
+            ${{ env.ARTIFACT_DIR }}/${{ env.WINDOWS_TARGET }}/windows-latest-${{ env.WINDOWS_TARGET }}.exe --title ${{ github.ref_name }} --generate-notes
