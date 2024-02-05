@@ -71,6 +71,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        env:
+          ARTIFACT_DIR: ${{ env.ARTIFACT_DIR }}
+        with:
+          path: ${{ env.ARTIFACT_DIR }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ needs.build.id }}
+
+      - name: Debug directory
+        run: ls -la
+
       - name: Create a Release
         id: create_release
         uses: elgohr/Github-Release-Action@v5
@@ -79,30 +91,9 @@ jobs:
         with:
           title: ${{ github.ref_name }}
 
-      # - name: Download Linux Binaries
-      #   uses: actions/download-artifact@v2
-      #   with:
-      #     name: ${{ env.LINUX_AMD64_TARGET }}
-
-      # - name: Download MacOS Binaries
-      #   uses: actions/download-artifact@v2
-      #   with:
-      #     name: ${{ env.MACOS_TARGET }}
-
-      # - name: Download Windows Binaries
-      #   uses: actions/download-artifact@v2
-      #   with:
-      #     name: ${{ env.WINDOWS_TARGET }}
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: ./
-
-      - name: Debug directory
-        run: ls -la
-
       - name: Upload artifacts to the release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload ${{ github.ref_name }} ${{ env.LINUX_AMD64_TARGET }} --clobber
           gh release upload ${{ github.ref_name }} ${{ env.MACOS_TARGET }} --clobber
