@@ -9,7 +9,8 @@ mod tidy_algo;
 
 use crate::tidy_algo::tidy_algo::TidyAlgo;
 use http_server::HttpServerBuilder;
-use log::{debug, error, info};
+use log::{error, info};
+use notify::EventKind;
 use std::{path::PathBuf, thread};
 
 pub async fn run() {
@@ -77,13 +78,24 @@ pub async fn run() {
     info!("HTTP Server Started");
 
     let (sender, receiver) = crossbeam_channel::unbounded();
-    let watch_directories_thread: thread::JoinHandle<()> = thread::spawn(move || {
+    let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
         file_watcher::watch_directories(config.file_watcher_config.dir.clone(), sender);
     });
     info!("File Events Watcher Started");
     for event in receiver {
-        debug!("{:?}", event);
+        if let EventKind::Remove(_) = event.kind {
+            info!(
+                "event: kind: {:?}\tpath: {:?}\t",
+                event.kind, &event.paths[0]
+            );
+            match my_files.remove_file_from_db(event.paths[0].clone()) {
+                Ok(_) => {}
+                Err(error) => {
+                    error!("{:?}", error);
+                }
+            }
+        }
     }
 
-    watch_directories_thread.join().unwrap();
+    file_watcher_thread.join().unwrap();
 }

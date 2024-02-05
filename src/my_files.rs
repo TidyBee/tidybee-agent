@@ -169,21 +169,25 @@ impl MyFiles {
             }
         }
     }
-    pub fn remove_file_from_db(&self, file_path: &str) -> Result<()> {
-        match self
-            .connection_pool
-            .execute("DELETE FROM my_files WHERE path = ?1", params![file_path])
-        {
+
+    pub fn remove_file_from_db(&self, file_path: PathBuf) -> Result<()> {
+        let str_filepath = file_path.to_str().unwrap();
+
+        match self.connection_pool.execute(
+            "DELETE FROM my_files WHERE path = ?1",
+            params![str_filepath],
+        ) {
             Ok(_) => {
-                info!("{} removed from my_files", file_path);
+                info!("{} removed from my_files", str_filepath);
                 Ok(())
             }
             Err(error) => {
-                error!("Error removing {} from my_files: {}", file_path, error);
+                error!("Error removing {} from my_files: {}", str_filepath, error);
                 Err(error)
             }
         }
     }
+
     pub fn add_file_to_db(&self, file: &FileInfo) -> Result<FileInfo> {
         let last_modified: DateTime<Utc> = file.last_modified.into();
         let last_accessed: DateTime<Utc> = file.last_accessed.into();
