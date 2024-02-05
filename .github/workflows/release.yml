@@ -79,20 +79,28 @@ jobs:
         with:
           title: ${{ github.ref_name }}
 
-      - name: Download Linux Binaries
-        uses: actions/download-artifact@v2
-        with:
-          name: ${{ env.LINUX_AMD64_TARGET }}
+      # - name: Download Linux Binaries
+      #   uses: actions/download-artifact@v2
+      #   with:
+      #     name: ${{ env.LINUX_AMD64_TARGET }}
 
-      - name: Download MacOS Binaries
-        uses: actions/download-artifact@v2
-        with:
-          name: ${{ env.MACOS_TARGET }}
+      # - name: Download MacOS Binaries
+      #   uses: actions/download-artifact@v2
+      #   with:
+      #     name: ${{ env.MACOS_TARGET }}
 
-      - name: Download Windows Binaries
+      # - name: Download Windows Binaries
+      #   uses: actions/download-artifact@v2
+      #   with:
+      #     name: ${{ env.WINDOWS_TARGET }}
+
+      - name: Download build artifacts
         uses: actions/download-artifact@v2
         with:
-          name: ${{ env.WINDOWS_TARGET }}
+          path: ./
+
+      - name: Debug directory
+        run: ls -la
 
       - name: Upload artifacts to the release
         run: |
