@@ -1,13 +1,15 @@
 use log::error;
 use notify::RecursiveMode::Recursive as RecursiveWatcher;
 use notify::Watcher;
+use std::path::PathBuf;
+use std::sync::mpsc;
 use std::time;
 
 pub fn watch_directories(
-    directories: Vec<std::path::PathBuf>,
+    directories: Vec<PathBuf>,
     sender: crossbeam_channel::Sender<notify_debouncer_full::DebouncedEvent>,
 ) {
-    let (tx, rx) = std::sync::mpsc::channel();
+    let (tx, rx) = mpsc::channel();
 
     let mut debouncer: notify_debouncer_full::Debouncer<
         notify::RecommendedWatcher,
@@ -21,10 +23,18 @@ pub fn watch_directories(
     };
 
     for directory in directories {
-        if let Err(err) = debouncer.watcher().watch(&directory, RecursiveWatcher) {
-            error!("{:?}: {:?}", directory, err);
+        let clean_directory = match directory.canonicalize() {
+            Ok(clean_directory) => clean_directory,
+            Err(err) => {
+                error!("error with {:?}: {:?}", directory, err);
+                continue;
+            }
+        };
+
+        if let Err(err) = debouncer.watcher().watch(&clean_directory, RecursiveWatcher) {
+            error!("{:?}: {:?}", clean_directory, err);
         } else {
-            debouncer.cache().add_root(&directory, RecursiveWatcher);
+            debouncer.cache().add_root(&clean_directory, RecursiveWatcher);
         }
     }
 
