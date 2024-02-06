@@ -1,4 +1,5 @@
 use log::error;
+use notify::RecursiveMode::Recursive as RecursiveWatcher;
 use notify::Watcher;
 use std::time;
 
@@ -20,15 +21,10 @@ pub fn watch_directories(
     };
 
     for directory in directories {
-        if let Err(err) = debouncer
-            .watcher()
-            .watch(&directory, notify::RecursiveMode::Recursive)
-        {
+        if let Err(err) = debouncer.watcher().watch(&directory, RecursiveWatcher) {
             error!("{:?}: {:?}", directory, err);
         } else {
-            debouncer
-                .cache()
-                .add_root(&directory, notify::RecursiveMode::Recursive);
+            debouncer.cache().add_root(&directory, RecursiveWatcher);
         }
     }
 
