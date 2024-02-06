@@ -55,10 +55,10 @@ impl Default for Configuration {
                 minimal_version: String::new(),
             },
             file_lister_config: FileListerConfig {
-                dir: vec![PathBuf::from("src")],
+                dir: vec![PathBuf::from("tests/assets/test_folder")],
             },
             file_watcher_config: FileWatcherConfig {
-                dir: vec![PathBuf::from("src")],
+                dir: vec![PathBuf::from("tests/assets/test_folder")],
             },
             http_server_config: HttpServerConfig {
                 address: String::from("0.0.0.0:8111"),
@@ -78,7 +78,7 @@ impl Default for Configuration {
 
 impl Configuration {
     pub fn init() -> Self {
-        let env = env_var("ENV").unwrap_or_else(|_| "development".into());
+        let env = env_var("TIDY_ENV").unwrap_or_else(|_| "development".into());
 
         let builder = Config::builder()
             .add_source(File::from(Path::new("config/default.json")))
