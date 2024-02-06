@@ -19,7 +19,7 @@ pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, std:
         if directory.is_dir() {
             for entry in fs::read_dir(&directory)? {
                 let entry: fs::DirEntry = entry?;
-                let path: PathBuf = entry.path();
+                let path: PathBuf = fs::canonicalize(entry.path())?;
 
                 if path.is_dir() {
                     files.extend(list_directories(vec![path])?);
