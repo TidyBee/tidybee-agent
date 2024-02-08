@@ -55,10 +55,10 @@ impl Default for Configuration {
                 minimal_version: String::new(),
             },
             file_lister_config: FileListerConfig {
-                dir: vec![PathBuf::from("tests/assets/test_folder")],
+                dir: vec![[r"tests", "assets", "test_folder"].iter().collect()],
             },
             file_watcher_config: FileWatcherConfig {
-                dir: vec![PathBuf::from("tests/assets/test_folder")],
+                dir: vec![[r"tests", "assets", "test_folder"].iter().collect()],
             },
             http_server_config: HttpServerConfig {
                 address: String::from("0.0.0.0:8111"),
