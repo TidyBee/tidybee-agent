@@ -169,21 +169,25 @@ impl MyFiles {
             }
         }
     }
-    pub fn remove_file_from_db(&self, file_path: &str) -> Result<()> {
-        match self
-            .connection_pool
-            .execute("DELETE FROM my_files WHERE path = ?1", params![file_path])
-        {
+
+    pub fn remove_file_from_db(&self, file_path: PathBuf) -> Result<()> {
+        let str_filepath = file_path.to_str().unwrap();
+
+        match self.connection_pool.execute(
+            "DELETE FROM my_files WHERE path = ?1",
+            params![str_filepath],
+        ) {
             Ok(_) => {
-                info!("{} removed from my_files", file_path);
+                info!("{} removed from my_files", str_filepath);
                 Ok(())
             }
             Err(error) => {
-                error!("Error removing {} from my_files: {}", file_path, error);
+                error!("Error removing {} from my_files: {}", str_filepath, error);
                 Err(error)
             }
         }
     }
+
     pub fn add_file_to_db(&self, file: &FileInfo) -> Result<FileInfo> {
         let last_modified: DateTime<Utc> = file.last_modified.into();
         let last_accessed: DateTime<Utc> = file.last_accessed.into();
@@ -541,6 +545,8 @@ impl MyFiles {
 #[cfg(test)]
 mod tests {
 
+    use std::env::current_dir;
+
     use super::*;
     use crate::{configuration, file_lister};
 
@@ -612,20 +618,14 @@ mod tests {
             duplicated: None,
             unused: true,
         };
+        let mut tests_dir = current_dir().unwrap();
+        tests_dir.push("tests/assets/test_folder");
+
         my_files
-            .set_tidyscore(
-                [r"tests", "assets", "test_folder", "test-file-1"]
-                    .iter()
-                    .collect(),
-                &dummy_score,
-            )
+            .set_tidyscore(tests_dir.join("test-file-1"), &dummy_score)
             .unwrap();
         let mut score = my_files
-            .get_tidyscore(
-                [r"tests", "assets", "test_folder", "test-file-1"]
-                    .iter()
-                    .collect(),
-            )
+            .get_tidyscore(tests_dir.join("test-file-1"))
             .unwrap();
         let is_misnamed = score.misnamed;
         let is_unused = score.unused;
@@ -633,41 +633,16 @@ mod tests {
         assert!(is_unused);
 
         my_files
-            .add_duplicated_file_to_db(
-                [r"tests", "assets", "test_folder", "test-file-1"]
-                    .iter()
-                    .collect(),
-                [r"tests", "assets", "test_folder", "test-file-2"]
-                    .iter()
-                    .collect(),
-            )
+            .add_duplicated_file_to_db(tests_dir.join("test-file-1"), tests_dir.join("test-file-2"))
             .unwrap();
         my_files
-            .add_duplicated_file_to_db(
-                [r"tests", "assets", "test_folder", "test-file-1"]
-                    .iter()
-                    .collect(),
-                [r"tests", "assets", "test_folder", "test-file-3"]
-                    .iter()
-                    .collect(),
-            )
+            .add_duplicated_file_to_db(tests_dir.join("test-file-1"), tests_dir.join("test-file-3"))
             .unwrap();
         my_files
-            .add_duplicated_file_to_db(
-                [r"tests", "assets", "test_folder", "test-file-1"]
-                    .iter()
-                    .collect(),
-                [r"tests", "assets", "test_folder", "test-file-4"]
-                    .iter()
-                    .collect(),
-            )
+            .add_duplicated_file_to_db(tests_dir.join("test-file-1"), tests_dir.join("test-file-4"))
             .unwrap();
         score = my_files
-            .get_tidyscore(
-                [r"tests", "assets", "test_folder", "test-file-1"]
-                    .iter()
-                    .collect(),
-            )
+            .get_tidyscore(tests_dir.join("test-file-1"))
             .unwrap();
         let is_duplicated = match score.duplicated {
             Some(duplicated) => !duplicated.is_empty(),
