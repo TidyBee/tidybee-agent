@@ -17,12 +17,12 @@
   },
   "file_watcher_config": {
     "dir": [
-      "./src"
+      "tests/assets/test_folder"
     ]
   },
   "file_lister_config": {
     "dir": [
-      "./src"
+      "tests/assets/test_folder"
     ]
   }
 }
