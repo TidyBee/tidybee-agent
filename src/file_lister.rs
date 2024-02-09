@@ -14,7 +14,7 @@ fn get_file_signature(path: &PathBuf) -> u128 {
 
 #[cfg(not(target_os = "windows"))]
 fn fix_canonicalize_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    path.into()
+    path.as_ref().into()
 }
 
 #[cfg(target_os = "windows")]
