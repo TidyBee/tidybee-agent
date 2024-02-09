@@ -6,7 +6,7 @@ use std::time::SystemTime;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileInfo {
-    pub name: String,
+    pub pretty_path: String,
     pub path: PathBuf,
     pub size: u64,
     pub hash: Option<String>,
@@ -18,7 +18,8 @@ pub struct FileInfo {
 impl Default for FileInfo {
     fn default() -> Self {
         FileInfo {
-            name: String::new(),
+            // change me to PathBuf
+            pretty_path: String::new(),
             path: PathBuf::new(),
             size: 0,
             hash: None,

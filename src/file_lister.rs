@@ -46,7 +46,7 @@ pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, std:
                     let last_accessed: SystemTime = md.accessed()?;
                     let file_signature = get_file_signature(&path);
                     files.push(FileInfo {
-                        name: Path::new(file)
+                        pretty_path: Path::new(file)
                             .file_name()
                             .unwrap()
                             .to_str()
