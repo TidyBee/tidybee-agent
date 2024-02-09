@@ -637,7 +637,7 @@ mod tests {
                 [r"tests", "assets", "test_folder", "test-file-1"]
                     .iter()
                     .collect(),
-                [r"tests", "assets", "test_folder", "test-file-2"]
+                [r"tests", "assets", "test_folder", "test-file-1-dup-1"]
                     .iter()
                     .collect(),
             )
@@ -647,7 +647,7 @@ mod tests {
                 [r"tests", "assets", "test_folder", "test-file-1"]
                     .iter()
                     .collect(),
-                [r"tests", "assets", "test_folder", "test-file-3"]
+                [r"tests", "assets", "test_folder", "test-file-1-dup-2"]
                     .iter()
                     .collect(),
             )
@@ -657,7 +657,7 @@ mod tests {
                 [r"tests", "assets", "test_folder", "test-file-1"]
                     .iter()
                     .collect(),
-                [r"tests", "assets", "test_folder", "test-file-4"]
+                [r"tests", "assets", "test_folder", "test-file-1-dup-3"]
                     .iter()
                     .collect(),
             )
