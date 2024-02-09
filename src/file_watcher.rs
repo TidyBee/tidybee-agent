@@ -31,10 +31,15 @@ pub fn watch_directories(
             }
         };
 
-        if let Err(err) = debouncer.watcher().watch(&clean_directory, RecursiveWatcher) {
+        if let Err(err) = debouncer
+            .watcher()
+            .watch(&clean_directory, RecursiveWatcher)
+        {
             error!("{:?}: {:?}", clean_directory, err);
         } else {
-            debouncer.cache().add_root(&clean_directory, RecursiveWatcher);
+            debouncer
+                .cache()
+                .add_root(&clean_directory, RecursiveWatcher);
         }
     }
 
