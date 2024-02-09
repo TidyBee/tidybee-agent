@@ -12,6 +12,22 @@ fn get_file_signature(path: &PathBuf) -> u128 {
     xxh3_128(&buffer)
 }
 
+#[cfg(not(target_os = "windows"))]
+fn fix_canonicalize_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    path
+}
+
+#[cfg(target_os = "windows")]
+fn fix_canonicalize_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    const UNCPREFIX: &str = r"\\?\";
+    let p: String = path.as_ref().display().to_string();
+    if p.starts_with(UNCPREFIX) {
+        p[UNCPREFIX.len()..].into()
+    } else {
+        p.into()
+    }
+}
+
 pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, std::io::Error> {
     let mut files: Vec<FileInfo> = Vec::new();
 
@@ -19,7 +35,7 @@ pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, std:
         if directory.is_dir() {
             for entry in fs::read_dir(&directory)? {
                 let entry: fs::DirEntry = entry?;
-                let path: PathBuf = fs::canonicalize(entry.path())?;
+                let path: PathBuf = fix_canonicalize_path(fs::canonicalize(entry.path())?);
 
                 if path.is_dir() {
                     files.extend(list_directories(vec![path])?);
