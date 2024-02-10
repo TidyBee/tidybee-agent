@@ -1,5 +1,5 @@
+use chrono::{DateTime, Utc};
 use config::Value;
-use lazy_static::lazy_static;
 use log::warn;
 use std::collections::HashMap;
 
@@ -13,68 +13,43 @@ pub fn perished(
     _my_files: &MyFiles,
     raw_params: HashMap<String, Value>,
 ) -> TidyScore {
-    lazy_static! {
-        static ref PERISHED_VALID_UNITS: Vec<&'static str> = vec!["day", "week", "month", "year"];
-    }
-
-    let _last_modified = file_info.last_modified;
-
-    let time_string_raw: String = match raw_params.get("max") {
-        Some(time_string) => match time_string.clone().into_string() {
-            Ok(time_string) => time_string,
-            Err(err) => {
-                warn!("{}", err);
+    let mut tidy_score = file_info.tidy_score.clone();
+    let max_retention_date_string = match raw_params.get("max") {
+        Some(s) => match s.clone().into_string() {
+            Ok(s) => s,
+            Err(e) => {
+                warn!("Error parsing max date: {}", e);
                 return TidyScore::new(false, false, None);
             }
         },
-        None => {
-            warn!(
-                "No time_string provided for perished rule: {}",
-                file_info.name
-            );
+        _ => {
+            warn!("No max date provided");
             return TidyScore::new(false, false, None);
         }
     };
+    let max_retention_date: DateTime<Utc> = match max_retention_date_string.parse() {
+        Ok(d) => d,
+        Err(e) => {
+            warn!("Error parsing max date: {}", e);
+            return TidyScore::new(false, false, None);
+        }
+    };
+    let last_accessed: DateTime<Utc> = file_info.last_accessed.into();
+    let perished: bool = last_accessed < max_retention_date;
 
-    let mut max_time_split = time_string_raw.split(' ');
-    let _time_amount = match max_time_split.next() {
-        Some(time_amount) => match time_amount.parse::<u64>() {
-            Ok(time_amount) => time_amount,
-            Err(err) => {
-                warn!("{}", err);
-                return TidyScore::new(false, false, None);
-            }
-        },
-        None => {
-            warn!(
-                "No time_amount provided for perished rule: {}",
-                file_info.name
-            );
-            return TidyScore::new(false, false, None);
+
+    match tidy_score {
+        Some(mut score) => {
+            score.unused = perished;
+            tidy_score = Some(score);
+            tidy_score.unwrap()
         }
-    };
-    let _time_unit = match max_time_split.next() {
-        Some(time_unit) => {
-            if PERISHED_VALID_UNITS.contains(&time_unit) {
-                time_unit
+        None => {
+            if last_accessed < max_retention_date {
+                TidyScore::new(false, false, None)
             } else {
-                warn!(
-                    "Invalid time_unit provided for perished rule: {}",
-                    file_info.name
-                );
-                return TidyScore::new(false, false, None);
+                TidyScore::new(false, true, None)
             }
         }
-        None => {
-            warn!(
-                "No time_unit provided for perished rule: {}",
-                file_info.name
-            );
-            return TidyScore::new(false, false, None);
-        }
-    };
-
-    // TODO: Wait til we decide which time representation we use
-
-    TidyScore::new(false, true, None)
+    }
 }
