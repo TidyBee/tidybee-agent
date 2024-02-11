@@ -131,3 +131,45 @@ pub fn create_file_info(path: &PathBuf) -> Option<FileInfo> {
         Err(_) => None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[cfg(not(target_os = "windows"))]
+    fn test_fix_canonicalize_path_unix() {
+        let path = "tests/assets/test_folder";
+        let canonicalized = fix_canonicalize_path(path);
+        assert_eq!(canonicalized, PathBuf::from(path));
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_fix_canonicalize_path_windows() {
+        let path = r"C:\tests\assets\test_folder";
+        let canonicalized = fix_canonicalize_path(path);
+        assert_eq!(canonicalized, PathBuf::from(path));
+    }
+
+    #[test]
+    fn test_get_file_signature() {
+        let path = PathBuf::from("tests/assets/test_folder/test-file-1");
+        let hash = get_file_signature(&path);
+        assert_eq!(hash, 53180848542178601830765469314885156230);
+    }
+
+    #[test]
+    fn test_create_file_info() {
+        let path = PathBuf::from("tests/assets/test_folder/test-file-1");
+        if let Some(file_info) = create_file_info(&path) {
+            assert_eq!(file_info.path, path);
+            assert_eq!(file_info.size, 100);
+            if let Some(hash) = file_info.hash {
+                assert_eq!(hash, "53180848542178601830765469314885156230");
+            }
+            assert_ne!(file_info.last_modified, SystemTime::UNIX_EPOCH);
+            assert_ne!(file_info.last_accessed, SystemTime::UNIX_EPOCH);
+        }
+    }
+}
