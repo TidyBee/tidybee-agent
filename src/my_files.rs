@@ -619,7 +619,11 @@ mod tests {
             unused: true,
         };
         let mut tests_dir = current_dir().unwrap();
-        tests_dir.push([r"tests", "assets", "test_folder"].iter().collect::<PathBuf>());
+        tests_dir.push(
+            [r"tests", "assets", "test_folder"]
+                .iter()
+                .collect::<PathBuf>(),
+        );
 
         my_files
             .set_tidyscore(tests_dir.join("test-file-1"), &dummy_score)

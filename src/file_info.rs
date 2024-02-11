@@ -1,8 +1,15 @@
-use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, Value, ValueRef};
-use rusqlite::ToSql;
+use rusqlite::{
+    types::{FromSql, FromSqlError, FromSqlResult, Value, ValueRef},
+    ToSql,
+};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-use std::time::SystemTime;
+use std::{
+    fs,
+    io::Read,
+    path::{Path, PathBuf},
+    time::SystemTime,
+};
+use xxhash_rust::xxh3::xxh3_128;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileInfo {
@@ -77,5 +84,50 @@ impl FromSql for TidyScore {
             }
             _ => Err(FromSqlError::InvalidType),
         }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn fix_canonicalize_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    path.as_ref().into()
+}
+
+#[cfg(target_os = "windows")]
+pub fn fix_canonicalize_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    const UNCPREFIX: &str = r"\\?\";
+    let p: String = path.as_ref().display().to_string();
+    if p.starts_with(UNCPREFIX) {
+        p[UNCPREFIX.len()..].into()
+    } else {
+        p.into()
+    }
+}
+
+pub fn get_file_signature(path: &PathBuf) -> u128 {
+    let mut file = fs::File::open(path).unwrap();
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer).unwrap();
+    xxh3_128(&buffer)
+}
+
+pub fn create_file_info(path: &PathBuf) -> Option<FileInfo> {
+    match fs::metadata(path) {
+        Ok(md) => {
+            let size: u64 = md.len();
+            let last_modified: SystemTime = md.modified().ok()?;
+            let last_accessed: SystemTime = md.accessed().ok()?;
+            let file_signature = get_file_signature(path);
+
+            Some(FileInfo {
+                name: Path::new(path.to_str()?).file_name()?.to_str()?.to_owned(),
+                path: path.clone(),
+                size,
+                hash: Some(file_signature.to_string()),
+                last_modified,
+                last_accessed,
+                ..Default::default()
+            })
+        }
+        Err(_) => None,
     }
 }
