@@ -106,5 +106,14 @@ fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
                 error!("{:?}", error);
             }
         }
+    } else if let EventKind::Create(_) = event.kind {
+        if let Some(file) = file_info::create_file_info(&event.paths[0].clone()) {
+            match my_files.add_file_to_db(&file) {
+                Ok(_) => {}
+                Err(error) => {
+                    error!("{:?}", error);
+                }
+            }
+        }
     }
 }
