@@ -1,9 +1,9 @@
-use log::error;
 use notify::RecursiveMode::Recursive as RecursiveWatcher;
 use notify::Watcher;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time;
+use tracing::error;
 
 pub fn watch_directories(
     directories: Vec<PathBuf>,

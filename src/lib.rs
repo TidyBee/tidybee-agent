@@ -9,9 +9,9 @@ mod tidy_algo;
 
 use crate::tidy_algo::tidy_algo::TidyAlgo;
 use http_server::HttpServerBuilder;
-use log::{error, info};
 use notify::EventKind;
 use std::{path::PathBuf, thread};
+use tracing::{error, info};
 
 pub async fn run() {
     match std::env::var("TIDY_BACKTRACE") {
@@ -41,8 +41,9 @@ pub async fn run() {
     info!("MyFilesDB sucessfully initialized");
 
     let mut tidy_algo = TidyAlgo::new();
+    let basic_ruleset_path: PathBuf = [r"config", r"rules", r"basic.yml"].iter().collect();
     info!("TidyAlgo sucessfully created");
-    tidy_algo.load_rules_from_file(&my_files, PathBuf::from(vec![r"config", r"rules", r"basic.yml"].iter().collect()));
+    tidy_algo.load_rules_from_file(&my_files, basic_ruleset_path);
     info!("TidyAlgo sucessfully loaded rules from config/rules/basic.yml");
 
     list_directories(config.file_lister_config.dir, &my_files);
