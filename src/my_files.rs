@@ -3,12 +3,12 @@ use crate::file_info::{FileInfo, TidyScore};
 use chrono::{DateTime, Utc};
 use core::marker::PhantomData;
 use itertools::{Either, Itertools};
-use log::{error, info, warn};
 use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{params, Result, ToSql};
 use std::path;
 use std::path::PathBuf;
+use tracing::{error, info, warn};
 
 // region: --- MyFiles builder states
 #[derive(Default, Clone)]
@@ -619,7 +619,11 @@ mod tests {
             unused: true,
         };
         let mut tests_dir = current_dir().unwrap();
-        tests_dir.push([r"tests", "assets", "test_folder"].iter().collect::<PathBuf>());
+        tests_dir.push(
+            [r"tests", "assets", "test_folder"]
+                .iter()
+                .collect::<PathBuf>(),
+        );
 
         my_files
             .set_tidyscore(tests_dir.join("test-file-1"), &dummy_score)

@@ -1,7 +1,7 @@
 use config::Value;
-use log::warn;
 use regex::Regex;
 use std::collections::HashMap;
+use tracing::warn;
 
 use crate::{
     file_info::{FileInfo, TidyScore},
