@@ -128,7 +128,10 @@ pub fn create_file_info(path: &PathBuf) -> Option<FileInfo> {
                 ..Default::default()
             })
         }
-        Err(_) => None,
+        Err(err) => {
+            warn!("Could not get access to {} metadata: {}", path, err);
+            None
+        },
     }
 }
 
@@ -154,14 +157,14 @@ mod tests {
 
     #[test]
     fn test_get_file_signature() {
-        let path = PathBuf::from("tests/assets/test_folder/test-file-1");
+        let path = PathBuf::from(vec![r"tests", r"assets", r"test_folder", r"test-file-1"].iter().collect());
         let hash = get_file_signature(&path);
         assert_eq!(hash, 53180848542178601830765469314885156230);
     }
 
     #[test]
     fn test_create_file_info() {
-        let path = PathBuf::from("tests/assets/test_folder/test-file-1");
+        let path = PathBuf::from(vec![r"tests", r"assets", r"test_folder", r"test-file-1"].iter().collect());
         if let Some(file_info) = create_file_info(&path) {
             assert_eq!(file_info.path, path);
             assert_eq!(file_info.size, 100);

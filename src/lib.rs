@@ -42,7 +42,7 @@ pub async fn run() {
 
     let mut tidy_algo = TidyAlgo::new();
     info!("TidyAlgo sucessfully created");
-    tidy_algo.load_rules_from_file(&my_files, PathBuf::from("config/rules/basic.yml"));
+    tidy_algo.load_rules_from_file(&my_files, PathBuf::from(vec![r"config", r"rules", r"basic.yml"].iter().collect()));
     info!("TidyAlgo sucessfully loaded rules from config/rules/basic.yml");
 
     list_directories(config.file_lister_config.dir, &my_files);
