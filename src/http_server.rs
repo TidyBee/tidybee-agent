@@ -5,7 +5,6 @@ use crate::my_files;
 use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
 use axum::{extract::Query, extract::State, routing::get, Json, Router};
 use lazy_static::lazy_static;
-use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -13,7 +12,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 use tower_http::trace::{self, TraceLayer};
-use tracing::Level;
+use tracing::{error, info, Level};
 
 lazy_static! {
     static ref AGENT_LOGGING_LEVEL: HashMap<String, Level> = {

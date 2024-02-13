@@ -1,7 +1,7 @@
 use gethostname::gethostname;
-use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use tracing::info;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct AgentVersion {

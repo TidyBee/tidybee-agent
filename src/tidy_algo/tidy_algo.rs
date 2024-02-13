@@ -4,10 +4,10 @@ use crate::tidy_algo::tidy_rules::duplicated::duplicated;
 use crate::tidy_algo::tidy_rules::misnamed::misnamed;
 use crate::tidy_algo::tidy_rules::perished::perished;
 use config::{Config, ConfigError, File, Value};
-use log::debug;
 use std::collections::HashMap;
 use std::error::Error;
 use std::path;
+use tracing::debug;
 
 /// Represents a rule that can be applied to a file
 #[allow(dead_code)]
