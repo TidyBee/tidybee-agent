@@ -1,7 +1,7 @@
 use config::Value;
 use lazy_static::lazy_static;
-use log::warn;
 use std::collections::HashMap;
+use tracing::warn;
 
 use crate::{
     file_info::{FileInfo, TidyScore},

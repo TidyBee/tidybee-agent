@@ -3,12 +3,12 @@ use crate::file_info::{FileInfo, TidyScore};
 use chrono::{DateTime, Utc};
 use core::marker::PhantomData;
 use itertools::{Either, Itertools};
-use log::{error, info, warn};
 use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{params, Result, ToSql};
 use std::path;
 use std::path::PathBuf;
+use tracing::{error, info, warn};
 
 // region: --- MyFiles builder states
 #[derive(Default, Clone)]
