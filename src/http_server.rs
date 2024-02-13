@@ -10,12 +10,13 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use axum::extract::WebSocketUpgrade;
+use axum::extract::{WebSocketUpgrade};
 use axum::extract::ws::WebSocket;
 use axum::response::Response;
 use tokio::net::TcpListener;
 use tower_http::trace::{self, TraceLayer};
 use tracing::{error, info, Level};
+use reqwest::Client;
 
 lazy_static! {
     static ref AGENT_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -40,12 +41,21 @@ struct GetFilesParams {
     sort_by: String,
 }
 
+struct HttpRequest {
+    host: String,
+    body: Json<String>
+}
+
+struct HttpResponse {
+    body: Json<String>
+}
+
 async fn handler(ws: WebSocketUpgrade) -> Response {
     ws.on_upgrade(handle_socket)
 }
 
 async fn handle_socket(mut socket: WebSocket) {
-    let t: axum::extract::ws::Message = axum::extract::ws::Message::Text("Hello from server".to_string());
+    let t = axum::extract::ws::Message::Text("Hello from server".to_string());
     if let Err(e) = socket.send(t).await {
         eprintln!("Error sending message: {}", e);
         return;
@@ -106,6 +116,7 @@ async fn get_files(
 pub struct HttpServer {
     address: String,
     router: Router,
+    client: Client
 }
 
 #[derive(Clone)]
@@ -186,7 +197,10 @@ impl HttpServerBuilder {
                     .on_response(trace::DefaultOnResponse::new().level(server_logging_level))
                     .on_failure(trace::DefaultOnFailure::new().level(Level::ERROR)),
             );
-        HttpServer { address, router }
+
+        let client = Client::new();
+
+        HttpServer { address, router, client }
     }
 }
 
@@ -210,8 +224,28 @@ impl HttpServer {
                 return;
             }
         };
-
         info!("Http Server running at {}", addr.to_string());
         axum::serve(tcp_listener, self.router).await.unwrap();
+    }
+
+
+    pub async fn handle_post(self, request: Json<HttpRequest>) -> Json<HttpResponse> {
+        let host = request.host.copy();
+        let response = self.client.post(host).json(&request.0).send().await;
+
+        match response {
+            Ok(response) => {
+                let body = response.json::<HttpResponse>().await;
+                match body {
+                    Ok(body) => Json(body),
+                    Err(_) => {
+                        error!("Error reading response body")
+                    }
+                }
+            }
+            Err(_) => {
+                error!("Error sending POST request")
+            }
+        }
     }
 }
