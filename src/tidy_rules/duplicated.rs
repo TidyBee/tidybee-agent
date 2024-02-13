@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use config::Value;
-use log::error;
+use std::collections::HashMap;
+use tracing::error;
 
 use crate::{
     file_info::{FileInfo, TidyScore},

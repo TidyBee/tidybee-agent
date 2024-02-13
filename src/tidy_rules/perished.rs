@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
 use config::Value;
-use log::warn;
+use lazy_static::lazy_static;
 use std::collections::HashMap;
+use tracing::warn;
 
 use crate::{
     file_info::{FileInfo, TidyScore},

@@ -10,10 +10,10 @@ mod tidy_rules;
 
 use http_server::HttpServerBuilder;
 use lazy_static::lazy_static;
-use log::{debug, error, info};
+use notify::EventKind;
 use std::{collections::HashMap, path::PathBuf, thread};
 use tidy_algo::TidyAlgo;
-use tracing::Level;
+use tracing::{error, info, Level};
 
 lazy_static! {
     static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -73,21 +73,7 @@ pub async fn run() {
         Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
     };
 
-    match file_lister::list_directories(config.file_lister_config.dir) {
-        Ok(files_vec) => {
-            for file in &files_vec {
-                match my_files.add_file_to_db(file) {
-                    Ok(_) => {}
-                    Err(error) => {
-                        error!("{:?}", error);
-                    }
-                }
-            }
-        }
-        Err(error) => {
-            error!("{}", error);
-        }
-    }
+    list_directories(config.file_lister_config.dir, &my_files);
 
     let server = HttpServerBuilder::new()
         .my_files_builder(my_files_builder)
@@ -105,14 +91,57 @@ pub async fn run() {
     });
     info!("HTTP Server Started");
 
-    let (sender, receiver) = crossbeam_channel::unbounded();
-    let watch_directories_thread: thread::JoinHandle<()> = thread::spawn(move || {
-        file_watcher::watch_directories(config.file_watcher_config.dir.clone(), sender);
+    let (file_watcher_sender, file_watcher_receiver) = crossbeam_channel::unbounded();
+    let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
+        file_watcher::watch_directories(
+            config.file_watcher_config.dir.clone(),
+            file_watcher_sender,
+        );
     });
     info!("File Events Watcher Started");
-    for event in receiver {
-        debug!("{:?}", event);
+    for file_watcher_event in file_watcher_receiver {
+        handle_file_events(&file_watcher_event, &my_files);
     }
 
-    watch_directories_thread.join().unwrap();
+    file_watcher_thread.join().unwrap();
+}
+
+fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles) {
+    match file_lister::list_directories(config) {
+        Ok(files_vec) => {
+            for file in &files_vec {
+                match my_files.add_file_to_db(file) {
+                    Ok(_) => {}
+                    Err(error) => {
+                        error!("{:?}", error);
+                    }
+                }
+            }
+        }
+        Err(error) => {
+            error!("{}", error);
+        }
+    }
+}
+
+fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
+    info!("event: kind: {:?}\tpaths: {:?}", event.kind, &event.paths);
+
+    if let EventKind::Remove(_) = event.kind {
+        match my_files.remove_file_from_db(event.paths[0].clone()) {
+            Ok(_) => {}
+            Err(error) => {
+                error!("{:?}", error);
+            }
+        }
+    } else if let EventKind::Create(_) = event.kind {
+        if let Some(file) = file_info::create_file_info(&event.paths[0].clone()) {
+            match my_files.add_file_to_db(&file) {
+                Ok(_) => {}
+                Err(error) => {
+                    error!("{:?}", error);
+                }
+            }
+        }
+    }
 }
