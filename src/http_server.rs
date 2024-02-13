@@ -41,13 +41,15 @@ struct GetFilesParams {
     sort_by: String,
 }
 
-struct HttpRequest {
+#[derive(Serialize)]
+pub struct HttpRequest {
     host: String,
-    body: Json<String>
+    body: String
 }
 
-struct HttpResponse {
-    body: Json<String>
+#[derive(Deserialize)]
+pub struct HttpResponse {
+    body: String
 }
 
 async fn handler(ws: WebSocketUpgrade) -> Response {
@@ -228,9 +230,8 @@ impl HttpServer {
         axum::serve(tcp_listener, self.router).await.unwrap();
     }
 
-
     pub async fn handle_post(self, request: Json<HttpRequest>) -> Json<HttpResponse> {
-        let host = request.host.copy();
+        let host = request.host.clone();
         let response = self.client.post(host).json(&request.0).send().await;
 
         match response {
@@ -239,12 +240,14 @@ impl HttpServer {
                 match body {
                     Ok(body) => Json(body),
                     Err(_) => {
-                        error!("Error reading response body")
+                        error!("Error reading response body");
+                        panic!("Error reading response body")
                     }
                 }
             }
             Err(_) => {
-                error!("Error sending POST request")
+                error!("Error sending POST request");
+                panic!("Error sending POST request")
             }
         }
     }
