@@ -6,13 +6,14 @@ mod file_watcher;
 mod http_server;
 mod my_files;
 mod tidy_algo;
+mod tidy_rules;
 
-use crate::tidy_algo::tidy_algo::TidyAlgo;
 use http_server::HttpServerBuilder;
-use log::{debug, error, info};
-use tracing::Level;
-use std::{collections::HashMap, path::PathBuf, thread};
 use lazy_static::lazy_static;
+use log::{debug, error, info};
+use std::{collections::HashMap, path::PathBuf, thread};
+use tidy_algo::TidyAlgo;
+use tracing::Level;
 
 lazy_static! {
     static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -32,12 +33,16 @@ pub async fn run() {
 
     let selected_cli_logger_level = match CLI_LOGGING_LEVEL.get(&config.logger_config.term_level) {
         Some(level) => level.to_owned(),
-        None => Level::INFO
+        None => Level::INFO,
     };
     match std::env::var("TIDY_BACKTRACE") {
         Ok(env) => {
             if env == "1" {
-                tracing_subscriber::fmt().with_target(true).with_max_level(selected_cli_logger_level).pretty().init();
+                tracing_subscriber::fmt()
+                    .with_target(true)
+                    .with_max_level(selected_cli_logger_level)
+                    .pretty()
+                    .init();
             }
         }
         Err(_) => {
@@ -59,11 +64,13 @@ pub async fn run() {
     info!("MyFilesDB sucessfully initialized");
 
     let mut tidy_algo = TidyAlgo::new();
-    let basic_ruleset_path: PathBuf  = vec![r"config", r"rules", r"basic.yml"].iter().collect();
+    let basic_ruleset_path: PathBuf = vec![r"config", r"rules", r"basic.yml"].iter().collect();
     info!("TidyAlgo sucessfully created");
     match tidy_algo.load_rules_from_file(&my_files, basic_ruleset_path) {
-        Ok(loaded_rules_amt) => info!("TidyAlgo sucessfully loaded {loaded_rules_amt} rules from config/rules/basic.yml"),
-        Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}")
+        Ok(loaded_rules_amt) => info!(
+            "TidyAlgo sucessfully loaded {loaded_rules_amt} rules from config/rules/basic.yml"
+        ),
+        Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
     };
 
     match file_lister::list_directories(config.file_lister_config.dir) {

@@ -8,7 +8,7 @@ use crate::{
     my_files::MyFiles,
 };
 
-pub fn perished(
+pub fn apply_perished(
     file_info: &FileInfo,
     _my_files: &MyFiles,
     raw_params: HashMap<String, Value>,
@@ -36,7 +36,6 @@ pub fn perished(
     };
     let last_accessed: DateTime<Utc> = file_info.last_accessed.into();
     let perished: bool = last_accessed < max_retention_date;
-
 
     match tidy_score {
         Some(mut score) => {

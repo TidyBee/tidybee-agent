@@ -9,7 +9,7 @@ use crate::{
 };
 
 // TODO: Change return type to Result<TidyScore, Error> after implementing error handling
-pub fn duplicated(
+pub fn aply_duplicated(
     candidate: &FileInfo,
     my_files: &MyFiles,
     _raw_params: HashMap<String, Value>,
