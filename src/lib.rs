@@ -13,6 +13,8 @@ use server::ServerBuilder;
 use notify::EventKind;
 use std::{path::PathBuf, thread};
 use tracing::{error, info};
+use crate::http::request::HttpRequestBuilder;
+use crate::http::request::RequestDirector;
 
 pub async fn run() {
     match std::env::var("TIDY_BACKTRACE") {

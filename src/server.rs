@@ -2,7 +2,7 @@ use crate::agent_data::AgentData;
 use crate::my_files;
 use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
 use crate::http::routes::{MyFilesState, AgentDataState, get_files, get_status, hello_world};
-use crate::http::request::{HttpRequest, HttpResponse};
+use crate::http::request::{HttpRequest, HttpRequestBuilder, HttpResponse, RequestDirector};
 use axum::{routing::get, Json, Router};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
@@ -108,6 +108,28 @@ impl ServerBuilder {
 }
 
 impl Server {
+    async fn handle_post(&self, request: HttpRequest) -> Json<HttpResponse> {
+        let route = request.route.clone();
+        let response = self.client.post(route).json(&request).send().await;
+
+        match response {
+            Ok(response) => {
+                let body = response.json::<HttpResponse>().await;
+                match body {
+                    Ok(body) => Json(body),
+                    Err(_) => {
+                        error!("Error reading response body");
+                        panic!("Error reading response body")
+                    }
+                }
+            }
+            Err(_) => {
+                error!("Error sending POST request");
+                panic!("Error sending POST request")
+            }
+        }
+    }
+
     pub async fn start(self) {
         let addr: SocketAddr = match self.address.parse() {
             Ok(addr) => addr,
@@ -127,29 +149,15 @@ impl Server {
                 return;
             }
         };
+
+        let http_request_builder = HttpRequestBuilder;
+        let http_request_director = RequestDirector::new(http_request_builder);
+        let http_request_body = http_request_director.construct(" http://localhost:7001/gateway/auth/AOTH", "test");
+        let response = self.handle_post(http_request_body.clone()).await;
+        //TODO store uuid in ENV
+        info!("HttpRequest body: {:?}", http_request_body);
+
         info!("Http Server running at {}", addr.to_string());
         axum::serve(tcp_listener, self.router).await.unwrap();
-    }
-
-    pub async fn handle_post(self, request: Json<HttpRequest>) -> Json<HttpResponse> {
-        let route = request.route.clone();
-        let response = self.client.post(route).json(&request.0).send().await;
-
-        match response {
-            Ok(response) => {
-                let body = response.json::<HttpResponse>().await;
-                match body {
-                    Ok(body) => Json(body),
-                    Err(_) => {
-                        error!("Error reading response body");
-                        panic!("Error reading response body")
-                    }
-                }
-            }
-            Err(_) => {
-                error!("Error sending POST request");
-                panic!("Error sending POST request")
-            }
-        }
     }
 }

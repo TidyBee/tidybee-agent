@@ -1,21 +1,21 @@
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct HttpResponse {
     body: String
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct HttpRequest {
     pub(crate) route: String,
-    body: String,
+    pub(crate) body: String,
 }
 
-trait RequestBuilder {
+pub trait RequestBuilder {
     fn build_request(&self, route: &str, body: &str) -> HttpRequest;
 }
 
-struct HttpRequestBuilder;
+pub struct HttpRequestBuilder;
 
 impl RequestBuilder for HttpRequestBuilder {
     fn build_request(&self, route: &str, body: &str) -> HttpRequest {
@@ -26,16 +26,16 @@ impl RequestBuilder for HttpRequestBuilder {
     }
 }
 
-struct RequestDirector<B: RequestBuilder> {
+pub struct RequestDirector<B: RequestBuilder> {
     builder: B,
 }
 
 impl<B: RequestBuilder> RequestDirector<B> {
-    fn new(builder: B) -> Self {
+    pub fn new(builder: B) -> Self {
         RequestDirector { builder }
     }
 
-    fn construct(&self, route: &str, body: &str) -> HttpRequest {
+    pub fn construct(&self, route: &str, body: &str) -> HttpRequest {
         self.builder.build_request(route, body)
     }
 }
