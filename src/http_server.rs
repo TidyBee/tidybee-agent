@@ -10,9 +10,6 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use axum::extract::{WebSocketUpgrade};
-use axum::extract::ws::WebSocket;
-use axum::response::Response;
 use tokio::net::TcpListener;
 use tower_http::trace::{self, TraceLayer};
 use tracing::{error, info, Level};
@@ -50,31 +47,6 @@ pub struct HttpRequest {
 #[derive(Deserialize)]
 pub struct HttpResponse {
     body: String
-}
-
-async fn handler(ws: WebSocketUpgrade) -> Response {
-    ws.on_upgrade(handle_socket)
-}
-
-async fn handle_socket(mut socket: WebSocket) {
-    let t = axum::extract::ws::Message::Text("Hello from server".to_string());
-    if let Err(e) = socket.send(t).await {
-        eprintln!("Error sending message: {}", e);
-        return;
-    }
-    while let Some(msg) = socket.recv().await {
-        let msg = if let Ok(msg) = msg {
-            msg
-        } else {
-            //TODO client disconnected
-            return;
-        };
-
-        if socket.send(msg).await.is_err() {
-            //TODO client disconnected
-            return;
-        }
-    }
 }
 
 async fn hello_world() -> Json<Greeting> {
@@ -192,7 +164,6 @@ impl HttpServerBuilder {
             .route("/", get(hello_world))
             .route("/get_files", get(get_files).with_state(my_files_state))
             .route("/get_status", get(get_status).with_state(agent_data_state))
-            .route("/ws", get(handler))
             .layer(
                 TraceLayer::new_for_http()
                     .make_span_with(trace::DefaultMakeSpan::new().level(server_logging_level))
