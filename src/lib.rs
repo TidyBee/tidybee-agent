@@ -13,7 +13,7 @@ use lazy_static::lazy_static;
 use notify::EventKind;
 use std::{collections::HashMap, path::PathBuf, thread};
 use tidy_algo::TidyAlgo;
-use tracing::{error, info, Level};
+use tracing::{debug, error, info, Level};
 
 lazy_static! {
     static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -73,7 +73,7 @@ pub async fn run() {
         Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
     };
 
-    list_directories(config.file_lister_config.dir, &my_files);
+    list_directories(config.file_lister_config.dir, &my_files, &tidy_algo);
 
     let server = HttpServerBuilder::new()
         .my_files_builder(my_files_builder)
@@ -101,17 +101,22 @@ pub async fn run() {
     info!("File Events Watcher Started");
     for file_watcher_event in file_watcher_receiver {
         handle_file_events(&file_watcher_event, &my_files);
-    }
+    };
 
     file_watcher_thread.join().unwrap();
 }
 
-fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles) {
+fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
     match file_lister::list_directories(config) {
-        Ok(files_vec) => {
-            for file in &files_vec {
+        Ok(mut files_vec) => {
+            for file in &mut files_vec {
                 match my_files.add_file_to_db(file) {
-                    Ok(_) => {}
+                    Ok(_) => {
+                        tidy_algo.apply_rules(file, &my_files);
+                        debug!("{} TidyScore after all rules applied: {:?}", file.path.display(), file.tidy_score);
+                        let file_path = file.path.clone();
+                        let _ = my_files.set_tidyscore(file_path, &file.tidy_score.as_ref().unwrap());
+                    }
                     Err(error) => {
                         error!("{:?}", error);
                     }

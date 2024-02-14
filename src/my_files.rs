@@ -235,11 +235,11 @@ impl MyFiles {
             .unwrap();
         let result = statement
             .query_row(params![&str_filepath], |row| {
-                Ok((row.get::<_, i64>(0), row.get::<_, i64>(1)))
+                Ok((row.get::<_, i64>(0), row.get::<_, Option<i64>>(1)))
             })
             .unwrap();
-        let file_id = result.0?;
-        let tidy_score_id = result.1?;
+        let file_id: i64 = result.0?;
+        let tidy_score_id: Option<i64> = result.1?;
 
         let mut statement = self
             .connection_pool
@@ -248,10 +248,10 @@ impl MyFiles {
             WHERE path = ?1",
             )
             .unwrap();
-        let duplicated_file_id = statement
+        let duplicated_file_id: Option<i64> = statement
             .query_row(
                 params![duplicated_file_path.into_os_string().to_str()],
-                |row| row.get::<_, i64>(0),
+                |row| row.get::<_, Option<i64>>(0),
             )
             .unwrap();
 
@@ -275,7 +275,7 @@ impl MyFiles {
                 Err(error)
             }
         };
-        // Set tidy_score to duplicated = true
+        // Set tidy_score to duplicated = trueù
         let mut statement = self
             .connection_pool
             .prepare(
@@ -299,14 +299,14 @@ impl MyFiles {
         }
     }
 
-    fn create_fileinfo_from_row(row: &rusqlite::Row) -> Result<FileInfo> {
+    fn create_fileinfo_from_row(&self, row: &rusqlite::Row) -> Result<FileInfo> {
         let path_str = row.get::<_, String>(2)?;
         let path = std::path::Path::new(&path_str).to_owned();
 
         let mut time_str = row.get::<_, String>(5)?;
         if DateTime::parse_from_rfc3339(&time_str).is_err() {
             error!(
-                "MyFiles::create_fileinfo_from_row: Error parsing key: last_modified with value {}, for file {}.",
+                "create_fileinfo_from_row: Error parsing key: last_modified with value {}, for file {}.",
                 time_str, path_str
             );
         }
@@ -317,18 +317,18 @@ impl MyFiles {
             Ok(last_accessed) => last_accessed.into(),
             Err(error) => {
                 error!(
-                    "MyFiles::create_fileinfo_from_row: Error parsing key: last_accessed with value {}, for file {}. {}",
+                    "create_fileinfo_from_row: Error parsing key: last_accessed with value {}, for file {}. {}",
                     time_str, path_str, error
                 );
                 std::time::SystemTime::UNIX_EPOCH
             }
         };
 
-        let tidy_score = match row.get::<_, Option<TidyScore>>(7) {
-            Ok(tidy_score) => tidy_score,
+        let tidy_score = match row.get::<_, Option<i64>>(7) {
+            Ok(_) => Some(self.get_tidyscore(path.clone()).unwrap()),
             Err(error) => {
                 error!(
-                    "MyFiles::create_fileinfo_from_row: Error parsing key: tidy_score for file {} : {}",
+                    "create_fileinfo_from_row: Error parsing key: tidy_score for file {} : {}",
                     path_str, error
                 );
                 None
@@ -348,13 +348,15 @@ impl MyFiles {
 
     pub fn get_all_files_from_db(&self) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection_pool.prepare("SELECT * FROM my_files")?;
-        let file_iter_res = statement.query_map(params![], MyFiles::create_fileinfo_from_row);
+        let file_iter_res = statement.query_map(params![], |row| {
+            MyFiles::create_fileinfo_from_row(self, &row)
+        });
 
         let file_iter = match file_iter_res {
             Ok(file_iter) => file_iter,
             Err(error) => {
                 error!(
-                    "MyFiles::get_all_files_from_db: Error getting file iterator from database: {}",
+                    "get_all_files_from_db: Error getting file iterator from database: {}",
                     error
                 );
                 return Err(error);
@@ -367,7 +369,7 @@ impl MyFiles {
             });
         for err in errs {
             error!(
-                "MyFiles::get_all_files_from_db: Error getting file from database: {:?}",
+                "get_all_files_from_db: Error getting file from database: {:?}",
                 err
             );
         }
@@ -491,46 +493,72 @@ impl MyFiles {
         tidy_score: &TidyScore,
     ) -> Result<(), rusqlite::Error> {
         let str_filepath = file_path.to_str().unwrap();
-
-        let mut statement = self.connection_pool.prepare(
-            "INSERT INTO tidy_scores (misnamed, duplicated, unused)
-            VALUES (?1, ?2, ?3)",
-        )?;
-
+        let mut statement: rusqlite::Statement<'_>;
         let duplicated_score = match &tidy_score.duplicated {
             Some(duplicated) => !duplicated.is_empty(),
             None => false,
         };
 
-        let tidy_score_id = statement.insert(params![
-            tidy_score.misnamed,
-            duplicated_score,
-            tidy_score.unused
-        ])?;
-
-        let mut statement = self.connection_pool.prepare(
-            "UPDATE my_files
-            SET tidy_score = ?1
-            WHERE path = ?2",
+        statement = self.connection_pool.prepare(
+            "SELECT tidy_score FROM my_files
+            WHERE path = ?1",
         )?;
-        // The potential failure of this query will be handled in future work on the my_files error handling
-        let _: Result<(), _> = match statement.execute(params![tidy_score_id, str_filepath]) {
-            Ok(_) => Ok(info!("tidy_score set for file {:?}", str_filepath)),
-            Err(error) => {
-                error!(
-                    "Error setting tidy_score for file {:?}: {}",
-                    file_path, error
-                );
-                Err(error)
-            }
-        };
+        let mut current_tidy_score_id: Option<i64> = statement
+            .query_row(params![str_filepath], |row| {
+                Ok(row.get::<_, Option<i64>>(0)?)
+            })?;
+
+        // If the file already has a tidyscore attached to it, we update it
+        if current_tidy_score_id.is_some() {
+            statement = self.connection_pool.prepare(
+                "UPDATE tidy_scores
+                SET misnamed = ?1, duplicated = ?2, unused = ?3
+                WHERE id = ?4",
+            )?;
+            statement.execute(params![
+                tidy_score.misnamed,
+                duplicated_score,
+                tidy_score.unused,
+                current_tidy_score_id
+            ])?;
+        } else {
+            // If the file doesn't have a tidyscore attached to it, we create one
+            statement = self.connection_pool.prepare(
+                "INSERT INTO tidy_scores (misnamed, duplicated, unused) VALUES (?1, ?2, ?3)",
+            )?;
+            current_tidy_score_id = Some(statement.insert(params![
+                tidy_score.misnamed,
+                duplicated_score,
+                tidy_score.unused
+            ])?);
+            // And we attach it to the file
+            statement = self.connection_pool.prepare(
+                "UPDATE my_files
+                SET tidy_score = ?1
+                WHERE path = ?2",
+            )?;
+            // The potential failure of this query will be handled in future work on the my_files error handling
+            let _: Result<(), _> =
+                match statement.execute(params![current_tidy_score_id, str_filepath]) {
+                    Ok(_) => Ok(info!("tidy_score set for file {:?}", str_filepath)),
+                    Err(error) => {
+                        error!(
+                            "Error setting tidy_score for file {:?}: {}",
+                            file_path, error
+                        );
+                        Err(error)
+                    }
+                };
+        }
+
         Ok(())
     }
 
     pub fn raw_select_query(&self, query: &str, params: &[&dyn ToSql]) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection_pool.prepare(query)?;
 
-        let db_result = statement.query_map(params, MyFiles::create_fileinfo_from_row)?;
+        let db_result =
+            statement.query_map(params, |row| MyFiles::create_fileinfo_from_row(self, row))?;
         Ok(db_result
             .map(core::result::Result::unwrap)
             .collect::<Vec<FileInfo>>())

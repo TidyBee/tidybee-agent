@@ -1,4 +1,4 @@
-use crate::file_info::{FileInfo, TidyScore};
+use crate::file_info::{fix_canonicalize_path, FileInfo, TidyScore};
 use crate::my_files::MyFiles;
 use crate::tidy_rules::duplicated;
 use crate::tidy_rules::misnamed;
@@ -6,8 +6,8 @@ use crate::tidy_rules::perished;
 use config::{Config, ConfigError, File, Value};
 use std::collections::HashMap;
 use std::error::Error;
-use std::path;
-use tracing::debug;
+use std::path::{self, PathBuf};
+use tracing::{debug, info};
 
 /// Represents a rule that can be applied to a file
 #[allow(dead_code)]
@@ -45,7 +45,7 @@ impl PartialEq for TidyRule {
 }
 
 pub struct TidyAlgo {
-    rules: Vec<Box<TidyRule>>,
+    rules: Vec<TidyRule>,
 }
 
 impl TidyAlgo {
@@ -54,7 +54,7 @@ impl TidyAlgo {
     }
 
     fn add_rule(&mut self, rule: TidyRule) {
-        self.rules.push(Box::new(rule));
+        self.rules.push(rule);
     }
 
     /// Load a rule into the ruleset
@@ -103,6 +103,21 @@ impl TidyAlgo {
             let _ = self.load_rule_from_hashmap(table);
         }
         Ok(self.rules.len())
+    }
+
+    /// Apply the rules to a file
+    pub fn apply_rules(&self, file: &mut FileInfo, my_files: &MyFiles) {
+        for rule in &self.rules {
+            // This unwrap will be handled when we will tackle the permission problem
+            let rule_pathbuf: PathBuf = fix_canonicalize_path(Into::<PathBuf>::into(rule.scope.clone()).canonicalize().unwrap());
+            if file.path.starts_with(&rule_pathbuf) || rule.scope == "all" {
+                let rule_score = (rule.apply)(file, my_files, rule.params.clone());
+                info!("Applied all rules to file {}", file.path.display());
+                file.tidy_score = Some(rule_score);
+            } else {
+                debug!("Skipping {} for rule {} with scope {}", rule.name, file.path.display(), rule_pathbuf.display());
+            }
+        }
     }
 }
 
