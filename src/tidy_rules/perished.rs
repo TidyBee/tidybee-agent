@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use config::Value;
-use lazy_static::lazy_static;
 use std::collections::HashMap;
 use tracing::warn;
 

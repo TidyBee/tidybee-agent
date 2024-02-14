@@ -1,6 +1,6 @@
 use config::Value;
 use std::collections::HashMap;
-use tracing::error;
+use tracing::{debug, error};
 
 use crate::{
     file_info::{FileInfo, TidyScore},
@@ -28,17 +28,22 @@ pub fn aply_duplicated(
     };
 
     for file in all_files {
-        if file == *candidate {
-            if my_files
-                .add_duplicated_file_to_db(file.path.clone(), candidate.path.clone())
-                .is_err()
-            {
-                error!(
-                    "TidyAlgo::tidy_rules::duplicated: Could not add duplicated file to db. {:?}",
-                    file.path
-                );
-            } else {
-                duplicated_files.push(file);
+        if file == *candidate && file.path.clone() != candidate.path.clone() {
+            debug!(
+                "Found a new duplicated file {:?} {:?} with hashs {} : {}",
+                file.path.clone(),
+                candidate.path.clone(),
+                file.hash.clone().unwrap(),
+                candidate.hash.clone().unwrap()
+            );
+            match my_files.add_duplicated_file_to_db(file.path.clone(), candidate.path.clone()) {
+                Ok(_) => duplicated_files.push(file),
+                Err(err) => {
+                    error!(
+                        "TidyAlgo::tidy_rules::duplicated: Could not add duplicated file to db. {:?}",
+                        err
+                    );
+                }
             }
         }
     }
