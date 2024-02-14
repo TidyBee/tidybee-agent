@@ -3,12 +3,13 @@ mod configuration;
 mod file_info;
 mod file_lister;
 mod file_watcher;
-mod http_server;
+mod server;
 mod my_files;
 mod tidy_algo;
+mod http;
 
 use crate::tidy_algo::tidy_algo::TidyAlgo;
-use http_server::HttpServerBuilder;
+use server::ServerBuilder;
 use notify::EventKind;
 use std::{path::PathBuf, thread};
 use tracing::{error, info};
@@ -48,7 +49,7 @@ pub async fn run() {
 
     list_directories(config.file_lister_config.dir, &my_files);
 
-    let server = HttpServerBuilder::new()
+    let server = ServerBuilder::new()
         .my_files_builder(my_files_builder)
         .build(
             config.agent_data.latest_version.clone(),
