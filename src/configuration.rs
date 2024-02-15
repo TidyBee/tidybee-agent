@@ -20,9 +20,15 @@ pub struct FileWatcherConfig {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct HttpServerConfig {
+pub struct ServerConfig {
     pub address: String,
     pub log_level: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct HttpConfig {
+    pub host: String,
+    pub auth_route: String
 }
 
 #[derive(Debug, Deserialize)]
@@ -42,9 +48,10 @@ pub struct Configuration {
     pub agent_data: AgentData,
     pub file_lister_config: FileListerConfig,
     pub file_watcher_config: FileWatcherConfig,
-    pub http_server_config: HttpServerConfig,
+    pub server_config: ServerConfig,
     pub logger_config: LoggerConfig,
     pub my_files_config: MyFilesConfiguration,
+    pub http_config: HttpConfig,
 }
 
 impl Default for Configuration {
@@ -60,9 +67,13 @@ impl Default for Configuration {
             file_watcher_config: FileWatcherConfig {
                 dir: vec![[r"tests", "assets", "test_folder"].iter().collect()],
             },
-            http_server_config: HttpServerConfig {
+            server_config: ServerConfig {
                 address: String::from("0.0.0.0:8111"),
                 log_level: String::from("info"),
+            },
+            http_config: HttpConfig {
+                host: String::from("http://localhost:7001"),
+                auth_route: String::from("/gateway/auth/AOTH"),
             },
             logger_config: LoggerConfig {
                 term_level: String::from("debug"),

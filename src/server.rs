@@ -2,18 +2,19 @@ use crate::agent_data::AgentData;
 use crate::my_files;
 use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
 use crate::http::routes::{MyFilesState, AgentDataState, get_files, get_status, hello_world};
-use crate::http::request::{HttpRequest, HttpRequestBuilder, HttpResponse, RequestDirector};
+use crate::http::protocol::{HttpResponse};
 use axum::{routing::get, Json, Router};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
+use std::future::Future;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 use tower_http::trace::{self, TraceLayer};
 use tracing::{error, info, Level};
-use reqwest::Client;
-use std::env;
+// use std::env;
+use futures::future::BoxFuture;
 
 lazy_static! {
     static ref AGENT_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -31,14 +32,18 @@ lazy_static! {
 pub struct Server {
     address: String,
     router: Router,
-    client: Client
 }
 
 #[derive(Clone, Default)]
 pub struct ServerBuilder {
     router: Router,
     my_files_builder:
-        my_files::MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed>,
+    my_files::MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed>,
+}
+
+trait ServerConfig {
+    fn host(&self) -> &str;
+    fn route(&self) -> &str;
 }
 
 impl ServerBuilder {
@@ -102,36 +107,18 @@ impl ServerBuilder {
                     .on_failure(trace::DefaultOnFailure::new().level(Level::ERROR)),
             );
 
-        let client = Client::new();
-
-        Server { address, router, client }
+        Server { address, router }
     }
 }
 
+pub trait Protocol {
+    fn handle_post(&self, body: String) -> BoxFuture<'static, Json<HttpResponse>>;
+}
+
 impl Server {
-    async fn handle_post(&self, request: HttpRequest) -> Json<HttpResponse> {
-        let route = request.route.clone();
-        let response = self.client.post(route).json(&request).send().await;
-
-        match response {
-            Ok(response) => {
-                let body = response.json::<HttpResponse>().await;
-                match body {
-                    Ok(body) => Json(body),
-                    Err(_) => {
-                        error!("Error reading response body");
-                        panic!("Error reading response body")
-                    }
-                }
-            }
-            Err(_) => {
-                error!("Error sending POST request");
-                panic!("Error sending POST request")
-            }
-        }
-    }
-
-    pub async fn start(self) {
+    pub async fn start<T>(self, protocol: T)
+        where
+            T: Protocol {
         let addr: SocketAddr = match self.address.parse() {
             Ok(addr) => addr,
             Err(_) => {
@@ -151,15 +138,12 @@ impl Server {
             }
         };
 
-        let http_request_builder = HttpRequestBuilder;
-        let http_request_director = RequestDirector::new(http_request_builder);
-        let http_request_body = http_request_director.construct("http://localhost:7001/gateway/auth/AOTH", "test");
-        let response_body = self.handle_post(http_request_body.clone()).await;
-        info!("HttpRequest body: {:?}", http_request_body);
+        let future_response: Box<dyn Future<Output = Json<HttpResponse>> + Send> = Box::new(protocol.handle_post("test".to_string()));
 
-        let uuid = response_body.uuid.clone();
-        env::set_var("AGENT_UUID", &uuid);
-        info!("Set AGENT_UUID env var with value : {:?}", &uuid);
+        //TODO sending request to hub
+        // let uuid = response_body.uuid.clone();
+        // env::set_var("AGENT_UUID", &uuid);
+        // info!("Set AGENT_UUID env var with value : {:?}", &uuid);
 
         info!("Http Server running at {}", addr.to_string());
         axum::serve(tcp_listener, self.router).await.unwrap();

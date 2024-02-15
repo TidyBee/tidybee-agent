@@ -7,9 +7,13 @@
     "term_level": "debug",
     "file_level": "warn"
   },
-  "http_server_config": {
+  "server_config": {
     "log_level": "info",
     "address": "0.0.0.0:8111"
+  },
+  "http_config": {
+    "host": "http://localhost:7001",
+    "auth_route": "/gateway/auth/AOTH"
   },
   "my_files_config": {
     "db_path": "./my_files.db",

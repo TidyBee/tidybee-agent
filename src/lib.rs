@@ -13,6 +13,7 @@ use server::ServerBuilder;
 use notify::EventKind;
 use std::{path::PathBuf, thread};
 use tracing::{error, info};
+use crate::http::protocol::{HttpProtocolBuilder};
 
 pub async fn run() {
     match std::env::var("TIDY_BACKTRACE") {
@@ -48,6 +49,7 @@ pub async fn run() {
     info!("TidyAlgo sucessfully loaded rules from config/rules/basic.yml");
 
     list_directories(config.file_lister_config.dir, &my_files);
+    info!("Directory Successfully Listed");
 
     let server = ServerBuilder::new()
         .my_files_builder(my_files_builder)
@@ -55,15 +57,17 @@ pub async fn run() {
             config.agent_data.latest_version.clone(),
             config.agent_data.minimal_version.clone(),
             config.file_watcher_config.dir.clone(),
-            config.http_server_config.address,
-            config.http_server_config.log_level,
+            config.server_config.address,
+            config.server_config.log_level,
         );
-    info!("HTTP Server build");
-    info!("Directory Successfully Listed");
+    info!("Server build");
+
+    let http_protocol = HttpProtocolBuilder::new().build(config.http_config);
+
     tokio::spawn(async move {
-        server.start().await;
+        server.start(http_protocol).await;
     });
-    info!("HTTP Server Started");
+    info!("Server Started");
 
     let (file_watcher_sender, file_watcher_receiver) = crossbeam_channel::unbounded();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
