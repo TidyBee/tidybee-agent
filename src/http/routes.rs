@@ -5,7 +5,7 @@ use serde_derive::{Deserialize, Serialize};
 use crate::agent_data::AgentData;
 use crate::my_files;
 use crate::file_info::FileInfo;
-use tracing::{error, info, Level};
+use tracing::{error};
 
 #[derive(Clone)]
 pub struct AgentDataState {

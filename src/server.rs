@@ -13,6 +13,7 @@ use tokio::net::TcpListener;
 use tower_http::trace::{self, TraceLayer};
 use tracing::{error, info, Level};
 use reqwest::Client;
+use std::env;
 
 lazy_static! {
     static ref AGENT_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -152,10 +153,13 @@ impl Server {
 
         let http_request_builder = HttpRequestBuilder;
         let http_request_director = RequestDirector::new(http_request_builder);
-        let http_request_body = http_request_director.construct(" http://localhost:7001/gateway/auth/AOTH", "test");
-        let response = self.handle_post(http_request_body.clone()).await;
-        //TODO store uuid in ENV
+        let http_request_body = http_request_director.construct("http://localhost:7001/gateway/auth/AOTH", "test");
+        let response_body = self.handle_post(http_request_body.clone()).await;
         info!("HttpRequest body: {:?}", http_request_body);
+
+        let uuid = response_body.uuid.clone();
+        env::set_var("AGENT_UUID", &uuid);
+        info!("Set AGENT_UUID env var with value : {:?}", &uuid);
 
         info!("Http Server running at {}", addr.to_string());
         axum::serve(tcp_listener, self.router).await.unwrap();

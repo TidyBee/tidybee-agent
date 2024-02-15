@@ -2,7 +2,7 @@ use serde_derive::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
 pub struct HttpResponse {
-    body: String
+    pub(crate) uuid: String
 }
 
 #[derive(Debug, Serialize, Clone)]
