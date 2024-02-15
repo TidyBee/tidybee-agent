@@ -325,7 +325,18 @@ impl MyFiles {
         };
 
         let tidy_score = match row.get::<_, Option<i64>>(7) {
-            Ok(_) => Some(self.get_tidyscore(path.clone()).unwrap()),
+            Ok(_) => {
+                match self.get_tidyscore(path.clone()) {
+                    Ok(score) => Some(score),
+                    Err(error) => {
+                        info!(
+                            "create_fileinfo_from_row: Error getting tidy_score for file {} : {}",
+                            path_str, error
+                        );
+                        None
+                    }
+                }
+            },
             Err(error) => {
                 error!(
                     "create_fileinfo_from_row: Error parsing key: tidy_score for file {} : {}",
