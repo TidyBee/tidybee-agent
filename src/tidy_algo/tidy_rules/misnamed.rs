@@ -32,7 +32,7 @@ pub fn misnamed(
         };
 
         let re = Regex::new(pattern_str.as_str()).unwrap();
-        if re.is_match(&file_info.pretty_path) {
+        if re.is_match(file_info.pretty_path.to_str().unwrap()) {
             return new_score;
         } else {
             new_score.misnamed = true;

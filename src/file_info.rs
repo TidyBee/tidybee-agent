@@ -14,7 +14,7 @@ use xxhash_rust::xxh3::xxh3_128;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileInfo {
-    pub pretty_path: String,
+    pub pretty_path: PathBuf,
     pub path: PathBuf,
     pub size: u64,
     pub hash: Option<String>,
@@ -26,8 +26,7 @@ pub struct FileInfo {
 impl Default for FileInfo {
     fn default() -> Self {
         FileInfo {
-            // change me to PathBuf
-            pretty_path: String::new(),
+            pretty_path: PathBuf::new(),
             path: PathBuf::new(),
             size: 0,
             hash: None,
@@ -121,7 +120,8 @@ pub fn create_file_info(path: &PathBuf) -> Option<FileInfo> {
             let file_signature = get_file_signature(path);
 
             Some(FileInfo {
-                pretty_path: Path::new(path.to_str()?).file_name()?.to_str()?.to_owned(),
+                // change me
+                pretty_path: path.clone(),
                 path: path.clone(),
                 size,
                 hash: Some(file_signature.to_string()),

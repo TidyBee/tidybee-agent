@@ -30,7 +30,7 @@ pub fn perished(
         None => {
             warn!(
                 "No time_string provided for perished rule: {}",
-                file_info.pretty_path
+                file_info.pretty_path.display()
             );
             return TidyScore::new(false, false, None);
         }
@@ -48,7 +48,7 @@ pub fn perished(
         None => {
             warn!(
                 "No time_amount provided for perished rule: {}",
-                file_info.pretty_path
+                file_info.pretty_path.display()
             );
             return TidyScore::new(false, false, None);
         }
@@ -60,7 +60,7 @@ pub fn perished(
             } else {
                 warn!(
                     "Invalid time_unit provided for perished rule: {}",
-                    file_info.pretty_path
+                    file_info.pretty_path.display()
                 );
                 return TidyScore::new(false, false, None);
             }
@@ -68,7 +68,7 @@ pub fn perished(
         None => {
             warn!(
                 "No time_unit provided for perished rule: {}",
-                file_info.pretty_path
+                file_info.pretty_path.display()
             );
             return TidyScore::new(false, false, None);
         }
