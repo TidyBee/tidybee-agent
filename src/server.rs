@@ -147,8 +147,8 @@ impl Server {
         // let http_request_director = RequestDirector::new(http_request_builder);
         // let http_request = http_request_director.construct("http://localhost:7001/gateway/auth/aoth".to_string(), "test".to_string());
         // let response = client.post("http://localhost:7001/gateway/auth/aoth").json(&http_request).send().await;
-        info!("Debug: protocol information : {:?}", protocol.dump());
-        let response = protocol.handle_post("test".to_string());
+        // info!("Debug: protocol information : {:?}", protocol.handle_post("test".to_string()).await);
+        let reponse = protocol.handle_post("test".to_string()).await;
         // let future_response: Box<dyn Future<Output = Json<HttpResponse>> + Send> = Box::new(protocol.handle_post("test".to_string()));
 
         //TODO sending request to hub
