@@ -5,6 +5,7 @@ use tracing::{error, info};
 use crate::configuration::HttpConfig;
 use crate::server::Protocol;
 use std::future::Future;
+use std::ops::Add;
 use futures::future::BoxFuture;
 
 #[derive(Deserialize, Debug)]
@@ -78,13 +79,17 @@ impl Protocol for HttpProtocol {
     fn handle_post(&self, body: String) -> BoxFuture<'static, Json<HttpResponse>> {
         let http_request_builder = HttpRequestBuilder;
         let http_request_director = RequestDirector::new(http_request_builder);
-        let http_request = http_request_director.construct("http://localhost:7001/gateway/auth/aoth".to_string(), body.clone()); // Utilisez la chaîne clonée ici
+        let http_request = http_request_director.construct("http://localhost:7001/gateway/auth/aoth".to_string(), body.clone());
 
-        let client = self.client.clone(); // Clonez le client HTTP
-        let config = self.config.clone(); // Clonez la configuration HTTP
+        let client = self.client.clone();
+        let config = self.config.clone();
+        let mut url = config.host.clone();
+        url.push_str(&*config.auth_route.clone());
+        info!("Sending request to this url : {:?}", url);
 
         Box::pin(async move {
-            let response = client.post(config.host.clone() + &*config.auth_route.clone()).json(&http_request).send().await;
+            info!("Sending HttpRequest: {:?}", http_request);
+            let response = client.post(url).json(&http_request).send().await;
 
             info!("Sending HttpRequest: {:?}", http_request);
             let _ = match response {
@@ -103,7 +108,7 @@ impl Protocol for HttpProtocol {
                     panic!("Error sending POST request")
                 }
             };
-            Json(HttpResponse { uuid: "example_uuid".to_string() })
+            Json(HttpResponse { uuid: body })
         })
     }
 }
