@@ -2,8 +2,8 @@ use crate::agent_data::AgentData;
 use crate::my_files;
 use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
 use crate::http::routes::{MyFilesState, AgentDataState, get_files, get_status, hello_world};
-use crate::http::protocol::{HttpResponse};
-use axum::{routing::get, Json, Router};
+use crate::http::protocol::{HttpRequestBuilder, HttpResponse, RequestDirector};
+use axum::{routing::get, Json, Router, async_trait};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::future::Future;
@@ -15,6 +15,9 @@ use tower_http::trace::{self, TraceLayer};
 use tracing::{error, info, Level};
 // use std::env;
 use futures::future::BoxFuture;
+use log::Level::Debug;
+use reqwest::Client;
+use serde_json::Value;
 
 lazy_static! {
     static ref AGENT_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -111,8 +114,10 @@ impl ServerBuilder {
     }
 }
 
+#[async_trait]
 pub trait Protocol {
-    fn handle_post(&self, body: String) -> BoxFuture<'static, Json<HttpResponse>>;
+    async fn handle_post(&self, body: String) -> Json<HttpResponse>;
+    fn dump(&self) -> Value;
 }
 
 impl Server {
@@ -137,8 +142,14 @@ impl Server {
                 return;
             }
         };
-
-        let future_response: Box<dyn Future<Output = Json<HttpResponse>> + Send> = Box::new(protocol.handle_post("test".to_string()));
+        // let client = Client::new();
+        // let http_request_builder = HttpRequestBuilder;
+        // let http_request_director = RequestDirector::new(http_request_builder);
+        // let http_request = http_request_director.construct("http://localhost:7001/gateway/auth/aoth".to_string(), "test".to_string());
+        // let response = client.post("http://localhost:7001/gateway/auth/aoth").json(&http_request).send().await;
+        info!("Debug: protocol information : {:?}", protocol.dump());
+        let response = protocol.handle_post("test".to_string());
+        // let future_response: Box<dyn Future<Output = Json<HttpResponse>> + Send> = Box::new(protocol.handle_post("test".to_string()));
 
         //TODO sending request to hub
         // let uuid = response_body.uuid.clone();

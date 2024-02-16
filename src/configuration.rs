@@ -73,7 +73,7 @@ impl Default for Configuration {
             },
             http_config: HttpConfig {
                 host: String::from("http://localhost:7001"),
-                auth_route: String::from("/gateway/auth/AOTH"),
+                auth_route: String::from("/gateway/auth/aoth"),
             },
             logger_config: LoggerConfig {
                 term_level: String::from("debug"),

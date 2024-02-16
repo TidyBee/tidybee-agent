@@ -1,4 +1,4 @@
-use axum::Json;
+use axum::{async_trait, Json};
 use reqwest::Client;
 use serde_derive::{Deserialize, Serialize};
 use tracing::{error, info};
@@ -7,6 +7,7 @@ use crate::server::Protocol;
 use std::future::Future;
 use std::ops::Add;
 use futures::future::BoxFuture;
+use serde_json::{json, Value};
 
 #[derive(Deserialize, Debug)]
 pub struct HttpResponse {
@@ -75,41 +76,42 @@ impl Default for HttpProtocolBuilder {
     }
 }
 
+#[async_trait]
 impl Protocol for HttpProtocol {
-    fn handle_post(&self, body: String) -> BoxFuture<'static, Json<HttpResponse>> {
+    async fn handle_post(&self, body_request: String) -> Json<HttpResponse> {
+        info!("handle post called");
         let http_request_builder = HttpRequestBuilder;
         let http_request_director = RequestDirector::new(http_request_builder);
-        let http_request = http_request_director.construct("http://localhost:7001/gateway/auth/aoth".to_string(), body.clone());
+        let http_request = http_request_director.construct("http://localhost:7001/gateway/auth/aoth".to_string(), body_request.clone());
 
-        let client = self.client.clone();
-        let config = self.config.clone();
-        let mut url = config.host.clone();
-        url.push_str(&*config.auth_route.clone());
-        info!("Sending request to this url : {:?}", url);
+        let response = self.client.post("http://localhost:7001/gateway/auth/aoth").json(&http_request).send().await;
 
-        Box::pin(async move {
-            info!("Sending HttpRequest: {:?}", http_request);
-            let response = client.post(url).json(&http_request).send().await;
-
-            info!("Sending HttpRequest: {:?}", http_request);
-            let _ = match response {
-                Ok(response) => {
-                    let body = response.json::<HttpResponse>().await;
-                    match body {
-                        Ok(body) => Json(body),
-                        Err(_) => {
-                            error!("Error reading response body");
-                            panic!("Error reading response body")
-                        }
+        info!("Sending HttpRequest: {:?}", http_request);
+        match response {
+            Ok(response) => {
+                let body = response.json::<HttpResponse>().await;
+                match body {
+                    Ok(body) => Json(body),
+                    Err(_) => {
+                        error!("Error reading response body");
+                        panic!("Error reading response body")
                     }
                 }
-                Err(_) => {
-                    error!("Error sending POST request");
-                    panic!("Error sending POST request")
-                }
-            };
-            Json(HttpResponse { uuid: body })
-        })
+            }
+            Err(_) => {
+                error!("Error sending POST request");
+                panic!("Error sending POST request")
+            }
+        }
+    }
+    fn dump(&self) -> Value {
+        let request = self.http_request_director.construct("http://localhost:7001/gateway/auth/aoth".to_string(), "test".to_string());
+        let json_data = json!({
+            "route": self.config.auth_route.clone(),
+            "host": self.config.host.clone(),
+            "request": request
+        });
+        return json_data;
     }
 }
 
