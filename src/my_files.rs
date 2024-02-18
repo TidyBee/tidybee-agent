@@ -588,7 +588,7 @@ mod tests {
         // Using raw query
         let file_info = match my_files.raw_select_query(
             "SELECT * FROM my_files WHERE pretty_path = ?1",
-            &[&"test-file-1"],
+            &[&"tests/assets/test_folder/test-file-1"],
         ) {
             Ok(file_info) => file_info,
             Err(error) => {
@@ -597,7 +597,10 @@ mod tests {
             }
         };
         assert_eq!(file_info.len(), 1);
-        //assert_eq!(file_info[0].pretty_path, "test-file-1");
+        assert_eq!(
+            file_info[0].pretty_path,
+            PathBuf::from("tests/assets/test_folder/test-file-1")
+        );
         assert_eq!(file_info[0].size, 100);
 
         let bad_file_info = match my_files.raw_select_query(

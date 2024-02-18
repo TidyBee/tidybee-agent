@@ -120,9 +120,8 @@ pub fn create_file_info(path: &PathBuf) -> Option<FileInfo> {
             let file_signature = get_file_signature(path);
 
             Some(FileInfo {
-                // change me
                 pretty_path: path.clone(),
-                path: path.clone(),
+                path: fix_canonicalize_path(fs::canonicalize(path).unwrap()),
                 size,
                 hash: Some(file_signature.to_string()),
                 last_modified,
@@ -172,7 +171,7 @@ mod tests {
             .iter()
             .collect();
         if let Some(file_info) = create_file_info(&path) {
-            assert_eq!(file_info.path, path);
+            assert_eq!(file_info.pretty_path, path);
             assert_eq!(file_info.size, 100);
             if let Some(hash) = file_info.hash {
                 assert_eq!(hash, "53180848542178601830765469314885156230");
