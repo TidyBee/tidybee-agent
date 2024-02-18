@@ -586,9 +586,12 @@ mod tests {
         assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 13);
 
         // Using raw query
+        let test_file_path: PathBuf = [r"tests", r"assets", r"test_folder", r"test-file-1"]
+            .iter()
+            .collect();
         let file_info = match my_files.raw_select_query(
             "SELECT * FROM my_files WHERE pretty_path = ?1",
-            &[&"tests/assets/test_folder/test-file-1"],
+            &[&test_file_path.to_str()],
         ) {
             Ok(file_info) => file_info,
             Err(error) => {
@@ -597,10 +600,7 @@ mod tests {
             }
         };
         assert_eq!(file_info.len(), 1);
-        assert_eq!(
-            file_info[0].pretty_path,
-            PathBuf::from("tests/assets/test_folder/test-file-1")
-        );
+        assert_eq!(file_info[0].pretty_path, test_file_path);
         assert_eq!(file_info[0].size, 100);
 
         let bad_file_info = match my_files.raw_select_query(
