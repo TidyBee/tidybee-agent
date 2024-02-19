@@ -36,6 +36,10 @@ impl TidyRule {
             apply,
         }
     }
+
+    pub fn rule_name(&self) -> String {
+        self.name.to_string()
+    }
 }
 
 impl PartialEq for TidyRule {
@@ -116,7 +120,11 @@ impl TidyAlgo {
             );
             if file.path.starts_with(&rule_pathbuf) || rule.scope == "all" {
                 let rule_score = (rule.apply)(file, my_files, rule.params.clone());
-                info!("Applied all rules to file {}", file.path.display());
+                debug!(
+                    "Applied {} rule to file {}",
+                    rule.rule_name(),
+                    file.path.display()
+                );
                 file.tidy_score = Some(rule_score);
             } else {
                 debug!(

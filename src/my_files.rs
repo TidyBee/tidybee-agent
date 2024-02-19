@@ -141,8 +141,8 @@ impl MyFiles {
                 hash            TEXT DEFAULT \"\",
                 last_modified   DATE NOT NULL,
                 last_accessed   DATE NOT NULL,
-                tidy_score      INTEGER UNIQUE,
-                FOREIGN KEY (tidy_score) REFERENCES tidy_scores(id) ON DELETE CASCADE
+                tidy_score_id      INTEGER UNIQUE,
+                FOREIGN KEY (tidy_score_id) REFERENCES tidy_scores(id) ON DELETE CASCADE
             );
             CREATE TABLE IF NOT EXISTS tidy_scores (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -192,7 +192,7 @@ impl MyFiles {
         let last_modified: DateTime<Utc> = file.last_modified.into();
         let last_accessed: DateTime<Utc> = file.last_accessed.into();
         match self.connection_pool.execute(
-            "INSERT INTO my_files (name, path, size, hash, last_modified, last_accessed, tidy_score)
+            "INSERT INTO my_files (name, path, size, hash, last_modified, last_accessed, tidy_score_id)
                   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 file.name,
@@ -229,13 +229,16 @@ impl MyFiles {
         let mut statement = self
             .connection_pool
             .prepare(
-                "SELECT id, tidy_score FROM my_files
+                "SELECT id, tidy_score_id FROM my_files
                 WHERE path = ?1",
             )
             .unwrap();
         let result = statement
             .query_row(params![&str_filepath], |row| {
-                Ok((row.get::<_, i64>(0), row.get::<_, Option<i64>>(1)))
+                Ok((
+                    row.get::<_, i64>("id"),
+                    row.get::<_, Option<i64>>("tidy_score_id"),
+                ))
             })
             .unwrap();
         let file_id: i64 = result.0?;
@@ -324,20 +327,31 @@ impl MyFiles {
             }
         };
 
-        let tidy_score = match row.get::<_, Option<i64>>(7) {
-            Ok(_) => match self.get_tidyscore(path.clone()) {
-                Ok(score) => Some(score),
-                Err(error) => {
-                    info!(
-                        "create_fileinfo_from_row: Error getting tidy_score for file {} : {}",
-                        path_str, error
+        let tidy_score = match row.get::<_, Option<i64>>("tidy_score_id") {
+            Ok(tidy_score_id) => match tidy_score_id {
+                Some(tidy_score_id) => {
+                    match self.get_tidyscore_from_id(tidy_score_id, path.clone()) {
+                        Ok(score) => Some(score),
+                        Err(error) => {
+                            error!(
+                            "create_fileinfo_from_row: Error getting tidy_score_id: {} for file: {} : {}",
+                            tidy_score_id, path_str, error
+                        );
+                            None
+                        }
+                    }
+                }
+                None => {
+                    debug!(
+                        "create_fileinfo_from_row: No TidyScore was created yet for {}",
+                        path_str
                     );
                     None
                 }
             },
             Err(error) => {
                 error!(
-                    "create_fileinfo_from_row: Error parsing key: tidy_score for file {} : {}",
+                    "create_fileinfo_from_row: Error parsing key: tidy_score_id for file {} : {}",
                     path_str, error
                 );
                 None
@@ -390,7 +404,7 @@ impl MyFiles {
 
         // Check if file is duplicated
         let mut duplicate_check_stmt = self.connection_pool.prepare(
-            "SELECT duplicated FROM tidy_scores INNER JOIN my_files ON tidy_scores.id = my_files.tidy_score WHERE my_files.path = ?1",
+            "SELECT duplicated FROM tidy_scores INNER JOIN my_files ON tidy_scores.id = my_files.tidy_score_id WHERE my_files.path = ?1",
         )?;
         let duplicated =
             duplicate_check_stmt.query_row(params![&str_file_path], |row| row.get::<_, bool>(0))?;
@@ -406,7 +420,7 @@ impl MyFiles {
         let file_id = statement.query_row(params![&str_file_path], |row| row.get::<_, i64>(0))?;
 
         let mut statement = self.connection_pool.prepare(
-            "SELECT my_files.name, my_files.path, my_files.size, my_files.last_modified, my_files.last_accessed, my_files.hash, my_files.tidy_score
+            "SELECT my_files.name, my_files.path, my_files.size, my_files.last_modified, my_files.last_accessed, my_files.hash, my_files.tidy_score_id
             FROM my_files
             INNER JOIN duplicates_associative_table ON my_files.id = duplicates_associative_table.original_file_id WHERE duplicates_associative_table.original_file_id = ?1",
         ).unwrap();
@@ -478,7 +492,7 @@ impl MyFiles {
             .prepare(
                 "SELECT tidy_scores.misnamed, tidy_scores.duplicated, tidy_scores.unused
             FROM my_files
-            INNER JOIN tidy_scores ON my_files.tidy_score = tidy_scores.id
+            INNER JOIN tidy_scores ON my_files.tidy_score_id = tidy_scores.id
             WHERE my_files.path = ?1",
             )
             .unwrap();
@@ -491,6 +505,20 @@ impl MyFiles {
                         .unwrap(),
                 ),
                 unused: row.get::<_, bool>(2)?,
+            })
+        })
+    }
+
+    /// This method shall only be used internally to my_files as it relies on indexes and is not database agnostic
+    fn get_tidyscore_from_id(&self, id: i64, file_path: PathBuf) -> Result<TidyScore> {
+        let mut statement = self
+            .connection_pool
+            .prepare("SELECT misnamed, duplicated, unused FROM tidy_scores WHERE id = ?1")?;
+        statement.query_row(params![id], |row| {
+            Ok(TidyScore {
+                misnamed: row.get::<_, bool>("misnamed")?,
+                duplicated: Some(self.fetch_duplicated_files(file_path).unwrap()),
+                unused: row.get::<_, bool>("unused")?,
             })
         })
     }
@@ -509,7 +537,7 @@ impl MyFiles {
         };
 
         statement = self.connection_pool.prepare(
-            "SELECT tidy_score FROM my_files
+            "SELECT tidy_score_id FROM my_files
             WHERE path = ?1",
         )?;
         let mut current_tidy_score_id: Option<i64> = statement
@@ -543,7 +571,7 @@ impl MyFiles {
             // And we attach it to the file
             statement = self.connection_pool.prepare(
                 "UPDATE my_files
-                SET tidy_score = ?1
+                SET tidy_score_id = ?1
                 WHERE path = ?2",
             )?;
             // The potential failure of this query will be handled in future work on the my_files error handling
