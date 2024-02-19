@@ -8,7 +8,7 @@ use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{params, Result, ToSql};
 use std::path;
 use std::path::PathBuf;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 // region: --- MyFiles builder states
 #[derive(Default, Clone)]
@@ -275,7 +275,7 @@ impl MyFiles {
                 Err(error)
             }
         };
-        // Set tidy_score to duplicated = trueù
+        // Set tidy_score to duplicated = true
         let mut statement = self
             .connection_pool
             .prepare(
@@ -325,16 +325,14 @@ impl MyFiles {
         };
 
         let tidy_score = match row.get::<_, Option<i64>>(7) {
-            Ok(_) => {
-                match self.get_tidyscore(path.clone()) {
-                    Ok(score) => Some(score),
-                    Err(error) => {
-                        info!(
-                            "create_fileinfo_from_row: Error getting tidy_score for file {} : {}",
-                            path_str, error
-                        );
-                        None
-                    }
+            Ok(_) => match self.get_tidyscore(path.clone()) {
+                Ok(score) => Some(score),
+                Err(error) => {
+                    info!(
+                        "create_fileinfo_from_row: Error getting tidy_score for file {} : {}",
+                        path_str, error
+                    );
+                    None
                 }
             },
             Err(error) => {
@@ -398,7 +396,7 @@ impl MyFiles {
             duplicate_check_stmt.query_row(params![&str_file_path], |row| row.get::<_, bool>(0))?;
 
         if !duplicated {
-            info!("No duplicate found while checking {:?}", file_path);
+            debug!("No duplicate found while checking {:?}", file_path);
             return Ok(Vec::new());
         }
 

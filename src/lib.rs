@@ -101,7 +101,7 @@ pub async fn run() {
     info!("File Events Watcher Started");
     for file_watcher_event in file_watcher_receiver {
         handle_file_events(&file_watcher_event, &my_files);
-    };
+    }
 
     file_watcher_thread.join().unwrap();
 }
@@ -113,9 +113,14 @@ fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_alg
                 match my_files.add_file_to_db(file) {
                     Ok(_) => {
                         tidy_algo.apply_rules(file, &my_files);
-                        debug!("{} TidyScore after all rules applied: {:?}", file.path.display(), file.tidy_score);
+                        debug!(
+                            "{} TidyScore after all rules applied: {:?}",
+                            file.path.display(),
+                            file.tidy_score
+                        );
                         let file_path = file.path.clone();
-                        let _ = my_files.set_tidyscore(file_path, &file.tidy_score.as_ref().unwrap());
+                        let _ =
+                            my_files.set_tidyscore(file_path, &file.tidy_score.as_ref().unwrap());
                     }
                     Err(error) => {
                         error!("{:?}", error);

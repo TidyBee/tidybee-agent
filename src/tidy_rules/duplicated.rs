@@ -1,11 +1,10 @@
-use config::Value;
-use std::collections::HashMap;
-use tracing::{debug, error};
-
 use crate::{
     file_info::{FileInfo, TidyScore},
     my_files::MyFiles,
 };
+use config::Value;
+use std::collections::HashMap;
+use tracing::{debug, error};
 
 // TODO: Change return type to Result<TidyScore, Error> after implementing error handling
 pub fn aply_duplicated(
