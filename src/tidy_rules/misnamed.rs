@@ -8,7 +8,7 @@ use crate::{
     my_files::MyFiles,
 };
 
-pub fn misnamed(
+pub fn apply_misnamed(
     file_info: &FileInfo,
     _my_files: &MyFiles,
     raw_params: HashMap<String, Value>,
