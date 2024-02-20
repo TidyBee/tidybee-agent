@@ -192,7 +192,7 @@ impl MyFiles {
         let last_modified: DateTime<Utc> = file.last_modified.into();
         let last_accessed: DateTime<Utc> = file.last_accessed.into();
         match self.connection_pool.execute(
-            "INSERT INTO my_files (name, path, size, hash, last_modified, last_accessed, tidy_score_id)
+            "INSERT INTO my_files (pretty_path, path, size, hash, last_modified, last_accessed, tidy_score_id)
                   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 file.pretty_path.to_str(),
@@ -420,7 +420,7 @@ impl MyFiles {
         let file_id = statement.query_row(params![&str_file_path], |row| row.get::<_, i64>(0))?;
 
         let mut statement = self.connection_pool.prepare(
-            "SELECT my_files.name, my_files.path, my_files.size, my_files.last_modified, my_files.last_accessed, my_files.hash, my_files.tidy_score_id
+            "SELECT my_files.pretty_path, my_files.path, my_files.size, my_files.last_modified, my_files.last_accessed, my_files.hash, my_files.tidy_score_id
             FROM my_files
             INNER JOIN duplicates_associative_table ON my_files.id = duplicates_associative_table.original_file_id WHERE duplicates_associative_table.original_file_id = ?1",
         ).unwrap();
