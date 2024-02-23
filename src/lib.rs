@@ -11,7 +11,7 @@ mod tidy_rules;
 use http_server::HttpServerBuilder;
 use lazy_static::lazy_static;
 use notify::EventKind;
-use std::{collections::HashMap, path::PathBuf, thread};
+use std::{collections::HashMap, fs, path::PathBuf, thread};
 use tidy_algo::TidyAlgo;
 use tracing::{debug, error, info, Level};
 
@@ -64,7 +64,7 @@ pub async fn run() {
     info!("MyFilesDB sucessfully initialized");
 
     let mut tidy_algo = TidyAlgo::new();
-    let basic_ruleset_path: PathBuf = vec![r"config", r"rules", r"basic.yml"].iter().collect();
+    let basic_ruleset_path: PathBuf = [r"config", r"rules", r"basic.yml"].iter().collect();
     info!("TidyAlgo sucessfully created");
     match tidy_algo.load_rules_from_file(&my_files, basic_ruleset_path) {
         Ok(loaded_rules_amt) => info!(
@@ -112,7 +112,7 @@ fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_alg
             for file in &mut files_vec {
                 match my_files.add_file_to_db(file) {
                     Ok(_) => {
-                        tidy_algo.apply_rules(file, &my_files);
+                        tidy_algo.apply_rules(file, my_files);
                         debug!(
                             "{} TidyScore after all rules applied: {:?}",
                             file.path.display(),
@@ -120,7 +120,7 @@ fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_alg
                         );
                         let file_path = file.path.clone();
                         let _ =
-                            my_files.set_tidyscore(file_path, &file.tidy_score.as_ref().unwrap());
+                            my_files.set_tidyscore(file_path, file.tidy_score.as_ref().unwrap());
                     }
                     Err(error) => {
                         error!("{:?}", error);
@@ -138,20 +138,26 @@ fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
     info!("event: kind: {:?}\tpaths: {:?}", event.kind, &event.paths);
 
     if let EventKind::Remove(_) = event.kind {
-        match my_files.remove_file_from_db(event.paths[0].clone()) {
-            Ok(_) => {}
-            Err(error) => {
-                error!("{:?}", error);
-            }
-        }
-    } else if let EventKind::Create(_) = event.kind {
-        if let Some(file) = file_info::create_file_info(&event.paths[0].clone()) {
-            match my_files.add_file_to_db(&file) {
+        if fs::metadata(event.paths[0].clone()).is_err() {
+            match my_files.remove_file_from_db(event.paths[0].clone()) {
                 Ok(_) => {}
                 Err(error) => {
                     error!("{:?}", error);
                 }
             }
+        } else {
+        }
+    } else if let EventKind::Create(_) = event.kind {
+        if fs::metadata(event.paths[0].clone()).is_ok() {
+            if let Some(file) = file_info::create_file_info(&event.paths[0].clone()) {
+                match my_files.add_file_to_db(&file) {
+                    Ok(_) => {}
+                    Err(error) => {
+                        error!("{:?}", error);
+                    }
+                }
+            }
+        } else {
         }
     }
 }
