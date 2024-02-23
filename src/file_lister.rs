@@ -1,4 +1,4 @@
-use crate::file_info::{create_file_info, fix_canonicalize_path, FileInfo};
+use crate::file_info::{create_file_info, FileInfo};
 use std::fs;
 use std::path::PathBuf;
 
@@ -9,7 +9,7 @@ pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, std:
         if directory.is_dir() {
             for entry in fs::read_dir(&directory)? {
                 let entry: fs::DirEntry = entry?;
-                let path: PathBuf = fix_canonicalize_path(fs::canonicalize(entry.path())?);
+                let path: PathBuf = entry.path();
 
                 if path.is_dir() {
                     files.extend(list_directories(vec![path])?);

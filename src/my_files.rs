@@ -135,7 +135,7 @@ impl MyFiles {
             BEGIN;
             CREATE TABLE IF NOT EXISTS my_files (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                name            TEXT NOT NULL,
+                pretty_path     TEXT NOT NULL UNIQUE,
                 path            TEXT NOT NULL UNIQUE,
                 size            INTEGER NOT NULL,
                 hash            TEXT DEFAULT \"\",
@@ -192,10 +192,10 @@ impl MyFiles {
         let last_modified: DateTime<Utc> = file.last_modified.into();
         let last_accessed: DateTime<Utc> = file.last_accessed.into();
         match self.connection_pool.execute(
-            "INSERT INTO my_files (name, path, size, hash, last_modified, last_accessed, tidy_score_id)
+            "INSERT INTO my_files (pretty_path, path, size, hash, last_modified, last_accessed, tidy_score_id)
                   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
-                file.name,
+                file.pretty_path.to_str(),
                 file.path.to_str(),
                 file.size,
                 file.hash,
@@ -359,7 +359,7 @@ impl MyFiles {
         };
 
         Ok(FileInfo {
-            name: row.get::<_, String>(1)?,
+            pretty_path: row.get::<_, String>(1)?.into(),
             path,
             size: row.get::<_, u64>(3)?,
             hash: row.get::<_, Option<String>>(4)?,
@@ -420,7 +420,7 @@ impl MyFiles {
         let file_id = statement.query_row(params![&str_file_path], |row| row.get::<_, i64>(0))?;
 
         let mut statement = self.connection_pool.prepare(
-            "SELECT my_files.name, my_files.path, my_files.size, my_files.last_modified, my_files.last_accessed, my_files.hash, my_files.tidy_score_id
+            "SELECT my_files.pretty_path, my_files.path, my_files.size, my_files.last_modified, my_files.last_accessed, my_files.hash, my_files.tidy_score_id
             FROM my_files
             INNER JOIN duplicates_associative_table ON my_files.id = duplicates_associative_table.original_file_id WHERE duplicates_associative_table.original_file_id = ?1",
         ).unwrap();
@@ -467,7 +467,7 @@ impl MyFiles {
                 })?;
 
                 Ok(FileInfo {
-                    name: row.get::<_, String>(0)?,
+                    pretty_path: row.get::<_, String>(0)?.into(),
                     path,
                     size: row.get::<_, u64>(2)?,
                     hash: row.get::<_, Option<String>>(5)?,
@@ -651,9 +651,13 @@ mod tests {
         assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 13);
 
         // Using raw query
-        let file_info = match my_files
-            .raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"test-file-1"])
-        {
+        let test_file_path: PathBuf = [r"tests", r"assets", r"test_folder", r"test-file-1"]
+            .iter()
+            .collect();
+        let file_info = match my_files.raw_select_query(
+            "SELECT * FROM my_files WHERE pretty_path = ?1",
+            &[&test_file_path.to_str()],
+        ) {
             Ok(file_info) => file_info,
             Err(error) => {
                 assert_eq!(error, rusqlite::Error::QueryReturnedNoRows);
@@ -661,12 +665,13 @@ mod tests {
             }
         };
         assert_eq!(file_info.len(), 1);
-        assert_eq!(file_info[0].name, "test-file-1");
+        assert_eq!(file_info[0].pretty_path, test_file_path);
         assert_eq!(file_info[0].size, 100);
 
-        let bad_file_info = match my_files
-            .raw_select_query("SELECT * FROM my_files WHERE name = ?1", &[&"xaaaaa"])
-        {
+        let bad_file_info = match my_files.raw_select_query(
+            "SELECT * FROM my_files WHERE pretty_path = ?1",
+            &[&"xaaaaa"],
+        ) {
             Ok(file_info) => file_info,
             Err(error) => {
                 assert_eq!(error, rusqlite::Error::QueryReturnedNoRows);
