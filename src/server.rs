@@ -139,6 +139,7 @@ impl Server {
         };
 
         // TODO Call handle_post while server isn't connected to the hub and store the uuid in Env var
+        // let response = protocol.handle_post("test".to_string()).await;
         // let uuid = response_body.uuid.clone();
         // env::set_var("AGENT_UUID", &uuid);
         // info!("Set AGENT_UUID env var with value : {:?}", &uuid);
