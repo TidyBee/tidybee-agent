@@ -84,7 +84,7 @@ pub async fn run() {
             config.agent_data.minimal_version.clone(),
             config.file_watcher_config.dir.clone(),
             config.server_config.address,
-            config.server_config.log_level,
+            &config.server_config.log_level,
         );
     info!("Server build");
 

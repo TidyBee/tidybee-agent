@@ -8,13 +8,13 @@ use tracing::info;
 
 #[derive(Deserialize, Debug)]
 pub struct HttpResponse {
-    pub(crate) uuid: String,
+    pub uuid: String,
 }
 
 #[derive(Debug, Serialize, Clone)]
 pub struct HttpRequest {
-    pub(crate) path: String,
-    pub(crate) body: String,
+    pub path: String,
+    pub body: String,
 }
 
 pub trait RequestBuilder {
@@ -32,7 +32,7 @@ impl RequestBuilder for HttpRequestBuilder {
 
 impl Default for HttpRequestBuilder {
     fn default() -> Self {
-        HttpRequestBuilder
+        Self
     }
 }
 
@@ -43,7 +43,7 @@ pub struct RequestDirector<B: RequestBuilder> {
 
 impl<B: RequestBuilder> RequestDirector<B> {
     pub fn new(builder: B) -> Self {
-        RequestDirector { builder }
+        Self { builder }
     }
 
     pub fn construct(&self, path: String, body: String) -> HttpRequest {
@@ -53,19 +53,21 @@ impl<B: RequestBuilder> RequestDirector<B> {
 
 #[derive(Clone)]
 pub struct HttpProtocol {
+    #[allow(dead_code)]
     http_request_director: RequestDirector<HttpRequestBuilder>,
     config: HttpConfig,
     client: Client,
 }
 
 pub struct HttpProtocolBuilder {
+    #[allow(dead_code)]
     http_request_builder: HttpRequestBuilder,
 }
 
 impl Default for HttpProtocolBuilder {
     fn default() -> Self {
-        HttpProtocolBuilder {
-            http_request_builder: HttpRequestBuilder::default(),
+        Self {
+            http_request_builder: HttpRequestBuilder,
         }
     }
 }
@@ -77,9 +79,8 @@ impl Protocol for HttpProtocol {
         let host_auth_path = self.config.host.clone() + &*self.config.auth_path.clone();
         let http_request_builder = HttpRequestBuilder;
         let http_request_director = RequestDirector::new(http_request_builder);
-        let http_request = http_request_director.construct(host_auth_path.clone(),
-                                                           body_request.clone(),
-        );
+        let http_request =
+            http_request_director.construct(host_auth_path.clone(), body_request.clone());
         let response = self
             .client
             .post(host_auth_path)
@@ -91,11 +92,10 @@ impl Protocol for HttpProtocol {
     }
 
     fn dump(&self) -> Value {
-        let json_data = json!({
+        json!({
             "path": self.config.auth_path.clone(),
             "host": self.config.host.clone(),
-        });
-        return json_data;
+        })
     }
 }
 

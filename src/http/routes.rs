@@ -9,12 +9,12 @@ use tracing::error;
 
 #[derive(Clone)]
 pub struct AgentDataState {
-    pub(crate) agent_data: Arc<Mutex<AgentData>>,
+    pub agent_data: Arc<Mutex<AgentData>>,
 }
 
 #[derive(Clone)]
 pub struct MyFilesState {
-    pub(crate) my_files: Arc<Mutex<my_files::MyFiles>>,
+    pub my_files: Arc<Mutex<my_files::MyFiles>>,
 }
 
 #[derive(Deserialize)]
