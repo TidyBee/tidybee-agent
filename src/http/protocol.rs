@@ -90,14 +90,9 @@ impl Protocol for HttpProtocol {
         info!("Response: {:?}", response);
     }
     fn dump(&self) -> Value {
-        let request = self.http_request_director.construct(
-            "http://localhost:7001/gateway/auth/aoth".to_string(),
-            "test".to_string(),
-        );
         let json_data = json!({
             "path": self.config.auth_path.clone(),
             "host": self.config.host.clone(),
-            "request": request
         });
         return json_data;
     }
