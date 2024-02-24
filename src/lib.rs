@@ -134,43 +134,52 @@ fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_alg
     }
 }
 
-fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
-    if event.kind.is_remove() {
-        info!("File removed: {}", event.paths[0].display());
-        if fs::metadata(event.paths[0].clone()).is_err() {
-            match my_files.remove_file_from_db(event.paths[0].clone()) {
+fn safe_remove_file_from_db(path: PathBuf, my_files: &my_files::MyFiles) {
+    if fs::metadata(path.clone()).is_err() {
+        match my_files.remove_file_from_db(path.clone()) {
+            Ok(_) => {}
+            Err(error) => {
+                error!("{error:?}");
+            }
+        }
+    } else {
+        error!(
+            "Trying to remove from the database a file that exists: {}",
+            path.display()
+        );
+    }
+}
+
+fn safe_add_file_to_db(path: PathBuf, my_files: &my_files::MyFiles) {
+    if fs::metadata(path.clone()).is_ok() {
+        if let Some(file) = file_info::create_file_info(&path.clone()) {
+            match my_files.add_file_to_db(&file) {
                 Ok(_) => {}
                 Err(error) => {
                     error!("{error:?}");
                 }
             }
-        } else {
-            error!(
-                "Trying to remove from the database a file that exists: {}",
-                event.paths[0].display()
-            );
         }
+    } else {
+        error!(
+            "Trying to add in the database a file that does not exists: {}",
+            path.display()
+        );
+    }
+}
+
+fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
+    if event.kind.is_remove() {
+        info!("File removed: {}", event.paths[0].display());
+        safe_remove_file_from_db(event.paths[0].clone(), my_files);
     } else if event.kind.is_create() {
         info!("File created: {}", event.paths[0].display());
-        if fs::metadata(event.paths[0].clone()).is_ok() {
-            if let Some(file) = file_info::create_file_info(&event.paths[0].clone()) {
-                match my_files.add_file_to_db(&file) {
-                    Ok(_) => {}
-                    Err(error) => {
-                        error!("{error:?}");
-                    }
-                }
-            }
-        } else {
-            error!(
-                "Trying to add in the database a file that does not exists: {}",
-                event.paths[0].display()
-            );
-        }
+        safe_add_file_to_db(event.paths[0].clone(), my_files);
     } else if event.kind.is_modify() {
         match event.kind {
             EventKind::Modify(ModifyKind::Metadata(_)) => {
                 info!("Metadata modifications: {}", event.paths[0].display());
+                // update last file access in db
             }
             EventKind::Modify(ModifyKind::Name(_)) => {
                 info!(
@@ -178,9 +187,13 @@ fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
                     event.paths[0].display(),
                     event.paths[1].display()
                 );
+                safe_remove_file_from_db(event.paths[0].clone(), my_files);
+                safe_add_file_to_db(event.paths[1].clone(), my_files);
             }
             EventKind::Modify(ModifyKind::Data(_)) => {
                 info!("File content modified: {}", event.paths[0].display());
+                //file_info::get_file_signature(&event.paths[0]);
+                // update file hash in db
             }
             _ => {}
         }
