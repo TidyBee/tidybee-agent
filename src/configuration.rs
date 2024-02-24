@@ -28,7 +28,7 @@ pub struct ServerConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct HttpConfig {
     pub host: String,
-    pub auth_path: String
+    pub auth_path: String,
 }
 
 #[derive(Debug, Deserialize)]

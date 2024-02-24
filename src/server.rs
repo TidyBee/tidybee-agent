@@ -1,9 +1,10 @@
 use crate::agent_data::AgentData;
+use crate::http::routes::{get_files, get_status, hello_world, AgentDataState, MyFilesState};
 use crate::my_files;
 use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
-use crate::http::routes::{MyFilesState, AgentDataState, get_files, get_status, hello_world};
-use axum::{routing::get, Router, async_trait};
+use axum::{async_trait, routing::get, Router};
 use lazy_static::lazy_static;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -11,8 +12,6 @@ use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 use tower_http::trace::{self, TraceLayer};
 use tracing::{error, info, Level};
-// use std::env;
-use serde_json::Value;
 
 lazy_static! {
     static ref AGENT_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -36,7 +35,7 @@ pub struct Server {
 pub struct ServerBuilder {
     router: Router,
     my_files_builder:
-    my_files::MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed>,
+        my_files::MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed>,
 }
 
 trait ServerConfig {
@@ -117,8 +116,9 @@ pub trait Protocol {
 
 impl Server {
     pub async fn start<T>(self, protocol: T)
-        where
-            T: Protocol {
+    where
+        T: Protocol,
+    {
         let addr: SocketAddr = match self.address.parse() {
             Ok(addr) => addr,
             Err(_) => {
@@ -138,8 +138,7 @@ impl Server {
             }
         };
 
-        info!("Handle post response : {:?}", protocol.handle_post("test".to_string()).await);
-
+        // TODO Call handle_post while server isn't connected to the hub and store the uuid in Env var
         // let uuid = response_body.uuid.clone();
         // env::set_var("AGENT_UUID", &uuid);
         // info!("Set AGENT_UUID env var with value : {:?}", &uuid);

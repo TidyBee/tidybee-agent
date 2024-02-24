@@ -3,17 +3,17 @@ mod configuration;
 mod file_info;
 mod file_lister;
 mod file_watcher;
-mod server;
-mod my_files;
-mod tidy_algo;
 mod http;
+mod my_files;
+mod server;
+mod tidy_algo;
 
+use crate::http::protocol::HttpProtocolBuilder;
 use crate::tidy_algo::tidy_algo::TidyAlgo;
-use server::ServerBuilder;
 use notify::EventKind;
+use server::ServerBuilder;
 use std::{path::PathBuf, thread};
 use tracing::{error, info};
-use crate::http::protocol::{HttpProtocolBuilder};
 
 pub async fn run() {
     match std::env::var("TIDY_BACKTRACE") {

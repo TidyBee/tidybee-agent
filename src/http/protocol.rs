@@ -1,14 +1,14 @@
-use axum::{async_trait};
-use reqwest::Client;
-use serde_derive::{Deserialize, Serialize};
-use tracing::{info};
 use crate::configuration::HttpConfig;
 use crate::server::Protocol;
+use axum::async_trait;
+use reqwest::Client;
+use serde_derive::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use tracing::info;
 
 #[derive(Deserialize, Debug)]
 pub struct HttpResponse {
-    pub(crate) uuid: String
+    pub(crate) uuid: String,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -26,10 +26,7 @@ pub struct HttpRequestBuilder;
 
 impl RequestBuilder for HttpRequestBuilder {
     fn build_request(&self, path: String, body: String) -> HttpRequest {
-        HttpRequest {
-            path,
-            body,
-        }
+        HttpRequest { path, body }
     }
 }
 
@@ -58,11 +55,11 @@ impl<B: RequestBuilder> RequestDirector<B> {
 pub struct HttpProtocol {
     http_request_director: RequestDirector<HttpRequestBuilder>,
     config: HttpConfig,
-    client: Client
+    client: Client,
 }
 
 pub struct HttpProtocolBuilder {
-    http_request_builder: HttpRequestBuilder
+    http_request_builder: HttpRequestBuilder,
 }
 
 impl Default for HttpProtocolBuilder {
@@ -79,14 +76,24 @@ impl Protocol for HttpProtocol {
         info!("handle post called");
         let http_request_builder = HttpRequestBuilder;
         let http_request_director = RequestDirector::new(http_request_builder);
-        let http_request = http_request_director.construct("http://localhost:7001/gateway/auth/aoth".to_string(), body_request.clone());
-        let response = self.client.post("http://localhost:7001/gateway/auth/aoth").json(&http_request).send().await;
-
+        let http_request = http_request_director.construct(
+            "http://localhost:7001/gateway/auth/aoth".to_string(),
+            body_request.clone(),
+        );
+        let response = self
+            .client
+            .post("http://localhost:7001/gateway/auth/aoth")
+            .json(&http_request)
+            .send()
+            .await;
         info!("Sending : {:?}", http_request);
         info!("Response: {:?}", response);
     }
     fn dump(&self) -> Value {
-        let request = self.http_request_director.construct("http://localhost:7001/gateway/auth/aoth".to_string(), "test".to_string());
+        let request = self.http_request_director.construct(
+            "http://localhost:7001/gateway/auth/aoth".to_string(),
+            "test".to_string(),
+        );
         let json_data = json!({
             "path": self.config.auth_path.clone(),
             "host": self.config.host.clone(),
@@ -97,9 +104,11 @@ impl Protocol for HttpProtocol {
 }
 
 impl HttpProtocolBuilder {
-    pub fn new() -> Self {HttpProtocolBuilder::default()}
+    pub fn new() -> Self {
+        HttpProtocolBuilder::default()
+    }
 
-    pub fn build(self, config: HttpConfig) -> HttpProtocol{
+    pub fn build(self, config: HttpConfig) -> HttpProtocol {
         let http_request_builder = HttpRequestBuilder;
         let http_request_director = RequestDirector::new(http_request_builder);
         let client = Client::new();
@@ -107,7 +116,7 @@ impl HttpProtocolBuilder {
         HttpProtocol {
             http_request_director,
             config,
-            client
+            client,
         }
     }
 }

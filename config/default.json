@@ -13,7 +13,7 @@
   },
   "http_config": {
     "host": "http://localhost:7001",
-    "auth_route": "/gateway/auth/AOTH"
+    "auth_path": "/gateway/auth/AOTH"
   },
   "my_files_config": {
     "db_path": "./my_files.db",

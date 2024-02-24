@@ -1,11 +1,11 @@
-use std::sync::{Arc, Mutex};
+use crate::agent_data::AgentData;
+use crate::file_info::FileInfo;
+use crate::my_files;
 use axum::extract::{Query, State};
 use axum::Json;
 use serde_derive::{Deserialize, Serialize};
-use crate::agent_data::AgentData;
-use crate::my_files;
-use crate::file_info::FileInfo;
-use tracing::{error};
+use std::sync::{Arc, Mutex};
+use tracing::error;
 
 #[derive(Clone)]
 pub struct AgentDataState {
@@ -27,7 +27,6 @@ pub struct GetFilesParams {
 pub struct Greeting {
     message: String,
 }
-
 
 pub async fn hello_world() -> Json<Greeting> {
     let greeting: Greeting = Greeting {
