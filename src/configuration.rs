@@ -28,7 +28,7 @@ pub struct ServerConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct HttpConfig {
     pub host: String,
-    pub auth_route: String
+    pub auth_path: String
 }
 
 #[derive(Debug, Deserialize)]
@@ -73,7 +73,7 @@ impl Default for Configuration {
             },
             http_config: HttpConfig {
                 host: String::from("http://localhost:7001"),
-                auth_route: String::from("/gateway/auth/aoth"),
+                auth_path: String::from("/gateway/auth/aoth"),
             },
             logger_config: LoggerConfig {
                 term_level: String::from("debug"),

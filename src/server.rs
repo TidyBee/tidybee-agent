@@ -2,11 +2,9 @@ use crate::agent_data::AgentData;
 use crate::my_files;
 use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
 use crate::http::routes::{MyFilesState, AgentDataState, get_files, get_status, hello_world};
-use crate::http::protocol::{HttpRequestBuilder, HttpResponse, RequestDirector};
-use axum::{routing::get, Json, Router, async_trait};
+use axum::{routing::get, Router, async_trait};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
-use std::future::Future;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -14,9 +12,6 @@ use tokio::net::TcpListener;
 use tower_http::trace::{self, TraceLayer};
 use tracing::{error, info, Level};
 // use std::env;
-use futures::future::BoxFuture;
-use log::Level::Debug;
-use reqwest::Client;
 use serde_json::Value;
 
 lazy_static! {
@@ -116,7 +111,7 @@ impl ServerBuilder {
 
 #[async_trait]
 pub trait Protocol {
-    async fn handle_post(&self, body: String) -> Json<HttpResponse>;
+    async fn handle_post(&self, body: String);
     fn dump(&self) -> Value;
 }
 
@@ -142,16 +137,9 @@ impl Server {
                 return;
             }
         };
-        // let client = Client::new();
-        // let http_request_builder = HttpRequestBuilder;
-        // let http_request_director = RequestDirector::new(http_request_builder);
-        // let http_request = http_request_director.construct("http://localhost:7001/gateway/auth/aoth".to_string(), "test".to_string());
-        // let response = client.post("http://localhost:7001/gateway/auth/aoth").json(&http_request).send().await;
-        // info!("Debug: protocol information : {:?}", protocol.handle_post("test".to_string()).await);
-        let reponse = protocol.handle_post("test".to_string()).await;
-        // let future_response: Box<dyn Future<Output = Json<HttpResponse>> + Send> = Box::new(protocol.handle_post("test".to_string()));
 
-        //TODO sending request to hub
+        info!("Handle post response : {:?}", protocol.handle_post("test".to_string()).await);
+
         // let uuid = response_body.uuid.clone();
         // env::set_var("AGENT_UUID", &uuid);
         // info!("Set AGENT_UUID env var with value : {:?}", &uuid);

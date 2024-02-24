@@ -1,12 +1,9 @@
-use axum::{async_trait, Json};
+use axum::{async_trait};
 use reqwest::Client;
 use serde_derive::{Deserialize, Serialize};
-use tracing::{error, info};
+use tracing::{info};
 use crate::configuration::HttpConfig;
 use crate::server::Protocol;
-use std::future::Future;
-use std::ops::Add;
-use futures::future::BoxFuture;
 use serde_json::{json, Value};
 
 #[derive(Deserialize, Debug)]
@@ -16,21 +13,21 @@ pub struct HttpResponse {
 
 #[derive(Debug, Serialize, Clone)]
 pub struct HttpRequest {
-    pub(crate) route: String,
+    pub(crate) path: String,
     pub(crate) body: String,
 }
 
 pub trait RequestBuilder {
-    fn build_request(&self, route: String, body: String) -> HttpRequest;
+    fn build_request(&self, path: String, body: String) -> HttpRequest;
 }
 
 #[derive(Clone)]
 pub struct HttpRequestBuilder;
 
 impl RequestBuilder for HttpRequestBuilder {
-    fn build_request(&self, route: String, body: String) -> HttpRequest {
+    fn build_request(&self, path: String, body: String) -> HttpRequest {
         HttpRequest {
-            route,
+            path,
             body,
         }
     }
@@ -52,8 +49,8 @@ impl<B: RequestBuilder> RequestDirector<B> {
         RequestDirector { builder }
     }
 
-    pub fn construct(&self, route: String, body: String) -> HttpRequest {
-        self.builder.build_request(route, body)
+    pub fn construct(&self, path: String, body: String) -> HttpRequest {
+        self.builder.build_request(path, body)
     }
 }
 
@@ -78,36 +75,20 @@ impl Default for HttpProtocolBuilder {
 
 #[async_trait]
 impl Protocol for HttpProtocol {
-    async fn handle_post(&self, body_request: String) -> Json<HttpResponse> {
+    async fn handle_post(&self, body_request: String) {
         info!("handle post called");
         let http_request_builder = HttpRequestBuilder;
         let http_request_director = RequestDirector::new(http_request_builder);
         let http_request = http_request_director.construct("http://localhost:7001/gateway/auth/aoth".to_string(), body_request.clone());
-
         let response = self.client.post("http://localhost:7001/gateway/auth/aoth").json(&http_request).send().await;
 
-        info!("Sending HttpRequest: {:?}", http_request);
-        match response {
-            Ok(response) => {
-                let body = response.json::<HttpResponse>().await;
-                match body {
-                    Ok(body) => Json(body),
-                    Err(_) => {
-                        error!("Error reading response body");
-                        panic!("Error reading response body")
-                    }
-                }
-            }
-            Err(_) => {
-                error!("Error sending POST request");
-                panic!("Error sending POST request")
-            }
-        }
+        info!("Sending : {:?}", http_request);
+        info!("Response: {:?}", response);
     }
     fn dump(&self) -> Value {
         let request = self.http_request_director.construct("http://localhost:7001/gateway/auth/aoth".to_string(), "test".to_string());
         let json_data = json!({
-            "route": self.config.auth_route.clone(),
+            "path": self.config.auth_path.clone(),
             "host": self.config.host.clone(),
             "request": request
         });
