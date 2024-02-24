@@ -10,7 +10,7 @@ mod tidy_rules;
 
 use http_server::HttpServerBuilder;
 use lazy_static::lazy_static;
-use notify::EventKind;
+use notify::{event::ModifyKind, EventKind};
 use std::{collections::HashMap, fs, path::PathBuf, thread};
 use tidy_algo::TidyAlgo;
 use tracing::{debug, error, info, Level};
@@ -123,41 +123,66 @@ fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_alg
                             my_files.set_tidyscore(file_path, file.tidy_score.as_ref().unwrap());
                     }
                     Err(error) => {
-                        error!("{:?}", error);
+                        error!("{error:?}");
                     }
                 }
             }
         }
         Err(error) => {
-            error!("{}", error);
+            error!("{error}");
         }
     }
 }
 
 fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
-    info!("event: kind: {:?}\tpaths: {:?}", event.kind, &event.paths);
-
-    if let EventKind::Remove(_) = event.kind {
+    if event.kind.is_remove() {
+        info!("File removed: {}", event.paths[0].display());
         if fs::metadata(event.paths[0].clone()).is_err() {
             match my_files.remove_file_from_db(event.paths[0].clone()) {
                 Ok(_) => {}
                 Err(error) => {
-                    error!("{:?}", error);
+                    error!("{error:?}");
                 }
             }
         } else {
+            error!(
+                "Trying to remove from the database a file that exists: {}",
+                event.paths[0].display()
+            );
         }
-    } else if let EventKind::Create(_) = event.kind {
+    } else if event.kind.is_create() {
+        info!("File created: {}", event.paths[0].display());
         if fs::metadata(event.paths[0].clone()).is_ok() {
             if let Some(file) = file_info::create_file_info(&event.paths[0].clone()) {
                 match my_files.add_file_to_db(&file) {
                     Ok(_) => {}
                     Err(error) => {
-                        error!("{:?}", error);
+                        error!("{error:?}");
                     }
                 }
             }
         } else {
+            error!(
+                "Trying to add in the database a file that does not exists: {}",
+                event.paths[0].display()
+            );
+        }
+    } else if event.kind.is_modify() {
+        match event.kind {
+            EventKind::Modify(ModifyKind::Metadata(_)) => {
+                info!("Metadata modifications: {}", event.paths[0].display());
+            }
+            EventKind::Modify(ModifyKind::Name(_)) => {
+                info!(
+                    "File moved: {} -> {}",
+                    event.paths[0].display(),
+                    event.paths[1].display()
+                );
+            }
+            EventKind::Modify(ModifyKind::Data(_)) => {
+                info!("File content modified: {}", event.paths[0].display());
+            }
+            _ => {}
         }
     }
 }
