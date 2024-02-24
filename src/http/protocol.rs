@@ -74,21 +74,22 @@ impl Default for HttpProtocolBuilder {
 impl Protocol for HttpProtocol {
     async fn handle_post(&self, body_request: String) {
         info!("handle post called");
+        let host_auth_path = self.config.host.clone() + &*self.config.auth_path.clone();
         let http_request_builder = HttpRequestBuilder;
         let http_request_director = RequestDirector::new(http_request_builder);
-        let http_request = http_request_director.construct(
-            "http://localhost:7001/gateway/auth/aoth".to_string(),
-            body_request.clone(),
+        let http_request = http_request_director.construct(host_auth_path.clone(),
+                                                           body_request.clone(),
         );
         let response = self
             .client
-            .post("http://localhost:7001/gateway/auth/aoth")
+            .post(host_auth_path)
             .json(&http_request)
             .send()
             .await;
         info!("Sending : {:?}", http_request);
         info!("Response: {:?}", response);
     }
+
     fn dump(&self) -> Value {
         let json_data = json!({
             "path": self.config.auth_path.clone(),
