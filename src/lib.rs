@@ -7,31 +7,54 @@ mod http;
 mod my_files;
 mod server;
 mod tidy_algo;
+mod tidy_rules;
 
 use crate::http::protocol::HttpProtocolBuilder;
-use crate::tidy_algo::tidy_algo::TidyAlgo;
+use lazy_static::lazy_static;
 use notify::EventKind;
 use server::ServerBuilder;
-use std::{path::PathBuf, thread};
-use tracing::{error, info};
+use std::{collections::HashMap, path::PathBuf, thread};
+use tidy_algo::TidyAlgo;
+use tracing::{debug, error, info, Level};
+
+lazy_static! {
+    static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {
+        let mut m = HashMap::new();
+        m.insert("trace".to_owned(), Level::TRACE);
+        m.insert("debug".to_owned(), Level::DEBUG);
+        m.insert("info".to_owned(), Level::INFO);
+        m.insert("warn".to_owned(), Level::WARN);
+        m.insert("error".to_owned(), Level::ERROR);
+        m
+    };
+}
 
 pub async fn run() {
+    info!("Command-line Arguments Parsed");
+    let config = configuration::Configuration::init();
+
+    let selected_cli_logger_level = match CLI_LOGGING_LEVEL.get(&config.logger_config.term_level) {
+        Some(level) => level.to_owned(),
+        None => Level::INFO,
+    };
     match std::env::var("TIDY_BACKTRACE") {
         Ok(env) => {
             if env == "1" {
-                tracing_subscriber::fmt().with_target(true).pretty().init();
+                tracing_subscriber::fmt()
+                    .with_target(true)
+                    .with_max_level(selected_cli_logger_level)
+                    .pretty()
+                    .init();
             }
         }
         Err(_) => {
             tracing_subscriber::fmt()
                 .with_target(false)
+                .with_max_level(selected_cli_logger_level)
                 .compact()
                 .init();
         }
     };
-
-    info!("Command-line Arguments Parsed");
-    let config = configuration::Configuration::init();
 
     let my_files_builder = my_files::MyFilesBuilder::new()
         .configure(config.my_files_config)
@@ -43,13 +66,16 @@ pub async fn run() {
     info!("MyFilesDB sucessfully initialized");
 
     let mut tidy_algo = TidyAlgo::new();
-    let basic_ruleset_path: PathBuf = [r"config", r"rules", r"basic.yml"].iter().collect();
+    let basic_ruleset_path: PathBuf = vec![r"config", r"rules", r"basic.yml"].iter().collect();
     info!("TidyAlgo sucessfully created");
-    tidy_algo.load_rules_from_file(&my_files, basic_ruleset_path);
-    info!("TidyAlgo sucessfully loaded rules from config/rules/basic.yml");
+    match tidy_algo.load_rules_from_file(&my_files, basic_ruleset_path) {
+        Ok(loaded_rules_amt) => info!(
+            "TidyAlgo sucessfully loaded {loaded_rules_amt} rules from config/rules/basic.yml"
+        ),
+        Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
+    };
 
-    list_directories(config.file_lister_config.dir, &my_files);
-    info!("Directory Successfully Listed");
+    list_directories(config.file_lister_config.dir, &my_files, &tidy_algo);
 
     let server = ServerBuilder::new()
         .my_files_builder(my_files_builder)
@@ -84,12 +110,22 @@ pub async fn run() {
     file_watcher_thread.join().unwrap();
 }
 
-fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles) {
+fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
     match file_lister::list_directories(config) {
-        Ok(files_vec) => {
-            for file in &files_vec {
+        Ok(mut files_vec) => {
+            for file in &mut files_vec {
                 match my_files.add_file_to_db(file) {
-                    Ok(_) => {}
+                    Ok(_) => {
+                        tidy_algo.apply_rules(file, &my_files);
+                        debug!(
+                            "{} TidyScore after all rules applied: {:?}",
+                            file.path.display(),
+                            file.tidy_score
+                        );
+                        let file_path = file.path.clone();
+                        let _ =
+                            my_files.set_tidyscore(file_path, &file.tidy_score.as_ref().unwrap());
+                    }
                     Err(error) => {
                         error!("{:?}", error);
                     }
