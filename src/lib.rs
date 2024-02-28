@@ -9,7 +9,7 @@ mod server;
 mod tidy_algo;
 mod tidy_rules;
 
-use crate::http::protocol::HttpProtocolBuilder;
+use crate::http::hub::HubBuilder;
 use lazy_static::lazy_static;
 use notify::EventKind;
 use server::ServerBuilder;
@@ -88,7 +88,7 @@ pub async fn run() {
         );
     info!("Server build");
 
-    let http_protocol = HttpProtocolBuilder::new().build(config.http_config);
+    let http_protocol = HubBuilder::new().build(config.http_config);
 
     tokio::spawn(async move {
         server.start(http_protocol).await;

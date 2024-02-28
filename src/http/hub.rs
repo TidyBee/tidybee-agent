@@ -1,5 +1,5 @@
+use std::env;
 use crate::configuration::HttpConfig;
-use crate::server::Protocol;
 use axum::async_trait;
 use reqwest::Client;
 use serde_derive::{Deserialize, Serialize};
@@ -52,26 +52,47 @@ impl<B: RequestBuilder> RequestDirector<B> {
 }
 
 #[derive(Clone)]
-pub struct HttpProtocol {
+pub struct Hub {
     http_request_director: RequestDirector<HttpRequestBuilder>,
     config: HttpConfig,
     client: Client,
 }
 
-pub struct HttpProtocolBuilder {
+pub struct HubBuilder {
     http_request_builder: HttpRequestBuilder,
 }
 
-impl Default for HttpProtocolBuilder {
+impl Default for HubBuilder {
     fn default() -> Self {
-        HttpProtocolBuilder {
+        HubBuilder {
             http_request_builder: HttpRequestBuilder::default(),
         }
     }
 }
 
-#[async_trait]
-impl Protocol for HttpProtocol {
+impl Hub {
+    async fn connect(&self) {
+        let uuid = env::var("AGENT_UUID").unwrap_or_else(|_| "default_value".to_string());
+
+        let url = if uuid != "default_value" {
+            self.config.host.clone() + &*self.config.auth_path + "/" + &*uuid
+        } else {
+            self.config.host.clone() + &*self.config.auth_path
+        };
+
+        let client = Client::new();
+        let response = client.post(url)
+            .body("body_req")
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            info!("Request successfully send");
+        } else {
+            info!("Error sending request");
+        }
+    }
+
     async fn handle_post(&self, body_request: String) {
         info!("handle post called");
         let host_auth_path = self.config.host.clone() + &*self.config.auth_path.clone();
@@ -90,26 +111,25 @@ impl Protocol for HttpProtocol {
         info!("Response: {:?}", response);
     }
 
-    fn dump(&self) -> Value {
-        let json_data = json!({
+    fn config_dump(&self) -> Value {
+        json!({
             "path": self.config.auth_path.clone(),
             "host": self.config.host.clone(),
-        });
-        return json_data;
+        })
     }
 }
 
-impl HttpProtocolBuilder {
+impl HubBuilder {
     pub fn new() -> Self {
-        HttpProtocolBuilder::default()
+        HubBuilder::default()
     }
 
-    pub fn build(self, config: HttpConfig) -> HttpProtocol {
+    pub fn build(self, config: HttpConfig) -> Hub {
         let http_request_builder = HttpRequestBuilder;
         let http_request_director = RequestDirector::new(http_request_builder);
         let client = Client::new();
 
-        HttpProtocol {
+        Hub {
             http_request_director,
             config,
             client,

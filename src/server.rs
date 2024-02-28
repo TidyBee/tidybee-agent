@@ -2,7 +2,7 @@ use crate::agent_data::AgentData;
 use crate::http::routes::{get_files, get_status, hello_world, AgentDataState, MyFilesState};
 use crate::my_files;
 use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
-use axum::{async_trait, routing::get, Router};
+use axum::{routing::get, Router};
 use lazy_static::lazy_static;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -108,17 +108,8 @@ impl ServerBuilder {
     }
 }
 
-#[async_trait]
-pub trait Protocol {
-    async fn handle_post(&self, body: String);
-    fn dump(&self) -> Value;
-}
-
 impl Server {
-    pub async fn start<T>(self, protocol: T)
-    where
-        T: Protocol,
-    {
+    pub async fn start(self) {
         let addr: SocketAddr = match self.address.parse() {
             Ok(addr) => addr,
             Err(_) => {
