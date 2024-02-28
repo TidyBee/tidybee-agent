@@ -45,7 +45,7 @@ trait ServerConfig {
 
 impl ServerBuilder {
     pub fn new() -> Self {
-        ServerBuilder::default()
+        Self::default()
     }
 
     pub fn my_files_builder(
@@ -66,7 +66,7 @@ impl ServerBuilder {
         minimal_version: String,
         dirs_watch: Vec<PathBuf>,
         address: String,
-        logging_level: String,
+        logging_level: &str,
     ) -> Server {
         let my_files_instance = self.my_files_builder.build().unwrap();
         info!("MyFiles instance successfully created for HTTP Server");
@@ -81,7 +81,7 @@ impl ServerBuilder {
             ))),
         };
 
-        let server_logging_level: Level = AGENT_LOGGING_LEVEL.get(&logging_level).map_or_else(
+        let server_logging_level: Level = AGENT_LOGGING_LEVEL.get(logging_level).map_or_else(
             || {
                 error!(
                     "Invalid logging level: {}. Defaulting to info.",
@@ -113,7 +113,7 @@ impl Server {
         let addr: SocketAddr = match self.address.parse() {
             Ok(addr) => addr,
             Err(_) => {
-                let default_config: Server = Server::default();
+                let default_config: Self = Self::default();
                 error!(
                     "Invalid host or port: {}, defaulting to {}",
                     self.address, default_config.address
