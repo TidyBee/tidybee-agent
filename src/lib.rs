@@ -168,6 +168,31 @@ fn safe_add_file_to_db(path: PathBuf, my_files: &my_files::MyFiles) {
     }
 }
 
+fn update_last_file_access(path: PathBuf, my_files: &my_files::MyFiles) {
+    match fs::metadata(path) {
+        Ok(md) => {
+            let size: u64 = md.len();
+            let last_modified: SystemTime = md.modified().ok()?;
+            let last_accessed: SystemTime = md.accessed().ok()?;
+            let file_signature = get_file_signature(path);
+
+            Some(FileInfo {
+                pretty_path: path.clone(),
+                path: fix_canonicalize_path(fs::canonicalize(path).unwrap()),
+                size,
+                hash: Some(file_signature.to_string()),
+                last_modified,
+                last_accessed,
+                ..Default::default()
+            })
+        }
+        Err(err) => {
+            warn!("Could not get access to {:?} metadata: {}", path, err);
+            None
+        }
+    }
+}
+
 fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
     if event.kind.is_remove() {
         info!("File removed: {}", event.paths[0].display());
