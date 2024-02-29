@@ -37,7 +37,7 @@ pub struct HubConfig {
     pub port: String,
     pub protocol: String,
     pub auth_path: String,
-    pub disconnect_path: String
+    pub disconnect_path: String,
 }
 
 #[derive(Debug, Deserialize)]

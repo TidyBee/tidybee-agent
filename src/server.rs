@@ -116,9 +116,9 @@ impl Server {
             Err(_) => {
                 let default_config: Self = Self::default();
                 error!(
-                "Invalid host or port: {}, defaulting to {}",
-                self.address, default_config.address
-            );
+                    "Invalid host or port: {}, defaulting to {}",
+                    self.address, default_config.address
+                );
                 default_config.address.parse().unwrap()
             }
         };

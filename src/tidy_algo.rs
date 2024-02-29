@@ -7,7 +7,7 @@ use config::{Config, ConfigError, File, Value};
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::{self, PathBuf};
-use tracing::{debug};
+use tracing::debug;
 
 /// Represents a rule that can be applied to a file
 #[allow(dead_code)]

@@ -1,9 +1,9 @@
 use crate::configuration::HubConfig;
+use anyhow::Error;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
 use std::env;
 use tracing::{debug, info, warn};
-use anyhow::Error;
 
 const MAX_RETRIES: u32 = 30;
 
@@ -52,16 +52,20 @@ impl Hub {
                     if response.status().is_success() {
                         return match response.text().await {
                             Ok(text) => {
-                                info!("Successfully connected the agent to the Hub with id: {}", text);
+                                info!(
+                                    "Successfully connected the agent to the Hub with id: {}",
+                                    text
+                                );
                                 env::set_var("AGENT_UUID", text);
                                 Ok(())
                             }
                             Err(err) => {
                                 warn!("Parsing error : {}", err);
-                                Err(Error::msg("Failed to parse response from Hub when authenticating."))
+                                Err(Error::msg(
+                                    "Failed to parse response from Hub when authenticating.",
+                                ))
                             }
-                        }
-
+                        };
                     }
                 }
                 Err(e) => {
@@ -70,6 +74,8 @@ impl Hub {
             }
             tries += 1;
         }
-        Err(Error::msg("Maximum number of retries reached without success."))
+        Err(Error::msg(
+            "Maximum number of retries reached without success.",
+        ))
     }
 }
