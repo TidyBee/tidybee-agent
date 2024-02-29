@@ -3,6 +3,7 @@ use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
 use std::env;
 use tracing::{debug, info, warn};
+use anyhow::Error;
 
 const MAX_RETRIES: u32 = 30;
 
@@ -17,12 +18,11 @@ impl Hub {
 
         Self {
             config: hub_config,
-            http_client: http_client,
+            http_client,
         }
     }
 
-    //// Change with anyhow and this error when implemented
-    pub async fn connect(&self) {
+    pub async fn connect(&self) -> Result<(), Error> {
         let agent_uuid = env::var("AGENT_UUID");
         let base_url = format!(
             "{}://{}:{}",
@@ -60,7 +60,7 @@ impl Hub {
                                 warn!("Failed to parse response from Hub when authenticating, {}", err);
                             }
                         }
-                        return; 
+                        return Ok(());
                     }
                 }
                 Err(e) => {
@@ -69,5 +69,6 @@ impl Hub {
             }
             tries += 1;
         }
+        Err(Error::msg("The agent can't connect to the hub : maximum number of retries reached without success."))
     }
 }

@@ -4,7 +4,6 @@ use crate::my_files;
 use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
 use axum::{routing::get, Router};
 use lazy_static::lazy_static;
-use serde_json::Value;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -12,8 +11,6 @@ use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 use tower_http::trace::{self, TraceLayer};
 use tracing::{error, info, Level};
-use crate::configuration::HttpConfig;
-// use crate::http::hub::{Hub, HubBuilder};
 
 lazy_static! {
     static ref AGENT_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -132,15 +129,6 @@ impl Server {
                 return;
             }
         };
-
-        // match self.hub.connect().await {
-        //     Ok(..) => {
-        //         info!("Http Server running at {}", addr.to_string());
-        //         axum::serve(tcp_listener, self.router).await.unwrap();
-        //     }
-        //     Err(err) => {
-        //         error!("Connection is not possible. The server may not be running. Error: {}", err);
-        //     }
-        // }
+        axum::serve(tcp_listener, self.router).await.unwrap();
     }
 }

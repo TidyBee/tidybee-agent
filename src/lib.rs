@@ -95,7 +95,7 @@ pub async fn run() {
     });
     info!("Server Started");
 
-    hub_client.connect().await;
+    let _ = hub_client.connect().await;
 
     let (file_watcher_sender, file_watcher_receiver) = crossbeam_channel::unbounded();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
