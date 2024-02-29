@@ -60,16 +60,16 @@ pub async fn run() {
         .seal();
 
     let my_files: my_files::MyFiles = my_files_builder.build().unwrap();
-    info!("MyFilesDB sucessfully created");
+    info!("MyFilesDB successfully created");
     my_files.init_db().unwrap();
-    info!("MyFilesDB sucessfully initialized");
+    info!("MyFilesDB successfully initialized");
 
     let mut tidy_algo = TidyAlgo::new();
     let basic_ruleset_path: PathBuf = vec![r"config", r"rules", r"basic.yml"].iter().collect();
-    info!("TidyAlgo sucessfully created");
+    info!("TidyAlgo successfully created");
     match tidy_algo.load_rules_from_file(&my_files, basic_ruleset_path) {
         Ok(loaded_rules_amt) => info!(
-            "TidyAlgo sucessfully loaded {loaded_rules_amt} rules from config/rules/basic.yml"
+            "TidyAlgo successfully loaded {loaded_rules_amt} rules from config/rules/basic.yml"
         ),
         Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
     };

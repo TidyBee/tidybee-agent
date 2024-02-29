@@ -103,8 +103,6 @@ impl ServerBuilder {
                     .on_failure(trace::DefaultOnFailure::new().level(Level::ERROR)),
             );
 
-        // let hub = HubBuilder::new().build(http_config);
-
         Server { address, router }
     }
 }
