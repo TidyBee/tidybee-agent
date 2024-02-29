@@ -5,8 +5,6 @@ use reqwest::Client;
 use std::env;
 use tracing::{debug, info, warn};
 
-const MAX_RETRIES: u32 = 30;
-
 pub struct Hub {
     config: HubConfig,
     http_client: Client,
@@ -39,7 +37,7 @@ impl Hub {
         };
 
         let mut tries = 0;
-        while tries < MAX_RETRIES {
+        while tries < self.config.connection_attempt_limit {
             let response = self
                 .http_client
                 .post(&url)

@@ -38,6 +38,7 @@ pub struct HubConfig {
     pub protocol: String,
     pub auth_path: String,
     pub disconnect_path: String,
+    pub connection_attempt_limit: u32
 }
 
 #[derive(Debug, Deserialize)]
@@ -86,11 +87,8 @@ impl Default for Configuration {
                 protocol: String::from("http"),
                 auth_path: String::from("/gateway/auth/AOTH"),
                 disconnect_path: String::from("/gateway/auth/AOTH/{agent_id}/disconnect"),
+                connection_attempt_limit: 30,
             },
-            // http_config: HttpConfig {
-            //     host: String::from("http://localhost:7001"),
-            //     auth_path: String::from("/gateway/auth/aoth"),
-            // },
             logger_config: LoggerConfig {
                 term_level: String::from("debug"),
                 file_level: String::from("warn"),

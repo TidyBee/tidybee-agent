@@ -16,7 +16,8 @@
     "port": "7001",
     "protocol": "http",
     "auth_path": "/gateway/auth/AOTH",
-    "disconnect_path": "/gateway/auth/AOTH/{agent_id}/disconnect"
+    "disconnect_path": "/gateway/auth/AOTH/{agent_id}/disconnect",
+    "connection_attempt_config": 30
   },
   "my_files_config": {
     "db_path": "./my_files.db",
