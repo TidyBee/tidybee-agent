@@ -37,7 +37,6 @@ impl Hub {
                 format!("{}{}", base_url, self.config.auth_path)
             }
         };
-        debug!("Hub AUTH URL {:?}", url);
 
         let mut tries = 0;
         while tries < MAX_RETRIES {
@@ -51,16 +50,18 @@ impl Hub {
             match response {
                 Ok(response) => {
                     if response.status().is_success() {
-                        match response.text().await {
+                        return match response.text().await {
                             Ok(text) => {
                                 info!("Successfully connected the agent to the Hub with id: {}", text);
                                 env::set_var("AGENT_UUID", text);
+                                Ok(())
                             }
                             Err(err) => {
-                                warn!("Failed to parse response from Hub when authenticating, {}", err);
+                                warn!("Parsing error : {}", err);
+                                Err(Error::msg("Failed to parse response from Hub when authenticating."))
                             }
                         }
-                        return Ok(());
+
                     }
                 }
                 Err(e) => {
@@ -69,6 +70,6 @@ impl Hub {
             }
             tries += 1;
         }
-        Err(Error::msg("The agent can't connect to the hub : maximum number of retries reached without success."))
+        Err(Error::msg("Maximum number of retries reached without success."))
     }
 }

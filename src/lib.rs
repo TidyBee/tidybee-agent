@@ -95,7 +95,9 @@ pub async fn run() {
     });
     info!("Server Started");
 
-    let _ = hub_client.connect().await;
+    if let Err(err) = hub_client.connect().await {
+        error!("Error connecting to the hub: {}", err);
+    }
 
     let (file_watcher_sender, file_watcher_receiver) = crossbeam_channel::unbounded();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
