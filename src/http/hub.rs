@@ -81,9 +81,9 @@ impl Hub {
         let uuid = env::var("AGENT_UUID").unwrap_or_else(|_| "default_value".to_string());
 
         let url = if uuid == "default_value" {
-            self.config.host.clone() + &*self.config.auth_path + "/" + &*uuid
-        } else {
             self.config.host.clone() + &*self.config.auth_path
+        } else {
+            self.config.host.clone() + &*self.config.auth_path + "/" + &*uuid
         };
 
         debug!("Defined url : {:?}", url);
