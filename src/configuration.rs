@@ -38,7 +38,7 @@ pub struct HubConfig {
     pub protocol: String,
     pub auth_path: String,
     pub disconnect_path: String,
-    pub connection_attempt_limit: u32
+    pub connection_attempt_limit: u32,
 }
 
 #[derive(Debug, Deserialize)]
