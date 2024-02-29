@@ -85,13 +85,12 @@ pub async fn run() {
             config.file_watcher_config.dir.clone(),
             config.server_config.address,
             &config.server_config.log_level,
+            config.http_config,
         );
     info!("Server build");
 
-    let http_protocol = HubBuilder::new().build(config.http_config);
-
     tokio::spawn(async move {
-        server.start(http_protocol).await;
+        server.start().await;
     });
     info!("Server Started");
 
