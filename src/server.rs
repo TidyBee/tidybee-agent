@@ -13,7 +13,7 @@ use tokio::net::TcpListener;
 use tower_http::trace::{self, TraceLayer};
 use tracing::{error, info, Level};
 use crate::configuration::HttpConfig;
-use crate::http::hub::{Hub, HubBuilder};
+// use crate::http::hub::{Hub, HubBuilder};
 
 lazy_static! {
     static ref AGENT_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -31,7 +31,6 @@ lazy_static! {
 pub struct Server {
     address: String,
     router: Router,
-    hub: Hub
 }
 
 #[derive(Clone, Default)]
@@ -70,7 +69,6 @@ impl ServerBuilder {
         dirs_watch: Vec<PathBuf>,
         address: String,
         logging_level: &str,
-        http_config: HttpConfig,
     ) -> Server {
         let my_files_instance = self.my_files_builder.build().unwrap();
         info!("MyFiles instance successfully created for HTTP Server");
@@ -108,9 +106,9 @@ impl ServerBuilder {
                     .on_failure(trace::DefaultOnFailure::new().level(Level::ERROR)),
             );
 
-        let hub = HubBuilder::new().build(http_config);
+        // let hub = HubBuilder::new().build(http_config);
 
-        Server { address, router, hub }
+        Server { address, router }
     }
 }
 
@@ -135,14 +133,14 @@ impl Server {
             }
         };
 
-        match self.hub.connect().await {
-            Ok(..) => {
-                info!("Http Server running at {}", addr.to_string());
-                axum::serve(tcp_listener, self.router).await.unwrap();
-            }
-            Err(err) => {
-                error!("Connection is not possible. The server may not be running. Error: {}", err);
-            }
-        }
+        // match self.hub.connect().await {
+        //     Ok(..) => {
+        //         info!("Http Server running at {}", addr.to_string());
+        //         axum::serve(tcp_listener, self.router).await.unwrap();
+        //     }
+        //     Err(err) => {
+        //         error!("Connection is not possible. The server may not be running. Error: {}", err);
+        //     }
+        // }
     }
 }

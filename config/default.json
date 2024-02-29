@@ -11,9 +11,12 @@
     "log_level": "info",
     "address": "0.0.0.0:8111"
   },
-  "http_config": {
-    "host": "http://localhost:7001",
-    "auth_path": "/gateway/auth/AOTH"
+  "hub_config": {
+    "host": "localhost",
+    "port": "7001",
+    "protocol": "http",
+    "auth_path": "/gateway/auth/AOTH",
+    "disconnect_path": "/gateway/auth/AOTH/{agent_id}/disconnect"
   },
   "my_files_config": {
     "db_path": "./my_files.db",

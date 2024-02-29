@@ -9,7 +9,6 @@ mod server;
 mod tidy_algo;
 mod tidy_rules;
 
-use crate::http::hub::HubBuilder;
 use lazy_static::lazy_static;
 use notify::EventKind;
 use server::ServerBuilder;
@@ -85,14 +84,18 @@ pub async fn run() {
             config.file_watcher_config.dir.clone(),
             config.server_config.address,
             &config.server_config.log_level,
-            config.http_config,
         );
     info!("Server build");
+
+    let hub_client = http::hub::Hub::new(config.hub_config.clone());
+    info!("Hub Client Created");
 
     tokio::spawn(async move {
         server.start().await;
     });
     info!("Server Started");
+
+    hub_client.connect().await;
 
     let (file_watcher_sender, file_watcher_receiver) = crossbeam_channel::unbounded();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {

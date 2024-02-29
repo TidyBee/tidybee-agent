@@ -31,6 +31,15 @@ pub struct HttpConfig {
     pub auth_path: String,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct HubConfig {
+    pub host: String,
+    pub port: String,
+    pub protocol: String,
+    pub auth_path: String,
+    pub disconnect_path: String
+}
+
 #[derive(Debug, Deserialize)]
 pub struct LoggerConfig {
     pub term_level: String,
@@ -51,7 +60,7 @@ pub struct Configuration {
     pub server_config: ServerConfig,
     pub logger_config: LoggerConfig,
     pub my_files_config: MyFilesConfiguration,
-    pub http_config: HttpConfig,
+    pub hub_config: HubConfig,
 }
 
 impl Default for Configuration {
@@ -71,10 +80,17 @@ impl Default for Configuration {
                 address: String::from("0.0.0.0:8111"),
                 log_level: String::from("info"),
             },
-            http_config: HttpConfig {
-                host: String::from("http://localhost:7001"),
-                auth_path: String::from("/gateway/auth/aoth"),
+            hub_config: HubConfig {
+                host: String::from("localhost"),
+                port: String::from("7001"),
+                protocol: String::from("http"),
+                auth_path: String::from("/gateway/auth/AOTH"),
+                disconnect_path: String::from("/gateway/auth/AOTH/{agent_id}/disconnect"),
             },
+            // http_config: HttpConfig {
+            //     host: String::from("http://localhost:7001"),
+            //     auth_path: String::from("/gateway/auth/aoth"),
+            // },
             logger_config: LoggerConfig {
                 term_level: String::from("debug"),
                 file_level: String::from("warn"),
