@@ -3,7 +3,7 @@ use anyhow::{Error, bail};
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
 use std::env;
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 pub struct Hub {
     config: HubConfig,
@@ -20,7 +20,7 @@ impl Hub {
         }
     }
 
-    pub async fn connect(&self) -> Result<(), Error> {
+    pub async fn connect(&self) -> Result<String, Error> {
         let agent_uuid = env::var("AGENT_UUID");
         let base_url = format!(
             "{}://{}:{}",
@@ -54,13 +54,13 @@ impl Hub {
                                     "Successfully connected the agent to the Hub with id: {}",
                                     text
                                 );
-                                env::set_var("AGENT_UUID", text);
-                                Ok(())
+                                env::set_var("AGENT_UUID", &text);
+                                Ok(text)
                             }
                             Err(err) => {
                                 warn!("Parsing error : {}", err);
                                 bail!(
-                                    "Failed to parse response from Hub when authenticating.",
+                                    "Failed to parse response from Hub when authenticating",
                                 )
                             }
                         };
