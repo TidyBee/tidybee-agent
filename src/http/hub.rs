@@ -1,5 +1,5 @@
 use crate::configuration::HubConfig;
-use anyhow::Error;
+use anyhow::{Error, bail};
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
 use std::env;
@@ -59,9 +59,9 @@ impl Hub {
                             }
                             Err(err) => {
                                 warn!("Parsing error : {}", err);
-                                Err(Error::msg(
+                                bail!(
                                     "Failed to parse response from Hub when authenticating.",
-                                ))
+                                )
                             }
                         };
                     }
@@ -72,8 +72,6 @@ impl Hub {
             }
             tries += 1;
         }
-        Err(Error::msg(
-            "Maximum number of retries reached without success.",
-        ))
+        bail!("Maximum number of retries reached without success")
     }
 }
