@@ -5,4 +5,5 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends pkg-config=0.29-6 libssl-dev=1.1.1n-0+deb10u6 \
     && rm -rf /var/lib/apt/lists/* \
     && cargo build
+ENV TIDY_ENV="docker"
 CMD ["./target/debug/tidybee-agent"]
