@@ -1,7 +1,7 @@
 {
   "hub_config": {
     "host": "hub-api-gateway",
-    "port": "7001",
+    "port": "80",
     "protocol": "http",
     "auth_path": "/gateway/auth/AOTH",
     "disconnect_path": "/gateway/auth/AOTH/{agent_id}/disconnect",
