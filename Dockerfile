@@ -6,5 +6,5 @@ RUN --mount=type=cache,target=/var/cache/apt \
     && rm -rf /var/lib/apt/lists/*
 EXPOSE 8111
 COPY . .
-RUN --mount=type=cache,target=/app/target/ cargo build --release
+RUN cargo build --release
 CMD ["./target/release/tidybee-agent"]
