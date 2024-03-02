@@ -1,5 +1,6 @@
 use config::{Config, File};
 use serde_derive::{Deserialize, Serialize};
+use tracing::info;
 use std::env::var as env_var;
 use std::path::{Path, PathBuf};
 
@@ -104,6 +105,8 @@ impl Default for Configuration {
 impl Configuration {
     pub fn init() -> Self {
         let env = env_var("TIDY_ENV").unwrap_or_else(|_| "development".into());
+
+        info!("Loading configuration for environment: {}", env);
 
         let builder = Config::builder()
             .add_source(File::from(Path::new("config/default.json")))
