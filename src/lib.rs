@@ -95,9 +95,18 @@ pub async fn run() {
     });
     info!("Server Started");
 
-    if let Err(err) = hub_client.connect().await {
-        error!("Error connecting to the hub: {}", err);
-    }
+    tokio::spawn(async move {
+        let mut timeout = 5;
+        loop {
+            tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
+            if let Err(err) = hub_client.connect().await {
+                error!("Error connecting to the hub: {}, retrying in {}", err, timeout * 2);
+            } else {
+                break;
+            }
+            timeout *= 2;
+        }
+    });
 
     let (file_watcher_sender, file_watcher_receiver) = crossbeam_channel::unbounded();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
