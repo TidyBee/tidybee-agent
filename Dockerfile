@@ -5,4 +5,4 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 COPY . .
 RUN cargo build --release
-CMD ["./target/debug/tidybee-agent"]
+CMD ["./target/release/tidybee-agent"]
