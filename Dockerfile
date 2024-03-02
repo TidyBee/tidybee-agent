@@ -4,6 +4,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
     apt-get update \
     && apt-get install -y --no-install-recommends pkg-config=0.29-6 libssl-dev=1.1.1n-0+deb10u6 \
     && rm -rf /var/lib/apt/lists/*
+EXPOSE 8111
 COPY . .
-RUN --mount=type=cache,target=/var/cache/cargo cargo build --release
+RUN cargo build --release
 CMD ["./target/release/tidybee-agent"]
