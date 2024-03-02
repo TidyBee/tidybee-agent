@@ -1,5 +1,6 @@
-use crate::configuration::HubConfig;
+use crate::{configuration::HubConfig};
 use anyhow::{Error, bail};
+use gethostname::gethostname;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
 use std::env;
@@ -36,13 +37,26 @@ impl Hub {
             }
         };
 
+        let agent_connection_data = format!(
+            r#"
+            {{
+                "Metadata": {{}},
+                "ConnectionModel": {{
+                    "address": "{}",
+                    "port": "8111"
+                }}
+            }}"#,
+            gethostname().to_str().unwrap(),
+        );
+
+
         let mut tries = 0;
         while tries < self.config.connection_attempt_limit {
             let response = self
                 .http_client
                 .post(&url)
                 .header(CONTENT_TYPE, "application/json")
-                .json("{}")
+                .json(&agent_connection_data)
                 .send()
                 .await;
             match response {
