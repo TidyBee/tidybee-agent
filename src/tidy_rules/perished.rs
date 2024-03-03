@@ -1,5 +1,6 @@
 use chrono::{DateTime, Duration, Utc};
 use config::Value;
+use log::{debug, info};
 use std::collections::HashMap;
 use tracing::warn;
 
@@ -60,6 +61,13 @@ pub fn apply_perished(
     let last_accessed: DateTime<Utc> = file_info.last_accessed.into();
     let perished: bool = last_accessed < expiration_date;
 
+    if perished {
+        tracing::debug!(
+            "Found a new perished file {:?} with hashs {}",
+            file_info.path.clone(),
+            file_info.hash.clone().unwrap(),
+        );
+    }
     match tidy_score {
         Some(mut score) => {
             score.unused = perished;

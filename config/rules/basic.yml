@@ -7,7 +7,7 @@ rules:
     log: warn
   - name: Rule 2
     type: perished
-    expiration_duration: "+2 years"
+    expiration_duration: "+1 days"
     scope: tests/assets/test_folder
     log: log
   - name: Rule 3
