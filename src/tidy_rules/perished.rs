@@ -1,6 +1,6 @@
-use chrono::{DateTime, Utc, Duration};
-use std::collections::HashMap;
+use chrono::{DateTime, Duration, Utc};
 use config::Value;
+use std::collections::HashMap;
 use tracing::warn;
 
 use crate::{
@@ -22,7 +22,9 @@ fn parse_duration(duration_str: String) -> Result<Duration, Box<dyn std::error::
     Ok(duration)
 }
 
-fn calculate_expiration_date(expiration_duration: String) -> Result<DateTime<Utc>, Box<dyn std::error::Error>> {
+fn calculate_expiration_date(
+    expiration_duration: String,
+) -> Result<DateTime<Utc>, Box<dyn std::error::Error>> {
     let expiration_duration = parse_duration(expiration_duration)?;
     let now = Utc::now();
     let expiration_date = now + expiration_duration;
@@ -48,7 +50,8 @@ pub fn apply_perished(
             return TidyScore::new(false, false, None);
         }
     };
-    let max_retention_date = calculate_expiration_date(expiration_duration).expect("Error while computing date time");
+    let max_retention_date =
+        calculate_expiration_date(expiration_duration).expect("Error while computing date time");
     let last_accessed: DateTime<Utc> = file_info.last_accessed.into();
     let perished: bool = last_accessed < max_retention_date;
 
@@ -67,5 +70,3 @@ pub fn apply_perished(
         }
     }
 }
-
-
