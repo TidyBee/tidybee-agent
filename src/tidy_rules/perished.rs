@@ -50,7 +50,7 @@ pub fn apply_perished(
             return TidyScore::new(false, false, None);
         }
     };
-    let max_retention_date = match calculate_expiration_date(expiration_duration) {
+    let expiration_date = match calculate_expiration_date(expiration_duration) {
         Ok(d) => d,
         Err(e) => {
             warn!("Error while computing date time : {}", e);
@@ -58,7 +58,7 @@ pub fn apply_perished(
         }
     };
     let last_accessed: DateTime<Utc> = file_info.last_accessed.into();
-    let perished: bool = last_accessed < max_retention_date;
+    let perished: bool = last_accessed < expiration_date;
 
     match tidy_score {
         Some(mut score) => {
@@ -67,7 +67,7 @@ pub fn apply_perished(
             tidy_score.unwrap()
         }
         None => {
-            if last_accessed < max_retention_date {
+            if last_accessed < expiration_date {
                 TidyScore::new(false, false, None)
             } else {
                 TidyScore::new(false, true, None)
