@@ -63,7 +63,7 @@ pub fn apply_perished(
 
     if perished {
         tracing::debug!(
-            "Found a new perished file {:?} with hashs {}",
+            "Found a new perished file {:?} with hash {}",
             file_info.path.clone(),
             file_info.hash.clone().unwrap(),
         );
