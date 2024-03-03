@@ -7,7 +7,7 @@ use config::{Config, ConfigError, File, Value};
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::{self, PathBuf};
-use tracing::{debug, info};
+use tracing::{debug};
 
 /// Represents a rule that can be applied to a file
 #[allow(dead_code)]
@@ -73,7 +73,7 @@ impl TidyAlgo {
         let scope = get_string_from_table_safe(&table, "scope")?;
         let apply_type = get_string_from_table_safe(&table, "type")?;
         let apply = match apply_type.as_str() {
-            "duplicated" => duplicated::aply_duplicated,
+            "duplicated" => duplicated::apply_duplicated,
             "misnamed" => misnamed::apply_misnamed,
             "perished" => perished::apply_perished,
             fallback => return Err(format!("Could not load rule with type {}", fallback).into()),

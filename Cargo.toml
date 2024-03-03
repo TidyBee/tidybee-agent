@@ -29,6 +29,7 @@ tower-http = { version = "0.5.1", features = ["trace"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 xxhash-rust = { version = "0.8.8", features = ["xxh3"] }
+serde_yaml = "0.9.32"
 
 [dev-dependencies]
 ctor = "0.2.5"

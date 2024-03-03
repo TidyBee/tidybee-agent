@@ -1,6 +1,6 @@
-use chrono::{DateTime, Utc};
-use config::Value;
+use chrono::{DateTime, Utc, Duration};
 use std::collections::HashMap;
+use config::Value;
 use tracing::warn;
 
 use crate::{
@@ -8,13 +8,34 @@ use crate::{
     my_files::MyFiles,
 };
 
+fn parse_duration(duration_str: String) -> Result<Duration, Box<dyn std::error::Error>> {
+    let parts: Vec<&str> = duration_str.split_whitespace().collect();
+    let duration: i64 = parts[0].parse()?;
+    let unit = parts[1];
+    let duration = match unit {
+        "days" => Duration::days(duration),
+        "weeks" => Duration::weeks(duration),
+        "months" => Duration::days(duration * 30), // Approximation of 30 days per month
+        "years" => Duration::days(duration * 365), // Approximation of 365 days per year
+        _ => return Err("Unsupported time unit".into()),
+    };
+    Ok(duration)
+}
+
+fn calculate_expiration_date(expiration_duration: String) -> Result<DateTime<Utc>, Box<dyn std::error::Error>> {
+    let expiration_duration = parse_duration(expiration_duration)?;
+    let now = Utc::now();
+    let expiration_date = now + expiration_duration;
+    Ok(expiration_date)
+}
+
 pub fn apply_perished(
     file_info: &FileInfo,
     _my_files: &MyFiles,
     raw_params: HashMap<String, Value>,
 ) -> TidyScore {
     let mut tidy_score = file_info.tidy_score.clone();
-    let max_retention_date_string = match raw_params.get("max") {
+    let expiration_duration = match raw_params.get("expiration_duration") {
         Some(s) => match s.clone().into_string() {
             Ok(s) => s,
             Err(e) => {
@@ -27,13 +48,7 @@ pub fn apply_perished(
             return TidyScore::new(false, false, None);
         }
     };
-    let max_retention_date: DateTime<Utc> = match max_retention_date_string.parse() {
-        Ok(d) => d,
-        Err(e) => {
-            warn!("Error parsing max date: {}", e);
-            return TidyScore::new(false, false, None);
-        }
-    };
+    let max_retention_date = calculate_expiration_date(expiration_duration).expect("Error while computing date time");
     let last_accessed: DateTime<Utc> = file_info.last_accessed.into();
     let perished: bool = last_accessed < max_retention_date;
 
@@ -52,3 +67,5 @@ pub fn apply_perished(
         }
     }
 }
+
+
