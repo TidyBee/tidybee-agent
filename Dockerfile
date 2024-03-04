@@ -28,4 +28,5 @@ WORKDIR /app
 COPY --from=builder /app/config /app/config
 COPY --from=builder /app/tests/assets /app/tests/assets
 COPY --from=builder /app/target/release/tidybee-agent /app/tidybee-agent
+EXPOSE 8111
 CMD ["/app/tidybee-agent"]
