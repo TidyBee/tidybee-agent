@@ -1,5 +1,10 @@
-FROM rust:1.72.0-alpine3.17@sha256:a51f8c7706159f07878e5c1d409c3e54a761145d5eba52fe200dd4f6d441c4fa
+FROM rust:1.76.0-slim-buster@sha256:fa8fea738b02334822a242c8bf3faa47b9a98ae8ab587da58d6085ee890bbc33
 WORKDIR /app/
-COPY ./ ./
-RUN apk add --no-cache build-base=0.5-r3 && cargo build
-CMD ["./target/debug/tidybee-agent"]
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update \
+    && apt-get install -y --no-install-recommends pkg-config=0.29-6 libssl-dev=1.1.1n-0+deb10u6 \
+    && rm -rf /var/lib/apt/lists/*
+EXPOSE 8111
+COPY . .
+RUN cargo build --release
+CMD ["./target/release/tidybee-agent"]

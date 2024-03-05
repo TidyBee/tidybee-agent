@@ -3,14 +3,15 @@ mod configuration;
 mod file_info;
 mod file_lister;
 mod file_watcher;
-mod http_server;
+mod http;
 mod my_files;
+mod server;
 mod tidy_algo;
 mod tidy_rules;
 
-use http_server::HttpServerBuilder;
 use lazy_static::lazy_static;
 use notify::EventKind;
+use server::ServerBuilder;
 use std::{collections::HashMap, path::PathBuf, thread};
 use tidy_algo::TidyAlgo;
 use tracing::{debug, error, info, Level};
@@ -59,16 +60,16 @@ pub async fn run() {
         .seal();
 
     let my_files: my_files::MyFiles = my_files_builder.build().unwrap();
-    info!("MyFilesDB sucessfully created");
+    info!("MyFilesDB successfully created");
     my_files.init_db().unwrap();
-    info!("MyFilesDB sucessfully initialized");
+    info!("MyFilesDB successfully initialized");
 
     let mut tidy_algo = TidyAlgo::new();
     let basic_ruleset_path: PathBuf = vec![r"config", r"rules", r"basic.yml"].iter().collect();
-    info!("TidyAlgo sucessfully created");
+    info!("TidyAlgo successfully created");
     match tidy_algo.load_rules_from_file(&my_files, basic_ruleset_path) {
         Ok(loaded_rules_amt) => info!(
-            "TidyAlgo sucessfully loaded {loaded_rules_amt} rules from config/rules/basic.yml"
+            "TidyAlgo successfully loaded {loaded_rules_amt} rules from config/rules/basic.yml"
         ),
         Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
     };
@@ -76,21 +77,37 @@ pub async fn run() {
     list_directories(config.file_lister_config.dir, &my_files, &tidy_algo);
     update_all_grades(&my_files, &tidy_algo);
 
-    let server = HttpServerBuilder::new()
+    let server = ServerBuilder::new()
         .my_files_builder(my_files_builder)
         .build(
             config.agent_data.latest_version.clone(),
             config.agent_data.minimal_version.clone(),
             config.file_watcher_config.dir.clone(),
-            config.http_server_config.address,
-            config.http_server_config.log_level,
+            config.server_config.address,
+            &config.server_config.log_level,
         );
-    info!("HTTP Server build");
-    info!("Directory Successfully Listed");
+    info!("Server build");
+
+    let hub_client = http::hub::Hub::new(config.hub_config.clone());
+    info!("Hub Client Created");
+
     tokio::spawn(async move {
         server.start().await;
     });
-    info!("HTTP Server Started");
+    info!("Server Started");
+
+    tokio::spawn(async move {
+        let mut timeout = 5;
+        loop {
+            tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
+            if let Err(err) = hub_client.connect().await {
+                error!("Error connecting to the hub: {}, retrying in {}", err, timeout * 2);
+            } else {
+                break;
+            }
+            timeout *= 2;
+        }
+    });
 
     let (file_watcher_sender, file_watcher_receiver) = crossbeam_channel::unbounded();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
