@@ -16,6 +16,7 @@ pub struct TidyRule {
     name: String,
     log: String,
     scope: String,
+    weight: u64,
     pub params: HashMap<String, Value>,
     apply: fn(&FileInfo, &MyFiles, HashMap<String, Value>) -> TidyScore,
 }
@@ -25,6 +26,7 @@ impl TidyRule {
         name: String,
         log: String,
         scope: String,
+        weight: u64,
         params: HashMap<String, Value>,
         apply: fn(&FileInfo, &MyFiles, HashMap<String, Value>) -> TidyScore,
     ) -> Self {
@@ -32,6 +34,7 @@ impl TidyRule {
             name,
             log,
             scope,
+            weight,
             params,
             apply,
         }
@@ -40,11 +43,26 @@ impl TidyRule {
     pub fn rule_name(&self) -> String {
         self.name.to_string()
     }
+    pub fn rule_weight(&self) -> u64 {
+        self.weight
+    }
 }
 
 impl PartialEq for TidyRule {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
+    }
+}
+
+pub struct TidyGrade(pub u8);
+
+impl TidyGrade {
+    pub fn display_grade(&self) -> String {
+        let grade_repr: String = match self.0 > 5 {
+            true => "F".to_string(),
+            false => (('A' as u8 + self.0) as char).to_string(),
+        };
+        grade_repr
     }
 }
 
@@ -71,6 +89,7 @@ impl TidyAlgo {
         let name = get_string_from_table_safe(&table, "name")?;
         let log = get_string_from_table_safe(&table, "log")?;
         let scope = get_string_from_table_safe(&table, "scope")?;
+        let weight: u64 = get_u64_from_table_safe(&table, "weight")?;
         let apply_type = get_string_from_table_safe(&table, "type")?;
         let apply = match apply_type.as_str() {
             "duplicated" => duplicated::aply_duplicated,
@@ -79,10 +98,10 @@ impl TidyAlgo {
             fallback => return Err(format!("Could not load rule with type {}", fallback).into()),
         };
         debug!(
-            "Adding rule {} of type {} that will be logged as {}",
-            name, apply_type, log
+            "Adding rule {} of type {} that will be logged as {} with weight {}",
+            name, apply_type, log, weight
         );
-        self.add_rule(TidyRule::new(name.clone(), log, scope, table, apply));
+        self.add_rule(TidyRule::new(name.clone(), log, scope, weight, table, apply));
         Ok(name)
     }
 
@@ -136,6 +155,30 @@ impl TidyAlgo {
             }
         }
     }
+
+    pub fn compute_grade(&self, tidy_score: &TidyScore) -> TidyGrade {
+        let mut grade: f32 = 0.0;
+        for rule in self.rules.iter() {
+            // It's safe to unwrap here because we are sure that the type key exists
+            let rule_type = rule.params.get("type").unwrap().to_string();
+            let rule_weight = rule.rule_weight();
+            if rule_type == "misnamed" && tidy_score.misnamed {
+                grade += (1 / rule_weight) as f32;
+            }
+            match &tidy_score.duplicated {
+                Some(duplicated) => {
+                    if rule_type == "duplicated" && duplicated.len() > 0 {
+                        grade += (1 / rule_weight) as f32;
+                    }
+                }
+                None => (),
+            }
+            if rule_type == "unused" && tidy_score.unused {
+                grade += (1 / rule_weight) as f32;
+            }
+        }
+        TidyGrade(grade.ceil() as u8)
+    }
 }
 
 /// Helper function the get the key and clone the value or return an Err
@@ -145,6 +188,17 @@ fn get_string_from_table_safe(
 ) -> Result<String, ConfigError> {
     match table.get(key) {
         Some(value) => Ok(value.to_string().clone()),
+        None => Err(ConfigError::NotFound(format!(
+            "Error while getting the key {}",
+            key
+        ))),
+    }
+}
+
+/// Helper function the get the key and clone the value or return an Err
+fn get_u64_from_table_safe(table: &HashMap<String, Value>, key: &'static str) -> Result<u64, ConfigError> {
+    match table.get(key) {
+        Some(value) => Ok(value.clone().into_uint().unwrap() as u64),
         None => Err(ConfigError::NotFound(format!(
             "Error while getting the key {}",
             key
@@ -163,7 +217,7 @@ mod tests {
     #[cfg(test)]
     #[ctor::ctor]
     fn init() {
-        std::env::set_var("ENV_NAME", "test");
+        std::env::set_var("TIDY_ENV", "test");
     }
 
     #[test]
@@ -180,6 +234,7 @@ mod tests {
             "dummy rule".to_string(),
             "dummy log".to_string(),
             "dummy scope".to_string(),
+            1,
             HashMap::new(),
             |_, _, _| TidyScore::new(false, false, None),
         );
