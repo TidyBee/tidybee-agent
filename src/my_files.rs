@@ -1,5 +1,6 @@
 use crate::configuration::MyFilesConfiguration;
 use crate::file_info::{FileInfo, TidyScore};
+use crate::tidy_algo::TidyAlgo;
 use chrono::{DateTime, Utc};
 use core::marker::PhantomData;
 use itertools::{Either, Itertools};
@@ -148,7 +149,8 @@ impl MyFiles {
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 misnamed        BOOLEAN NOT NULL,
                 unused          BOOLEAN NOT NULL,
-                duplicated      BOOLEAN NOT NULL
+                duplicated      BOOLEAN NOT NULL,
+                grade           INTEGER DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS duplicates_associative_table (
                 original_file_id    INTEGER NOT NULL,
@@ -427,10 +429,10 @@ impl MyFiles {
 
         let duplicated_files = statement
             .query_map(params![file_id], |row| {
-                let path_str = row.get::<_, String>(0)?;
+                let path_str = row.get::<_, String>("pretty_path")?;
                 let path = std::path::Path::new(&path_str).to_owned();
 
-                let mut time_str = row.get::<_, String>(3)?;
+                let mut time_str = row.get::<_, String>("last_modified")?;
                 let last_modified = match DateTime::parse_from_rfc3339(&time_str) {
                     Ok(last_modified) => last_modified.into(),
                     Err(error) => {
@@ -442,7 +444,7 @@ impl MyFiles {
                     }
                 };
 
-                time_str = row.get::<_, String>(4)?;
+                time_str = row.get::<_, String>("last_accessed")?;
                 let last_accessed = match DateTime::parse_from_rfc3339(&time_str) {
                     Ok(last_accessed) => last_accessed.into(),
                     Err(error) => {
@@ -454,23 +456,24 @@ impl MyFiles {
                     }
                 };
 
-                let tidy_score_id = row.get::<_, i64>(6)?;
+                let tidy_score_id = row.get::<_, i64>("tidy_score_id")?;
                 let mut statement = self.connection_pool.prepare(
-                    "SELECT misnamed, duplicated, unused FROM tidy_scores WHERE id = ?1",
+                    "SELECT misnamed, duplicated, unused, grade FROM tidy_scores WHERE id = ?1",
                 )?;
                 let tidy_score = statement.query_row(params![tidy_score_id], |row| {
                     Ok(TidyScore {
-                        misnamed: row.get::<_, bool>(0)?,
+                        misnamed: row.get::<_, bool>("misnamed")?,
                         duplicated: None,
-                        unused: row.get::<_, bool>(2)?,
+                        unused: row.get::<_, bool>("unused")?,
+                        grade: row.get::<_, Option<u8>>("grade")?,
                     })
                 })?;
 
                 Ok(FileInfo {
-                    pretty_path: row.get::<_, String>(0)?.into(),
+                    pretty_path: row.get::<_, String>("pretty_path")?.into(),
                     path,
-                    size: row.get::<_, u64>(2)?,
-                    hash: row.get::<_, Option<String>>(5)?,
+                    size: row.get::<_, u64>("size")?,
+                    hash: row.get::<_, Option<String>>("hash")?,
                     last_modified,
                     last_accessed,
                     tidy_score: tidy_score.into(),
@@ -490,7 +493,7 @@ impl MyFiles {
         let mut statement = self
             .connection_pool
             .prepare(
-                "SELECT tidy_scores.misnamed, tidy_scores.duplicated, tidy_scores.unused
+                "SELECT tidy_scores.misnamed, tidy_scores.duplicated, tidy_scores.unused, tidy_scores.grade
             FROM my_files
             INNER JOIN tidy_scores ON my_files.tidy_score_id = tidy_scores.id
             WHERE my_files.path = ?1",
@@ -499,12 +502,13 @@ impl MyFiles {
 
         statement.query_row(params![&str_filepath], |row| {
             Ok(TidyScore {
-                misnamed: row.get::<_, bool>(0)?,
+                misnamed: row.get::<_, bool>("misnamed")?,
                 duplicated: Some(
                     self.fetch_duplicated_files(path::PathBuf::from(&str_filepath))
                         .unwrap(),
                 ),
-                unused: row.get::<_, bool>(2)?,
+                unused: row.get::<_, bool>("unused")?,
+                grade: row.get::<_, Option<u8>>("grade")?,
             })
         })
     }
@@ -513,12 +517,13 @@ impl MyFiles {
     fn get_tidyscore_from_id(&self, id: i64, file_path: PathBuf) -> Result<TidyScore> {
         let mut statement = self
             .connection_pool
-            .prepare("SELECT misnamed, duplicated, unused FROM tidy_scores WHERE id = ?1")?;
+            .prepare("SELECT misnamed, duplicated, unused, grade FROM tidy_scores WHERE id = ?1")?;
         statement.query_row(params![id], |row| {
             Ok(TidyScore {
                 misnamed: row.get::<_, bool>("misnamed")?,
                 duplicated: Some(self.fetch_duplicated_files(file_path).unwrap()),
                 unused: row.get::<_, bool>("unused")?,
+                grade: row.get::<_, Option<u8>>("grade")?,
             })
         })
     }
@@ -591,6 +596,64 @@ impl MyFiles {
         Ok(())
     }
 
+    /// Update the grade field based on the content of the tidy_scores table
+    /// Does not do anything if the file does not have a tidy_score attached to it
+    pub fn update_grade(&self, file_path: PathBuf, tidy_algo: &TidyAlgo) {
+        let str_filepath = file_path.to_str().unwrap();
+        let mut statement = self
+            .connection_pool
+            .prepare(
+                "SELECT tidy_score_id FROM my_files
+            WHERE path = ?1",
+            )
+            .unwrap();
+        let current_tidy_score_id: Option<i64> = statement
+            .query_row(params![str_filepath], |row| {
+                Ok(row.get::<_, Option<i64>>(0)?)
+            })
+            .unwrap();
+
+        if current_tidy_score_id.is_none() {
+            debug!("No tidy_score found for file {:?}", file_path);
+            return;
+        }
+
+        let mut statement = self
+            .connection_pool
+            .prepare(
+                "SELECT misnamed, duplicated, unused FROM tidy_scores
+            WHERE id = ?1",
+            )
+            .unwrap();
+        let tidy_score = statement
+            .query_row(params![current_tidy_score_id], |row| {
+                Ok(TidyScore {
+                    misnamed: row.get::<_, bool>("misnamed")?,
+                    duplicated: Some(self.fetch_duplicated_files(file_path.clone()).unwrap()),
+                    unused: row.get::<_, bool>("unused")?,
+                    grade: None,
+                })
+            })
+            .unwrap();
+
+        let grade = tidy_algo.compute_grade(&tidy_score);
+        let mut statement = self
+            .connection_pool
+            .prepare(
+                "UPDATE tidy_scores
+            SET grade = ?1
+            WHERE id = ?2",
+            )
+            .unwrap();
+        match statement.execute(params![grade.0, current_tidy_score_id]) {
+            Ok(_) => info!("Grade updated for file {:?}", file_path),
+            Err(error) => error!("Error updating grade for file {:?}: {}", file_path, error),
+        };
+    }
+
+    #[deprecated(
+        note = "This method used now as a feature patch for developement and will be removed in future versions"
+    )]
     pub fn raw_select_query(&self, query: &str, params: &[&dyn ToSql]) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection_pool.prepare(query)?;
 
@@ -601,6 +664,9 @@ impl MyFiles {
             .collect::<Vec<FileInfo>>())
     }
 
+    #[deprecated(
+        note = "This method used now as a feature patch for developement and will be removed in future versions"
+    )]
     pub fn raw_query(&self, query: String, params: &[&dyn ToSql]) -> Result<usize> {
         self.connection_pool.execute(query.as_str(), params)
     }
@@ -613,13 +679,13 @@ mod tests {
     use std::env::current_dir;
 
     use super::*;
-    use crate::{configuration, file_lister};
+    use crate::{configuration, file_lister, tidy_algo::TidyGrade};
 
     #[cfg(test)]
     #[ctor::ctor]
     fn init() {
         env_logger::init();
-        std::env::set_var("ENV_NAME", "test");
+        std::env::set_var("TIDY_ENV", "test");
     }
 
     #[test]
@@ -687,6 +753,7 @@ mod tests {
             misnamed: true,
             duplicated: None,
             unused: true,
+            grade: Some(1),
         };
         let mut tests_dir = current_dir().unwrap();
         tests_dir.push(
@@ -703,8 +770,11 @@ mod tests {
             .unwrap();
         let is_misnamed = score.misnamed;
         let is_unused = score.unused;
+        let grade = score.grade;
         assert!(is_misnamed);
         assert!(is_unused);
+        assert_eq!(grade, Some(0));
+        assert_eq!(TidyGrade(grade.unwrap()).display_grade(), "A");
 
         my_files
             .add_duplicated_file_to_db(tests_dir.join("test-file-1"), tests_dir.join("test-file-2"))

@@ -1,6 +1,6 @@
 {
-    "my_files_config": {
-        "db_path": "./my_files_tests.db",
-        "drop_db_on_start": true
-    }
+  "my_files_config": {
+    "db_path": "./my_files_tests.db",
+    "drop_db_on_start": true
+  }
 }
