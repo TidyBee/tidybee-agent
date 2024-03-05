@@ -74,6 +74,7 @@ pub async fn run() {
     };
 
     list_directories(config.file_lister_config.dir, &my_files, &tidy_algo);
+    update_all_grades(&my_files, &tidy_algo);
 
     let server = HttpServerBuilder::new()
         .my_files_builder(my_files_builder)
@@ -130,6 +131,21 @@ fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_alg
         }
         Err(error) => {
             error!("{}", error);
+        }
+    }
+}
+
+fn update_all_grades(my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
+    let files = my_files.get_all_files_from_db();
+    match files {
+        Ok (files) => {
+            for file in files {
+                let file_path = file.path.clone();
+                my_files.update_grade(file_path, tidy_algo);
+            }
+        }
+        Err(error) => {
+            error!("{:?}", error);
         }
     }
 }

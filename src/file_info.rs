@@ -47,8 +47,8 @@ impl PartialEq for FileInfo {
 pub struct TidyScore {
     pub misnamed: bool,
     pub unused: bool,
-    pub duplicated: Option<Vec<FileInfo>>, // Not yet implemented
-                                           // pub misplaced: bool,
+    pub duplicated: Option<Vec<FileInfo>>,
+    pub grade: Option<u8>,
 }
 
 impl TidyScore {
@@ -57,6 +57,7 @@ impl TidyScore {
             misnamed,
             unused,
             duplicated,
+            grade: None,
         }
     }
 }
