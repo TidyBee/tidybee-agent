@@ -131,4 +131,9 @@ mod tests {
     fn missing_number() {
         assert!(parse_duration("days".to_owned()).is_err());
     }
+
+    #[test]
+    fn missing_everything() {
+        assert!(parse_duration("".to_owned()).is_err());
+    }
 }
