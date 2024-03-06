@@ -57,10 +57,11 @@ impl PartialEq for TidyRule {
 pub struct TidyGrade(pub u8);
 
 impl TidyGrade {
+    #[allow(dead_code)]
     pub fn display_grade(&self) -> String {
         let grade_repr: String = match self.0 > 5 {
             true => "F".to_string(),
-            false => (('A' as u8 + self.0) as char).to_string(),
+            false => ((b'A' + self.0) as char).to_string(),
         };
         grade_repr
     }
@@ -92,7 +93,7 @@ impl TidyAlgo {
         let weight: u64 = get_u64_from_table_safe(&table, "weight")?;
         let apply_type = get_string_from_table_safe(&table, "type")?;
         let apply = match apply_type.as_str() {
-            "duplicated" => duplicated::aply_duplicated,
+            "duplicated" => duplicated::apply_duplicated,
             "misnamed" => misnamed::apply_misnamed,
             "perished" => perished::apply_perished,
             fallback => return Err(format!("Could not load rule with type {}", fallback).into()),
@@ -101,7 +102,14 @@ impl TidyAlgo {
             "Adding rule {} of type {} that will be logged as {} with weight {}",
             name, apply_type, log, weight
         );
-        self.add_rule(TidyRule::new(name.clone(), log, scope, weight, table, apply));
+        self.add_rule(TidyRule::new(
+            name.clone(),
+            log,
+            scope,
+            weight,
+            table,
+            apply,
+        ));
         Ok(name)
     }
 
@@ -196,7 +204,10 @@ fn get_string_from_table_safe(
 }
 
 /// Helper function the get the key and clone the value or return an Err
-fn get_u64_from_table_safe(table: &HashMap<String, Value>, key: &'static str) -> Result<u64, ConfigError> {
+fn get_u64_from_table_safe(
+    table: &HashMap<String, Value>,
+    key: &'static str,
+) -> Result<u64, ConfigError> {
     match table.get(key) {
         Some(value) => Ok(value.clone().into_uint().unwrap() as u64),
         None => Err(ConfigError::NotFound(format!(

@@ -101,7 +101,11 @@ pub async fn run() {
         loop {
             tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
             if let Err(err) = hub_client.connect().await {
-                error!("Error connecting to the hub: {}, retrying in {}", err, timeout * 2);
+                error!(
+                    "Error connecting to the hub: {}, retrying in {}",
+                    err,
+                    timeout * 2
+                );
             } else {
                 break;
             }
@@ -155,7 +159,7 @@ fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_alg
 fn update_all_grades(my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
     let files = my_files.get_all_files_from_db();
     match files {
-        Ok (files) => {
+        Ok(files) => {
             for file in files {
                 let file_path = file.path.clone();
                 my_files.update_grade(file_path, tidy_algo);

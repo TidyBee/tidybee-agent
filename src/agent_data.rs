@@ -21,13 +21,13 @@ pub struct AgentData {
 #[allow(dead_code)]
 impl AgentData {
     pub fn build(
-        latest_versionn: String,
+        latest_version: String,
         minimal_version: String,
         directories_watch_args: Vec<PathBuf>,
     ) -> AgentData {
         AgentData {
             agent_version: AgentVersion {
-                latest_version: latest_versionn,
+                latest_version,
                 minimal_version,
             },
             machine_name: gethostname().to_str().unwrap().to_owned(),

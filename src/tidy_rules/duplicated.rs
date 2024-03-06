@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use tracing::{debug, error};
 
 // TODO: Change return type to Result<TidyScore, Error> after implementing error handling
-pub fn aply_duplicated(
+pub fn apply_duplicated(
     candidate: &FileInfo,
     my_files: &MyFiles,
     _raw_params: HashMap<String, Value>,

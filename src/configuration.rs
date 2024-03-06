@@ -1,8 +1,8 @@
 use config::{Config, File};
 use serde_derive::{Deserialize, Serialize};
-use tracing::info;
 use std::env::var as env_var;
 use std::path::{Path, PathBuf};
+use tracing::info;
 
 #[derive(Debug, Deserialize)]
 pub struct AgentData {

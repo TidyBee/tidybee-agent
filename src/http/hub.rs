@@ -1,5 +1,5 @@
-use crate::{configuration::HubConfig};
-use anyhow::{Error, bail};
+use crate::configuration::HubConfig;
+use anyhow::{bail, Error};
 use gethostname::gethostname;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
@@ -49,7 +49,6 @@ impl Hub {
             gethostname().to_str().unwrap(),
         );
 
-
         let mut tries = 0;
         while tries < self.config.connection_attempt_limit {
             let response = self
@@ -73,9 +72,7 @@ impl Hub {
                             }
                             Err(err) => {
                                 warn!("Parsing error : {}", err);
-                                bail!(
-                                    "Failed to parse response from Hub when authenticating",
-                                )
+                                bail!("Failed to parse response from Hub when authenticating",)
                             }
                         };
                     }

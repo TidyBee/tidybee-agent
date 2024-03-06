@@ -8,7 +8,7 @@ rules:
     weight: 1
   - name: Rule 2
     type: perished
-    max: 2024-02-13T18:43:46Z
+    expiration_duration: "+2 days"
     scope: tests/assets/test_folder
     log: log
     weight: 2
