@@ -82,3 +82,48 @@ pub fn apply_perished(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_day_duration() {
+        assert!(parse_duration("+1 days".to_owned()).is_ok());
+    }
+
+    #[test]
+    fn one_day_duration_invalid() {
+        assert!(parse_duration("+1 day".to_owned()).is_err());
+    }
+
+    #[test]
+    fn one_week_duration() {
+        assert!(parse_duration("+1 weeks".to_owned()).is_ok());
+    }
+
+    #[test]
+    fn one_month_duration() {
+        assert!(parse_duration("+1 months".to_owned()).is_ok());
+    }
+
+    #[test]
+    fn one_year_duration() {
+        assert!(parse_duration("+1 years".to_owned()).is_ok());
+    }
+
+    #[test]
+    fn invalid_unit() {
+        assert!(parse_duration("+1 invalid".to_owned()).is_err());
+    }
+
+    #[test]
+    fn missing_unit() {
+        assert!(parse_duration("+1".to_owned()).is_err());
+    }
+
+    #[test]
+    fn missing_number() {
+        assert!(parse_duration("days".to_owned()).is_err());
+    }
+}
