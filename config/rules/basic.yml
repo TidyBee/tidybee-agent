@@ -5,12 +5,15 @@ rules:
     pattern: /^(?:(?:^|_)\S+ *){3,}$/
     scope: tests/assets/test_folder
     log: warn
+    weight: 1
   - name: Rule 2
     type: perished
     expiration_duration: "+1 days"
     scope: tests/assets/test_folder
     log: log
+    weight: 2
   - name: Rule 3
     type: duplicated
     scope: tests/assets/test_folder
     log: alert
+    weight: 3

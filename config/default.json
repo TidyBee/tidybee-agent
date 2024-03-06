@@ -7,9 +7,17 @@
     "term_level": "debug",
     "file_level": "warn"
   },
-  "http_server_config": {
+  "server_config": {
     "log_level": "info",
     "address": "0.0.0.0:8111"
+  },
+  "hub_config": {
+    "host": "localhost",
+    "port": "7001",
+    "protocol": "http",
+    "auth_path": "/gateway/auth/AOTH",
+    "disconnect_path": "/gateway/auth/AOTH/{agent_id}/disconnect",
+    "connection_attempt_limit": "30"
   },
   "my_files_config": {
     "db_path": "./my_files.db",

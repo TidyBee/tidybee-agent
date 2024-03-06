@@ -1,5 +1,32 @@
-FROM rust:1.72.0-alpine3.17@sha256:a51f8c7706159f07878e5c1d409c3e54a761145d5eba52fe200dd4f6d441c4fa
-WORKDIR /app/
-COPY ./ ./
-RUN apk add --no-cache build-base=0.5-r3 && cargo build
-CMD ["./target/debug/tidybee-agent"]
+FROM rust:1.76.0-slim-buster@sha256:fa8fea738b02334822a242c8bf3faa47b9a98ae8ab587da58d6085ee890bbc33 as planner
+WORKDIR /app
+RUN cargo install cargo-chef --locked
+COPY Cargo.toml Cargo.toml
+COPY Cargo.lock Cargo.lock
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM planner AS cacher
+WORKDIR /app
+COPY --from=planner /app/recipe.json recipe.json
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends pkg-config=0.29-6 libssl-dev=1.1.1n-0+deb10u6 \
+    && rm -rf /var/lib/apt/lists/*
+RUN cargo chef cook --release --recipe-path recipe.json
+
+FROM rust:1.76.0-slim-buster@sha256:fa8fea738b02334822a242c8bf3faa47b9a98ae8ab587da58d6085ee890bbc33 AS builder
+WORKDIR /app
+COPY . .
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends pkg-config=0.29-6 libssl-dev=1.1.1n-0+deb10u6 \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=cacher /app/target target
+COPY --from=cacher /usr/local/cargo /usr/local/cargo
+RUN cargo build --release
+
+FROM gcr.io/distroless/cc-debian11
+WORKDIR /app
+COPY --from=builder /app/config /app/config
+COPY --from=builder /app/tests/assets /app/tests/assets
+COPY --from=builder /app/target/release/tidybee-agent /app/tidybee-agent
+EXPOSE 8111
+CMD ["/app/tidybee-agent"]
