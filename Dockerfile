@@ -23,7 +23,7 @@ COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
 RUN cargo build --release
 
-FROM gcr.io/distroless/cc-debian12
+FROM gcr.io/distroless/cc-debian11
 WORKDIR /app
 COPY --from=builder /app/config /app/config
 COPY --from=builder /app/tests/assets /app/tests/assets
