@@ -1,6 +1,5 @@
 use chrono::{DateTime, Duration, Utc};
 use config::Value;
-use log::{debug, info};
 use std::collections::HashMap;
 use tracing::warn;
 
