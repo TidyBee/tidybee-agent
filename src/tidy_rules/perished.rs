@@ -10,16 +10,21 @@ use crate::{
 
 fn parse_duration(duration_str: String) -> Result<Duration, Box<dyn std::error::Error>> {
     let parts: Vec<&str> = duration_str.split_whitespace().collect();
-    let duration: i64 = parts[0].parse()?;
-    let unit = parts[1];
-    let duration = match unit {
-        "days" => Duration::days(duration),
-        "weeks" => Duration::weeks(duration),
-        "months" => Duration::days(duration * 30), // Approximation of 30 days per month
-        "years" => Duration::days(duration * 365), // Approximation of 365 days per year
-        _ => return Err("Unsupported time unit".into()),
-    };
-    Ok(duration)
+    match parts.len() {
+        len if len >= 2 => {
+            let duration: i64 = parts[0].parse()?;
+            let unit = parts[1];
+            let duration = match unit {
+                "days" => Duration::days(duration * 24 * 60 * 60),
+                "weeks" => Duration::weeks(duration * 7 * 24 * 60 * 60),
+                "months" => Duration::days(duration * 30 * 24 * 60 * 60), // Approximation of 30 days per month
+                "years" => Duration::days(duration * 365 * 24 * 60 * 60), // Approximation of 365 days per year
+                _ => return Err("Unsupported time unit".into()),
+            };
+            Ok(duration)
+        }
+        _ => Err("No duration found".into())
+    }
 }
 
 fn calculate_expiration_date(
