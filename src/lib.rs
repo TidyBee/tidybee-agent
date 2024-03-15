@@ -56,7 +56,7 @@ pub async fn run() {
     };
 
     let my_files_builder = my_files::MyFilesBuilder::new()
-        .configure(config.my_files_config)
+        .configure(config.clone().my_files_config.clone())
         .seal();
 
     let my_files: my_files::MyFiles = my_files_builder.build().unwrap();
@@ -74,11 +74,13 @@ pub async fn run() {
         Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
     };
 
-    list_directories(config.file_lister_config.dir, &my_files, &tidy_algo);
+    list_directories(config.clone().file_lister_config.dir, &my_files, &tidy_algo);
     update_all_grades(&my_files, &tidy_algo);
 
     let server = ServerBuilder::new()
         .my_files_builder(my_files_builder)
+        .inject_global_configuration(config.clone())
+        .inject_tidy_rules(tidy_algo.clone())
         .build(
             config.agent_data.latest_version.clone(),
             config.agent_data.minimal_version.clone(),
