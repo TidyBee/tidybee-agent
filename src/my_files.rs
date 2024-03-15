@@ -670,6 +670,73 @@ impl MyFiles {
     pub fn raw_query(&self, query: String, params: &[&dyn ToSql]) -> Result<usize> {
         self.connection_pool.execute(query.as_str(), params)
     }
+
+    pub fn update_file_last_modified(
+        &self,
+        path: PathBuf,
+        last_modified: DateTime<Utc>,
+    ) -> Result<()> {
+        let mut statement: rusqlite::Statement<'_>;
+
+        statement = self
+            .connection_pool
+            .prepare(
+                "UPDATE my_files
+                SET last_accessed = ?1
+                WHERE path = ?2",
+            )
+            .unwrap();
+        match statement.execute(params![last_modified.to_rfc3339(), path.to_string_lossy()]) {
+            Ok(_) => Ok(info!("Updated last file modification date in database")),
+            Err(error) => {
+                error!("Error updating file {} in database", path.display());
+                Err(error)
+            }
+        }
+    }
+
+    pub fn update_file_path(&self, old_path: PathBuf, new_path: PathBuf) -> Result<()> {
+        let mut statement: rusqlite::Statement<'_>;
+
+        statement = self
+            .connection_pool
+            .prepare(
+                "UPDATE my_files
+                SET path = ?1
+                WHERE path = ?2",
+            )
+            .unwrap();
+        match statement.execute(params![
+            new_path.to_string_lossy(),
+            old_path.to_string_lossy()
+        ]) {
+            Ok(_) => Ok(info!("Updated file path in database")),
+            Err(error) => {
+                error!("Error updating file {} in database", old_path.display());
+                Err(error)
+            }
+        }
+    }
+
+    pub fn update_file_hash(&self, path: PathBuf, hash: String) -> Result<()> {
+        let mut statement: rusqlite::Statement<'_>;
+
+        statement = self
+            .connection_pool
+            .prepare(
+                "UPDATE my_files
+                SET hash = ?1
+                WHERE path = ?2",
+            )
+            .unwrap();
+        match statement.execute(params![hash, path.to_string_lossy()]) {
+            Ok(_) => Ok(info!("Updated file hash in database")),
+            Err(error) => {
+                error!("Error updating file {} in database", path.display());
+                Err(error)
+            }
+        }
+    }
 }
 
 // region: --- MyFiles tests

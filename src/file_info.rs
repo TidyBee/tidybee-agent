@@ -9,7 +9,7 @@ use std::{
     path::{Path, PathBuf},
     time::SystemTime,
 };
-use tracing::warn;
+use tracing::{debug, warn};
 use xxhash_rust::xxh3::xxh3_128;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -135,6 +135,12 @@ pub fn create_file_info(path: &PathBuf) -> Option<FileInfo> {
             None
         }
     }
+}
+
+pub fn get_last_access(path: &PathBuf) -> std::io::Result<SystemTime> {
+    let metadata = fs::metadata(path)?;
+    let last_access_time = metadata.accessed()?;
+    Ok(last_access_time)
 }
 
 #[cfg(test)]

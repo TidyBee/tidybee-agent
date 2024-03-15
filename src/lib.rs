@@ -1,3 +1,10 @@
+use lazy_static::lazy_static;
+use notify::{event::ModifyKind, EventKind};
+use server::ServerBuilder;
+use std::{collections::HashMap, fs, path::PathBuf, thread};
+use tidy_algo::TidyAlgo;
+use tracing::{debug, error, info, Level};
+
 mod agent_data;
 mod configuration;
 mod file_info;
@@ -8,13 +15,6 @@ mod my_files;
 mod server;
 mod tidy_algo;
 mod tidy_rules;
-
-use lazy_static::lazy_static;
-use notify::{event::ModifyKind, EventKind};
-use server::ServerBuilder;
-use std::{collections::HashMap, fs, path::PathBuf, thread};
-use tidy_algo::TidyAlgo;
-use tracing::{debug, error, info, Level};
 
 lazy_static! {
     static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -66,7 +66,7 @@ pub async fn run() {
 
     let mut tidy_algo = TidyAlgo::new();
     let basic_ruleset_path: PathBuf = [r"config", r"rules", r"basic.yml"].iter().collect();
-    info!("TidyAlgo sucessfully created");
+    info!("TidyAlgo successfully created");
     match tidy_algo.load_rules_from_file(&my_files, basic_ruleset_path) {
         Ok(loaded_rules_amt) => info!(
             "TidyAlgo successfully loaded {loaded_rules_amt} rules from config/rules/basic.yml"
@@ -122,7 +122,7 @@ pub async fn run() {
     });
     info!("File Events Watcher Started");
     for file_watcher_event in file_watcher_receiver {
-        handle_file_events(&file_watcher_event, &my_files);
+        handle_file_events(&file_watcher_event, &my_files, &tidy_algo);
     }
 
     file_watcher_thread.join().unwrap();
@@ -145,13 +145,13 @@ fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_alg
                             my_files.set_tidyscore(file_path, file.tidy_score.as_ref().unwrap());
                     }
                     Err(error) => {
-                        error!("{error:?}");
+                        error!("{:?}", error);
                     }
                 }
             }
         }
         Err(error) => {
-            error!("{error}");
+            error!("{}", error);
         }
     }
 }
@@ -205,7 +205,7 @@ fn update_all_grades(my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
     }
 }
 
-fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
+fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
     if event.kind.is_remove() {
         info!("File removed: {}", event.paths[0].display());
         safe_remove_file_from_db(event.paths[0].clone(), my_files);
@@ -215,22 +215,36 @@ fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
     } else if event.kind.is_modify() {
         match event.kind {
             EventKind::Modify(ModifyKind::Metadata(_)) => {
-                info!("Metadata modifications: {}", event.paths[0].display());
-                // update last file access in db
+                info!("Metadata modification: {}", event.paths[0].display());
+                match file_info::get_last_access(&event.paths[0].clone()) {
+                    Ok(last_modified) => {
+                        let _ = my_files.update_file_last_modified(
+                            event.paths[0].clone(),
+                            last_modified.into(),
+                        );
+                        my_files.update_grade(event.paths[0].clone(), tidy_algo);
+                    }
+                    Err(error) => {
+                        error!("{:?}", error);
+                    }
+                }
             }
             EventKind::Modify(ModifyKind::Name(_)) => {
                 info!(
-                    "File moved: {} -> {}",
+                    "File moved: {}: {}",
                     event.paths[0].display(),
                     event.paths[1].display()
                 );
-                safe_remove_file_from_db(event.paths[0].clone(), my_files);
-                safe_add_file_to_db(event.paths[1].clone(), my_files);
+                let _ = my_files.update_file_path(event.paths[0].clone(), event.paths[1].clone());
+                my_files.update_grade(event.paths[0].clone(), tidy_algo);
             }
             EventKind::Modify(ModifyKind::Data(_)) => {
                 info!("File content modified: {}", event.paths[0].display());
-                //file_info::get_file_signature(&event.paths[0]);
-                // update file hash in db
+                let _ = my_files.update_file_hash(
+                    event.paths[0].clone(),
+                    file_info::get_file_signature(&event.paths[0].clone()).to_string(),
+                );
+                my_files.update_grade(event.paths[0].clone(), tidy_algo);
             }
             _ => {}
         }
