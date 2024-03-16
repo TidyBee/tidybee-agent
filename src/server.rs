@@ -1,6 +1,7 @@
 use crate::agent_data::AgentData;
-use crate::http::routes::{get_files, get_status, hello_world, AgentDataState, MyFilesState};
-use crate::my_files;
+use crate::http::routes::{get_config, get_files, get_status, hello_world, AgentDataState, GlobalConfigState, MyFilesState};
+use crate::tidy_algo::{TidyAlgo, TidyRule};
+use crate::{configuration, my_files};
 use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
 use axum::{routing::get, Router};
 use lazy_static::lazy_static;
@@ -33,6 +34,8 @@ pub struct Server {
 #[derive(Clone, Default)]
 pub struct ServerBuilder {
     router: Router,
+    global_configuration: configuration::Configuration,
+    tidy_rules: Vec<TidyRule>,
     my_files_builder:
         my_files::MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed>,
 }
@@ -59,6 +62,16 @@ impl ServerBuilder {
         self
     }
 
+    pub fn inject_global_configuration(mut self, global_configuration: configuration::Configuration) -> Self {
+        self.global_configuration = global_configuration;
+        self
+    }
+
+    pub fn inject_tidy_rules(mut self, tidy_algo: TidyAlgo) -> Self {
+        self.tidy_rules = tidy_algo.get_rules().to_vec();
+        self
+    }
+
     pub fn build(
         self,
         latest_version: String,
@@ -79,6 +92,10 @@ impl ServerBuilder {
                 dirs_watch,
             ))),
         };
+        let global_config_state = GlobalConfigState {
+            config: self.global_configuration,
+            rules: self.tidy_rules,
+        };
 
         let server_logging_level: Level = AGENT_LOGGING_LEVEL.get(logging_level).map_or_else(
             || {
@@ -96,6 +113,7 @@ impl ServerBuilder {
             .route("/", get(hello_world))
             .route("/get_files", get(get_files).with_state(my_files_state))
             .route("/get_status", get(get_status).with_state(agent_data_state))
+            .route("/config", get(get_config).with_state(global_config_state))
             .layer(
                 TraceLayer::new_for_http()
                     .make_span_with(trace::DefaultMakeSpan::new().level(server_logging_level))

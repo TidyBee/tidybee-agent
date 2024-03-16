@@ -4,6 +4,7 @@ use crate::tidy_rules::duplicated;
 use crate::tidy_rules::misnamed;
 use crate::tidy_rules::perished;
 use config::{Config, ConfigError, File, Value};
+use serde::Serialize;
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::{self, PathBuf};
@@ -11,13 +12,15 @@ use tracing::debug;
 
 /// Represents a rule that can be applied to a file
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct TidyRule {
     name: String,
     log: String,
     scope: String,
     weight: u64,
+    #[serde(skip_serializing, skip_deserializing)]
     pub params: HashMap<String, Value>,
+    #[serde(skip_serializing, skip_deserializing)]
     apply: fn(&FileInfo, &MyFiles, HashMap<String, Value>) -> TidyScore,
 }
 
@@ -67,6 +70,7 @@ impl TidyGrade {
     }
 }
 
+#[derive(Clone)]
 pub struct TidyAlgo {
     rules: Vec<TidyRule>,
 }
@@ -134,6 +138,10 @@ impl TidyAlgo {
             let _ = self.load_rule_from_hashmap(table);
         }
         Ok(self.rules.len())
+    }
+
+    pub fn get_rules(&self) -> &Vec<TidyRule> {
+        &self.rules
     }
 
     /// Apply the rules to a file

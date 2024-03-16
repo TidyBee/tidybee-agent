@@ -4,35 +4,35 @@ use std::env::var as env_var;
 use std::path::{Path, PathBuf};
 use tracing::info;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AgentData {
     pub latest_version: String,
     pub minimal_version: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileListerConfig {
     pub dir: Vec<PathBuf>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileWatcherConfig {
     pub dir: Vec<PathBuf>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ServerConfig {
     pub address: String,
     pub log_level: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HttpConfig {
     pub host: String,
     pub auth_path: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HubConfig {
     pub host: String,
     pub port: String,
@@ -42,7 +42,7 @@ pub struct HubConfig {
     pub connection_attempt_limit: u32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize)]
 pub struct LoggerConfig {
     pub term_level: String,
     pub file_level: String,
@@ -54,7 +54,7 @@ pub struct MyFilesConfiguration {
     pub drop_db_on_start: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct Configuration {
     pub agent_data: AgentData,
     pub file_lister_config: FileListerConfig,
