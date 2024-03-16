@@ -18,7 +18,7 @@ As of now, the database is composed of those tables:
 |tidy_scores| Stores the scores that are calculated for each file|
 |duplicates_associative_table| Stores the duplicates that are found for each file|
 
-### About `duplicate_associative_table`
+### About `duplicates_associative_table`
 
 This table was created to compensate the lack of feature in sqlite3 to store arrays. This table is used to store the duplicates that are found for each file. The table is composed of two columns: `original_file_id` and `duplicated_file_id`. The `original_file_id` column is a foreign key that references the `id` column of the `my_files` table. The `duplicated_file_id` column is a foreign key that references the `id` column of the `my_files` table. The `original_file_id` column is used to store the id of the file that is being checked for duplicates. The `duplicated_file_id` column is used to store the id of the file that is a duplicate of the file that is being checked for duplicates.
 

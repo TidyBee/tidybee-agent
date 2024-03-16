@@ -255,7 +255,7 @@ impl MyFiles {
             .unwrap();
         let duplicated_file_id: Option<i64> = statement
             .query_row(
-                params![duplicated_file_path.into_os_string().to_str()],
+                params![duplicated_file_path.clone().into_os_string().to_str()],
                 |row| row.get::<_, Option<i64>>(0),
             )
             .unwrap();
@@ -267,19 +267,20 @@ impl MyFiles {
             VALUES (?1, ?2)",
             )
             .unwrap();
-        let _: Result<(), _> = match statement.execute(params![file_id, duplicated_file_id]) {
-            Ok(_) => Ok(info!(
-                "{:?} added to duplicates_associative_table",
-                str_filepath
-            )),
-            Err(error) => {
-                error!(
-                    "Error adding {:?} with id {} to duplicates_associative_table: {}",
-                    str_filepath, file_id, error
+        let _: Result<(), _> =
+            match statement.execute(params![file_id, duplicated_file_id]) {
+                Ok(_) => Ok(info!(
+                    "{:?} added to duplicates_associative_table",
+                    str_filepath
+                )),
+                Err(error) => {
+                    error!(
+                    "Error adding {:?} and {:?} with ids {} {} to duplicates_associative_table: {}",
+                    str_filepath, duplicated_file_path, file_id, duplicated_file_id.unwrap(), error
                 );
-                Err(error)
-            }
-        };
+                    Err(error)
+                }
+            };
         // Set tidy_score to duplicated = true
         let mut statement = self
             .connection_pool
@@ -604,7 +605,7 @@ impl MyFiles {
             .connection_pool
             .prepare(
                 "SELECT tidy_score_id FROM my_files
-            WHERE path = ?1",
+                WHERE path = ?1",
             )
             .unwrap();
         let current_tidy_score_id: Option<i64> = statement

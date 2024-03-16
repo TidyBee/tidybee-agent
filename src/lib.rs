@@ -1,7 +1,13 @@
 use lazy_static::lazy_static;
 use notify::{event::ModifyKind, EventKind};
 use server::ServerBuilder;
-use std::{collections::HashMap, fs, path::PathBuf, thread};
+use std::thread::sleep;
+use std::{
+    collections::HashMap,
+    fs,
+    path::PathBuf,
+    thread::{self},
+};
 use tidy_algo::TidyAlgo;
 use tracing::{debug, error, info, Level};
 
@@ -97,19 +103,13 @@ pub async fn run() {
     info!("Server Started");
 
     tokio::spawn(async move {
-        let mut timeout = 5;
-        loop {
-            tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
-            if let Err(err) = hub_client.connect().await {
-                error!(
-                    "Error connecting to the hub: {}, retrying in {}",
-                    err,
-                    timeout * 2
-                );
-            } else {
-                break;
+        match hub_client.connect().await {
+            Ok(_) => {
+                info!("Connected to the hub");
             }
-            timeout *= 2;
+            Err(err) => {
+                error!("Error connecting to the hub: {}", err);
+            }
         }
     });
 
@@ -209,25 +209,35 @@ fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles, tidy_
     if event.kind.is_remove() {
         info!("File removed: {}", event.paths[0].display());
         safe_remove_file_from_db(event.paths[0].clone(), my_files);
+        if let Some(mut file_info) = file_info::create_file_info(&event.paths[0].clone()) {
+            tidy_algo.apply_rules(&mut file_info, my_files);
+            my_files.update_grade(event.paths[0].clone(), tidy_algo);
+        }
     } else if event.kind.is_create() {
         info!("File created: {}", event.paths[0].display());
         safe_add_file_to_db(event.paths[0].clone(), my_files);
+        if let Some(mut file_info) = file_info::create_file_info(&event.paths[0].clone()) {
+            tidy_algo.apply_rules(&mut file_info, my_files);
+            my_files.update_grade(event.paths[0].clone(), tidy_algo);
+        }
     } else if event.kind.is_modify() {
         match event.kind {
             EventKind::Modify(ModifyKind::Metadata(_)) => {
                 info!("Metadata modification: {}", event.paths[0].display());
-                match file_info::get_last_access(&event.paths[0].clone()) {
-                    Ok(last_modified) => {
-                        let _ = my_files.update_file_last_modified(
-                            event.paths[0].clone(),
-                            last_modified.into(),
-                        );
-                        my_files.update_grade(event.paths[0].clone(), tidy_algo);
-                    }
-                    Err(error) => {
-                        error!("{:?}", error);
-                    }
-                }
+                //match file_info::get_last_access(&event.paths[0].clone()) {
+                //    Ok(last_modified) => {
+                //        let _ = my_files.update_file_last_modified(
+                //            event.paths[0].clone(),
+                //            last_modified.into(),
+                //        );
+                if let Some(mut file_info) = file_info::create_file_info(&event.paths[0]) {
+                    tidy_algo.apply_rules(&mut file_info, my_files);
+                    my_files.update_grade(event.paths[0].clone(), tidy_algo);
+                };
+                //    }
+                //    Err(error) => {
+                //        error!("{:?}", error);
+                //    }
             }
             EventKind::Modify(ModifyKind::Name(_)) => {
                 info!(
@@ -236,15 +246,23 @@ fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles, tidy_
                     event.paths[1].display()
                 );
                 let _ = my_files.update_file_path(event.paths[0].clone(), event.paths[1].clone());
-                my_files.update_grade(event.paths[0].clone(), tidy_algo);
+                if let Some(mut file_info) = file_info::create_file_info(&event.paths[1].clone()) {
+                    tidy_algo.apply_rules(&mut file_info, my_files);
+                    my_files.update_grade(event.paths[0].clone(), tidy_algo);
+                }
             }
             EventKind::Modify(ModifyKind::Data(_)) => {
                 info!("File content modified: {}", event.paths[0].display());
-                let _ = my_files.update_file_hash(
-                    event.paths[0].clone(),
-                    file_info::get_file_signature(&event.paths[0].clone()).to_string(),
-                );
-                my_files.update_grade(event.paths[0].clone(), tidy_algo);
+                //let _ = my_files.update_file_hash(
+                //    event.paths[0].clone(),
+                //    file_info::get_file_signature(&event.paths[0].clone()).to_string(),
+                //);
+                let _ = sleep(std::time::Duration::from_secs(1));
+                if let Some(mut file_info) = file_info::create_file_info(&event.paths[0].clone()) {
+                    debug!("log: {:?}", file_info);
+                    tidy_algo.apply_rules(&mut file_info, my_files);
+                    my_files.update_grade(event.paths[0].clone(), tidy_algo);
+                }
             }
             _ => {}
         }
