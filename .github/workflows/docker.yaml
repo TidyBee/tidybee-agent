@@ -22,6 +22,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Setup Buildx
         uses: docker/setup-buildx-action@v1
 
@@ -42,6 +45,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64,darwin/amd64
           push: true
           tags: ${{ env.REGISTRY }}/${{ steps.metadata.outputs.tags }}
           cache-from: type=gha
