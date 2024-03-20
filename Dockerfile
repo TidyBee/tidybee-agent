@@ -24,6 +24,7 @@ COPY --from=cacher /usr/local/cargo /usr/local/cargo
 RUN cargo build --release
 
 FROM gcr.io/distroless/cc-debian11
+LABEL org.opencontainers.image.source=https://github.com/TidyBee/tidybee-agent-deployment
 WORKDIR /app
 COPY --from=builder /app/config /app/config
 COPY --from=builder /app/tests/assets /app/tests/assets
