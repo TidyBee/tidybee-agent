@@ -17,10 +17,22 @@ pub struct MyFilesState {
     pub my_files: Arc<Mutex<my_files::MyFiles>>,
 }
 
+#[derive(Clone)]
+pub struct GlobalConfigState {
+    pub config: crate::configuration::Configuration,
+    pub rules: Vec<crate::tidy_algo::TidyRule>,
+}
+
 #[derive(Deserialize)]
 pub struct GetFilesParams {
     amount: usize,
     sort_by: String,
+}
+
+
+#[derive(Deserialize)]
+pub struct GetConfigParams {
+    rules: bool
 }
 
 #[derive(Serialize)]
@@ -63,4 +75,25 @@ pub async fn get_files(
     });
     let result = files_vec.into_iter().take(query_params.amount).collect();
     Json(result)
+}
+
+#[derive(Serialize)]
+pub struct GetConfigResponseType {
+    configuration: crate::configuration::Configuration,
+    rules: Option<Vec<crate::tidy_algo::TidyRule>>,
+}
+
+pub async fn get_config(State(global_config): State<GlobalConfigState>, Query(query_params): Query<GetConfigParams>) -> Json<GetConfigResponseType> {
+    let configuration = global_config.config;
+    let rules = global_config.rules;
+    let mut response = GetConfigResponseType {
+        configuration,
+        rules: None
+    };
+
+    if query_params.rules {
+        response.rules = Some(rules);
+    }
+
+    Json(response)
 }

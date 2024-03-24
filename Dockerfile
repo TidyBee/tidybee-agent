@@ -1,11 +1,11 @@
-FROM rust:1.76.0-slim-buster@sha256:fa8fea738b02334822a242c8bf3faa47b9a98ae8ab587da58d6085ee890bbc33 as planner
+FROM --platform=$BUILDPLATFORM rust:1.76.0-slim-buster@sha256:fa8fea738b02334822a242c8bf3faa47b9a98ae8ab587da58d6085ee890bbc33 as planner
 WORKDIR /app
 RUN cargo install cargo-chef --locked
 COPY Cargo.toml Cargo.toml
 COPY Cargo.lock Cargo.lock
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM planner AS cacher
+FROM --platform=$BUILDPLATFORM planner AS cacher
 WORKDIR /app
 COPY --from=planner /app/recipe.json recipe.json
 RUN apt-get update \
@@ -13,7 +13,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 RUN cargo chef cook --release --recipe-path recipe.json
 
-FROM rust:1.76.0-slim-buster@sha256:fa8fea738b02334822a242c8bf3faa47b9a98ae8ab587da58d6085ee890bbc33 AS builder
+FROM --platform=$BUILDPLATFORM rust:1.76.0-slim-buster@sha256:fa8fea738b02334822a242c8bf3faa47b9a98ae8ab587da58d6085ee890bbc33 AS builder
 WORKDIR /app
 COPY . .
 RUN apt-get update \
@@ -23,7 +23,8 @@ COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
 RUN cargo build --release
 
-FROM gcr.io/distroless/cc-debian11
+FROM --platform=$BUILDPLATFORM gcr.io/distroless/cc-debian11
+LABEL org.opencontainers.image.source=https://github.com/TidyBee/tidybee-agent
 WORKDIR /app
 COPY --from=builder /app/config /app/config
 COPY --from=builder /app/tests/assets /app/tests/assets
