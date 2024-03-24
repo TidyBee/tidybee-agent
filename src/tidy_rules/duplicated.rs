@@ -29,7 +29,7 @@ pub fn apply_duplicated(
     for file in all_files {
         if file == *candidate && file.path.clone() != candidate.path.clone() {
             debug!(
-                "Found a new duplicated file {:?} {:?} with hashs {} : {}",
+                "Found a new duplicated file {:?} {:?} with hashes {} : {}",
                 file.path.clone(),
                 candidate.path.clone(),
                 file.hash.clone().unwrap(),

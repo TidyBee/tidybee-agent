@@ -488,6 +488,31 @@ impl MyFiles {
         Ok(duplicated_files_vec)
     }
 
+    pub fn update_fileinfo(&self, file: FileInfo) -> Result<(), rusqlite::Error> {
+        let last_modified: DateTime<Utc> = file.last_modified.into();
+        let last_accessed: DateTime<Utc> = file.last_accessed.into();
+        match self.connection_pool.execute(
+            "UPDATE my_files
+            SET pretty_path = ?1, size = ?2, hash = ?3, last_modified = ?4, last_accessed = ?5, tidy_score_id = ?6, path = ?7
+            WHERE path = ?7",
+            params![
+                file.pretty_path.to_str(),
+                file.size,
+                file.hash,
+                last_modified.to_rfc3339(),
+                last_accessed.to_rfc3339(),
+                file.tidy_score.as_ref(),
+                file.path.to_str()
+            ],
+        ) {
+            Ok(_) => Ok(()),
+            Err(error) => {
+                error!("Error updating {} in my_files: {}", file.path.to_str().unwrap(), error);
+                Err(error)
+            }
+        }
+    }
+
     pub fn get_tidyscore(&self, file_path: PathBuf) -> Result<TidyScore> {
         let str_filepath = file_path.to_str().unwrap();
 

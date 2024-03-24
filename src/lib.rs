@@ -1,7 +1,6 @@
 use lazy_static::lazy_static;
 use notify::{event::ModifyKind, EventKind};
 use server::ServerBuilder;
-use std::thread::sleep;
 use std::{
     collections::HashMap,
     fs,
@@ -205,14 +204,23 @@ fn update_all_grades(my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
     }
 }
 
+fn update_file(path: &PathBuf, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
+    if let Some(mut file_info) = file_info::create_file_info(&path.clone()) {
+        let _ = my_files.update_fileinfo(file_info.clone());
+        debug!("log: {:?}", file_info);
+        tidy_algo.apply_rules(&mut file_info, my_files);
+        if let Some(tidyscore) = file_info.tidy_score {
+            let _ = my_files.set_tidyscore(path.clone(), &tidyscore);
+        }
+        my_files.update_grade(path.clone(), tidy_algo);
+    }
+}
+
 fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
     if event.kind.is_remove() {
         info!("File removed: {}", event.paths[0].display());
+        //let xoxo = my_files.fetch_duplicated_files(my_files, event.paths[0]);
         safe_remove_file_from_db(event.paths[0].clone(), my_files);
-        if let Some(mut file_info) = file_info::create_file_info(&event.paths[0].clone()) {
-            tidy_algo.apply_rules(&mut file_info, my_files);
-            my_files.update_grade(event.paths[0].clone(), tidy_algo);
-        }
     } else if event.kind.is_create() {
         info!("File created: {}", event.paths[0].display());
         safe_add_file_to_db(event.paths[0].clone(), my_files);
@@ -224,20 +232,7 @@ fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles, tidy_
         match event.kind {
             EventKind::Modify(ModifyKind::Metadata(_)) => {
                 info!("Metadata modification: {}", event.paths[0].display());
-                //match file_info::get_last_access(&event.paths[0].clone()) {
-                //    Ok(last_modified) => {
-                //        let _ = my_files.update_file_last_modified(
-                //            event.paths[0].clone(),
-                //            last_modified.into(),
-                //        );
-                if let Some(mut file_info) = file_info::create_file_info(&event.paths[0]) {
-                    tidy_algo.apply_rules(&mut file_info, my_files);
-                    my_files.update_grade(event.paths[0].clone(), tidy_algo);
-                };
-                //    }
-                //    Err(error) => {
-                //        error!("{:?}", error);
-                //    }
+                update_file(&event.paths[0], my_files, tidy_algo);
             }
             EventKind::Modify(ModifyKind::Name(_)) => {
                 info!(
@@ -245,24 +240,13 @@ fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles, tidy_
                     event.paths[0].display(),
                     event.paths[1].display()
                 );
-                let _ = my_files.update_file_path(event.paths[0].clone(), event.paths[1].clone());
-                if let Some(mut file_info) = file_info::create_file_info(&event.paths[1].clone()) {
-                    tidy_algo.apply_rules(&mut file_info, my_files);
-                    my_files.update_grade(event.paths[0].clone(), tidy_algo);
-                }
+                //let _ = my_files.update_file_path(event.paths[0].clone(), event.paths[1].clone());
+                update_file(&event.paths[0], my_files, tidy_algo);
             }
             EventKind::Modify(ModifyKind::Data(_)) => {
                 info!("File content modified: {}", event.paths[0].display());
-                //let _ = my_files.update_file_hash(
-                //    event.paths[0].clone(),
-                //    file_info::get_file_signature(&event.paths[0].clone()).to_string(),
-                //);
-                let _ = sleep(std::time::Duration::from_secs(1));
-                if let Some(mut file_info) = file_info::create_file_info(&event.paths[0].clone()) {
-                    debug!("log: {:?}", file_info);
-                    tidy_algo.apply_rules(&mut file_info, my_files);
-                    my_files.update_grade(event.paths[0].clone(), tidy_algo);
-                }
+                // TODO: Create methods to update each fields in my_files
+                update_file(&event.paths[0], my_files, tidy_algo);
             }
             _ => {}
         }

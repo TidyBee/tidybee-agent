@@ -9,7 +9,7 @@ use std::{
     path::{Path, PathBuf},
     time::SystemTime,
 };
-use tracing::{debug, warn};
+use tracing::warn;
 use xxhash_rust::xxh3::xxh3_128;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
