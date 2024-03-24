@@ -704,7 +704,7 @@ mod tests {
 
         // Adding files to the database
         let directory_path = [r"tests", "assets", "test_folder"].iter().collect();
-        file_lister::list_directories(vec![directory_path])
+        file_lister::list_directories(directory_path)
             .unwrap()
             .iter()
             .for_each(|file| match my_files.add_file_to_db(file) {

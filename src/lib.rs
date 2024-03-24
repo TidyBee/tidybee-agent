@@ -1,5 +1,6 @@
 mod agent_data;
 mod configuration;
+mod error;
 mod file_info;
 mod file_lister;
 mod file_watcher;
@@ -130,8 +131,8 @@ pub async fn run() {
     file_watcher_thread.join().unwrap();
 }
 
-fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
-    match file_lister::list_directories(config) {
+fn list_directories(directory: PathBuf, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
+    match file_lister::list_directories(directory) {
         Ok(mut files_vec) => {
             for file in &mut files_vec {
                 match my_files.add_file_to_db(file) {

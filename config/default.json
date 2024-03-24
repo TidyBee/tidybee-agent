@@ -29,8 +29,6 @@
     ]
   },
   "file_lister_config": {
-    "dir": [
-      "tests/assets/test_folder"
-    ]
+    "dir": "tests/assets/test_folder"
   }
 }

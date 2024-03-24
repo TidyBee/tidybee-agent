@@ -12,7 +12,7 @@ pub struct AgentData {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileListerConfig {
-    pub dir: Vec<PathBuf>,
+    pub dir: PathBuf,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -73,7 +73,7 @@ impl Default for Configuration {
                 minimal_version: String::new(),
             },
             file_lister_config: FileListerConfig {
-                dir: vec![[r"tests", "assets", "test_folder"].iter().collect()],
+                dir: [r"tests", "assets", "test_folder"].iter().collect(),
             },
             file_watcher_config: FileWatcherConfig {
                 dir: vec![[r"tests", "assets", "test_folder"].iter().collect()],
