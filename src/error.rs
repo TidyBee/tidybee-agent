@@ -5,4 +5,6 @@ use thiserror::Error;
 pub enum MyError {
     #[error("IO error")]
     Io(#[from] io_error),
+    #[error("Path entry isn't a directory")]
+    NotDirectory(),
 }
