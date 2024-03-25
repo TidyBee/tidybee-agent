@@ -3,12 +3,16 @@ use notify::{event::ModifyKind, EventKind};
 use server::ServerBuilder;
 use std::{
     collections::HashMap,
-    fs,
     path::PathBuf,
     thread::{self},
 };
 use tidy_algo::TidyAlgo;
 use tracing::{debug, error, info, Level};
+
+use crate::utils::{
+    path_to_pretty_path, safe_add_file_to_db, safe_remove_file_from_db, update_all_grades,
+    update_file,
+};
 
 mod agent_data;
 mod configuration;
@@ -20,6 +24,7 @@ mod my_files;
 mod server;
 mod tidy_algo;
 mod tidy_rules;
+mod utils;
 
 lazy_static! {
     static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -115,15 +120,19 @@ pub async fn run() {
     });
 
     let (file_watcher_sender, file_watcher_receiver) = crossbeam_channel::unbounded();
+    let directories = config.file_watcher_config.dir.clone();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
-        file_watcher::watch_directories(
-            config.file_watcher_config.dir.clone(),
-            file_watcher_sender,
-        );
+        file_watcher::watch_directories(directories, file_watcher_sender);
     });
     info!("File Events Watcher Started");
     for file_watcher_event in file_watcher_receiver {
-        handle_file_events(&file_watcher_event, &my_files, &tidy_algo);
+        handle_file_events(
+            &file_watcher_event,
+            &my_files,
+            &tidy_algo,
+            config.file_watcher_config.dir.clone(),
+        )
+        .await;
     }
 
     file_watcher_thread.join().unwrap();
@@ -157,78 +166,24 @@ fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_alg
     }
 }
 
-fn safe_remove_file_from_db(path: PathBuf, my_files: &my_files::MyFiles) {
-    if fs::metadata(path.clone()).is_err() {
-        match my_files.remove_file_from_db(path.clone()) {
-            Ok(_) => {}
-            Err(error) => {
-                error!("{error:?}");
-            }
-        }
-    } else {
-        error!(
-            "Trying to remove from the database a file that exists: {}",
-            path.display()
-        );
-    }
-}
-
-fn safe_add_file_to_db(path: PathBuf, my_files: &my_files::MyFiles) {
-    if fs::metadata(path.clone()).is_ok() {
-        if let Some(file) = file_info::create_file_info(&path.clone()) {
-            match my_files.add_file_to_db(&file) {
-                Ok(_) => {}
-                Err(error) => {
-                    error!("{error:?}");
-                }
-            }
-        }
-    } else {
-        error!(
-            "Trying to add in the database a file that does not exists: {}",
-            path.display()
-        );
-    }
-}
-
-fn update_all_grades(my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
-    let files = my_files.get_all_files_from_db();
-    match files {
-        Ok(files) => {
-            for file in files {
-                let file_path = file.path.clone();
-                my_files.update_grade(file_path, tidy_algo);
-            }
-        }
-        Err(error) => {
-            error!("{:?}", error);
-        }
-    }
-}
-
-fn update_file(path: &PathBuf, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
-    if let Some(mut file_info) = file_info::create_file_info(&path.clone()) {
-        let _ = my_files.update_fileinfo(file_info.clone());
-        debug!("log: {:?}", file_info);
-        tidy_algo.apply_rules(&mut file_info, my_files);
-        if let Some(tidyscore) = file_info.tidy_score {
-            let _ = my_files.set_tidyscore(path.clone(), &tidyscore);
-        }
-        my_files.update_grade(path.clone(), tidy_algo);
-    }
-}
-
-fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
+async fn handle_file_events(
+    event: &notify::Event,
+    my_files: &my_files::MyFiles,
+    tidy_algo: &TidyAlgo,
+    watched_dirs: Vec<PathBuf>,
+) {
     if event.kind.is_remove() {
         info!("File removed: {}", event.paths[0].display());
         //let xoxo = my_files.fetch_duplicated_files(my_files, event.paths[0]);
-        safe_remove_file_from_db(event.paths[0].clone(), my_files);
+        safe_remove_file_from_db(event.paths[0].clone(), my_files).await;
     } else if event.kind.is_create() {
         info!("File created: {}", event.paths[0].display());
-        safe_add_file_to_db(event.paths[0].clone(), my_files);
-        if let Some(mut file_info) = file_info::create_file_info(&event.paths[0].clone()) {
+        let pretty_path = path_to_pretty_path(&event.paths[0], watched_dirs.clone());
+        safe_add_file_to_db(&pretty_path, my_files).await;
+        if let Some(mut file_info) = file_info::create_file_info(&pretty_path) {
             tidy_algo.apply_rules(&mut file_info, my_files);
             my_files.update_grade(event.paths[0].clone(), tidy_algo);
+            let _ = my_files.set_tidyscore(file_info.path, file_info.tidy_score.as_ref().unwrap());
         }
     } else if event.kind.is_modify() {
         match event.kind {
@@ -242,8 +197,8 @@ fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles, tidy_
                     event.paths[0].display(),
                     event.paths[1].display()
                 );
-                //let _ = my_files.update_file_path(event.paths[0].clone(), event.paths[1].clone());
-                update_file(&event.paths[0], my_files, tidy_algo);
+                let new_pretty_path = path_to_pretty_path(&event.paths[1], watched_dirs.clone());
+                let _  = my_files.update_file_path(&event.paths[0], &event.paths[1], &new_pretty_path);
             }
             EventKind::Modify(ModifyKind::Data(_)) => {
                 info!("File content modified: {}", event.paths[0].display());

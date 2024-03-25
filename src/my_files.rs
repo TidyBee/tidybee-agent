@@ -721,19 +721,25 @@ impl MyFiles {
         }
     }
 
-    pub fn update_file_path(&self, old_path: PathBuf, new_path: PathBuf) -> Result<()> {
+    pub fn update_file_path(
+        &self,
+        old_path: &PathBuf,
+        new_path: &PathBuf,
+        new_pretty_path: &PathBuf,
+    ) -> Result<()> {
         let mut statement: rusqlite::Statement<'_>;
 
         statement = self
             .connection_pool
             .prepare(
                 "UPDATE my_files
-                SET path = ?1
-                WHERE path = ?2",
+                SET path = ?1, pretty_path = ?2
+                WHERE path = ?3",
             )
             .unwrap();
         match statement.execute(params![
             new_path.to_string_lossy(),
+            new_pretty_path.to_string_lossy(),
             old_path.to_string_lossy()
         ]) {
             Ok(_) => Ok(info!("Updated file path in database")),
