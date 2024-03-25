@@ -29,10 +29,9 @@ pub struct GetFilesParams {
     sort_by: String,
 }
 
-
 #[derive(Deserialize)]
 pub struct GetConfigParams {
-    rules: bool
+    rules: bool,
 }
 
 #[derive(Serialize)]
@@ -83,12 +82,15 @@ pub struct GetConfigResponseType {
     rules: Option<Vec<crate::tidy_algo::TidyRule>>,
 }
 
-pub async fn get_config(State(global_config): State<GlobalConfigState>, Query(query_params): Query<GetConfigParams>) -> Json<GetConfigResponseType> {
+pub async fn get_config(
+    State(global_config): State<GlobalConfigState>,
+    Query(query_params): Query<GetConfigParams>,
+) -> Json<GetConfigResponseType> {
     let configuration = global_config.config;
     let rules = global_config.rules;
     let mut response = GetConfigResponseType {
         configuration,
-        rules: None
+        rules: None,
     };
 
     if query_params.rules {
