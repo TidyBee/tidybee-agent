@@ -198,7 +198,8 @@ async fn handle_file_events(
                     event.paths[1].display()
                 );
                 let new_pretty_path = path_to_pretty_path(&event.paths[1], watched_dirs.clone());
-                let _  = my_files.update_file_path(&event.paths[0], &event.paths[1], &new_pretty_path);
+                let _ =
+                    my_files.update_file_path(&event.paths[0], &event.paths[1], &new_pretty_path);
             }
             EventKind::Modify(ModifyKind::Data(_)) => {
                 info!("File content modified: {}", event.paths[0].display());
