@@ -255,7 +255,7 @@ impl MyFiles {
             .unwrap();
         let duplicated_file_id: Option<i64> = statement
             .query_row(
-                params![duplicated_file_path.into_os_string().to_str()],
+                params![duplicated_file_path.clone().into_os_string().to_str()],
                 |row| row.get::<_, Option<i64>>(0),
             )
             .unwrap();
@@ -267,19 +267,20 @@ impl MyFiles {
             VALUES (?1, ?2)",
             )
             .unwrap();
-        let _: Result<(), _> = match statement.execute(params![file_id, duplicated_file_id]) {
-            Ok(_) => Ok(info!(
-                "{:?} added to duplicates_associative_table",
-                str_filepath
-            )),
-            Err(error) => {
-                error!(
-                    "Error adding {:?} with id {} to duplicates_associative_table: {}",
-                    str_filepath, file_id, error
+        let _: Result<(), _> =
+            match statement.execute(params![file_id, duplicated_file_id]) {
+                Ok(_) => Ok(info!(
+                    "{:?} added to duplicates_associative_table",
+                    str_filepath
+                )),
+                Err(error) => {
+                    error!(
+                    "Error adding {:?} and {:?} with ids {} {} to duplicates_associative_table: {}",
+                    str_filepath, duplicated_file_path, file_id, duplicated_file_id.unwrap(), error
                 );
-                Err(error)
-            }
-        };
+                    Err(error)
+                }
+            };
         // Set tidy_score to duplicated = true
         let mut statement = self
             .connection_pool
@@ -487,6 +488,31 @@ impl MyFiles {
         Ok(duplicated_files_vec)
     }
 
+    pub fn update_fileinfo(&self, file: FileInfo) -> Result<(), rusqlite::Error> {
+        let last_modified: DateTime<Utc> = file.last_modified.into();
+        let last_accessed: DateTime<Utc> = file.last_accessed.into();
+        match self.connection_pool.execute(
+            "UPDATE my_files
+            SET pretty_path = ?1, size = ?2, hash = ?3, last_modified = ?4, last_accessed = ?5, tidy_score_id = ?6, path = ?7
+            WHERE path = ?7",
+            params![
+                file.pretty_path.to_str(),
+                file.size,
+                file.hash,
+                last_modified.to_rfc3339(),
+                last_accessed.to_rfc3339(),
+                file.tidy_score.as_ref(),
+                file.path.to_str()
+            ],
+        ) {
+            Ok(_) => Ok(()),
+            Err(error) => {
+                error!("Error updating {} in my_files: {}", file.path.to_str().unwrap(), error);
+                Err(error)
+            }
+        }
+    }
+
     pub fn get_tidyscore(&self, file_path: PathBuf) -> Result<TidyScore> {
         let str_filepath = file_path.to_str().unwrap();
 
@@ -604,7 +630,7 @@ impl MyFiles {
             .connection_pool
             .prepare(
                 "SELECT tidy_score_id FROM my_files
-            WHERE path = ?1",
+                WHERE path = ?1",
             )
             .unwrap();
         let current_tidy_score_id: Option<i64> = statement
@@ -669,6 +695,79 @@ impl MyFiles {
     )]
     pub fn raw_query(&self, query: String, params: &[&dyn ToSql]) -> Result<usize> {
         self.connection_pool.execute(query.as_str(), params)
+    }
+
+    pub fn update_file_last_modified(
+        &self,
+        path: PathBuf,
+        last_modified: DateTime<Utc>,
+    ) -> Result<()> {
+        let mut statement: rusqlite::Statement<'_>;
+
+        statement = self
+            .connection_pool
+            .prepare(
+                "UPDATE my_files
+                SET last_accessed = ?1
+                WHERE path = ?2",
+            )
+            .unwrap();
+        match statement.execute(params![last_modified.to_rfc3339(), path.to_string_lossy()]) {
+            Ok(_) => Ok(info!("Updated last file modification date in database")),
+            Err(error) => {
+                error!("Error updating file {} in database", path.display());
+                Err(error)
+            }
+        }
+    }
+
+    pub fn update_file_path(
+        &self,
+        old_path: &PathBuf,
+        new_path: &PathBuf,
+        new_pretty_path: &PathBuf,
+    ) -> Result<()> {
+        let mut statement: rusqlite::Statement<'_>;
+
+        statement = self
+            .connection_pool
+            .prepare(
+                "UPDATE my_files
+                SET path = ?1, pretty_path = ?2
+                WHERE path = ?3",
+            )
+            .unwrap();
+        match statement.execute(params![
+            new_path.to_string_lossy(),
+            new_pretty_path.to_string_lossy(),
+            old_path.to_string_lossy()
+        ]) {
+            Ok(_) => Ok(info!("Updated file path in database")),
+            Err(error) => {
+                error!("Error updating file {} in database", old_path.display());
+                Err(error)
+            }
+        }
+    }
+
+    pub fn update_file_hash(&self, path: PathBuf, hash: String) -> Result<()> {
+        let mut statement: rusqlite::Statement<'_>;
+
+        statement = self
+            .connection_pool
+            .prepare(
+                "UPDATE my_files
+                SET hash = ?1
+                WHERE path = ?2",
+            )
+            .unwrap();
+        match statement.execute(params![hash, path.to_string_lossy()]) {
+            Ok(_) => Ok(info!("Updated file hash in database")),
+            Err(error) => {
+                error!("Error updating file {} in database", path.display());
+                Err(error)
+            }
+        }
     }
 }
 

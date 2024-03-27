@@ -1,3 +1,19 @@
+use lazy_static::lazy_static;
+use notify::{event::ModifyKind, EventKind};
+use server::ServerBuilder;
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    thread::{self},
+};
+use tidy_algo::TidyAlgo;
+use tracing::{debug, error, info, Level};
+
+use crate::utils::{
+    path_to_pretty_path, safe_add_file_to_db, safe_remove_file_from_db, update_all_grades,
+    update_file,
+};
+
 mod agent_data;
 mod configuration;
 mod file_info;
@@ -8,13 +24,7 @@ mod my_files;
 mod server;
 mod tidy_algo;
 mod tidy_rules;
-
-use lazy_static::lazy_static;
-use notify::EventKind;
-use server::ServerBuilder;
-use std::{collections::HashMap, path::PathBuf, thread};
-use tidy_algo::TidyAlgo;
-use tracing::{debug, error, info, Level};
+mod utils;
 
 lazy_static! {
     static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -65,7 +75,7 @@ pub async fn run() {
     info!("MyFilesDB successfully initialized");
 
     let mut tidy_algo = TidyAlgo::new();
-    let basic_ruleset_path: PathBuf = vec![r"config", r"rules", r"basic.yml"].iter().collect();
+    let basic_ruleset_path: PathBuf = [r"config", r"rules", r"basic.yml"].iter().collect();
     info!("TidyAlgo successfully created");
     match tidy_algo.load_rules_from_file(&my_files, basic_ruleset_path) {
         Ok(loaded_rules_amt) => info!(
@@ -99,32 +109,30 @@ pub async fn run() {
     info!("Server Started");
 
     tokio::spawn(async move {
-        let mut timeout = 5;
-        loop {
-            tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
-            if let Err(err) = hub_client.connect().await {
-                error!(
-                    "Error connecting to the hub: {}, retrying in {}",
-                    err,
-                    timeout * 2
-                );
-            } else {
-                break;
+        match hub_client.connect().await {
+            Ok(_) => {
+                info!("Connected to the hub");
             }
-            timeout *= 2;
+            Err(err) => {
+                error!("Error connecting to the hub: {}", err);
+            }
         }
     });
 
     let (file_watcher_sender, file_watcher_receiver) = crossbeam_channel::unbounded();
+    let directories = config.file_watcher_config.dir.clone();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
-        file_watcher::watch_directories(
-            config.file_watcher_config.dir.clone(),
-            file_watcher_sender,
-        );
+        file_watcher::watch_directories(directories, file_watcher_sender);
     });
     info!("File Events Watcher Started");
     for file_watcher_event in file_watcher_receiver {
-        handle_file_events(&file_watcher_event, &my_files);
+        handle_file_events(
+            &file_watcher_event,
+            &my_files,
+            &tidy_algo,
+            config.file_watcher_config.dir.clone(),
+        )
+        .await;
     }
 
     file_watcher_thread.join().unwrap();
@@ -136,7 +144,7 @@ fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_alg
             for file in &mut files_vec {
                 match my_files.add_file_to_db(file) {
                     Ok(_) => {
-                        tidy_algo.apply_rules(file, &my_files);
+                        tidy_algo.apply_rules(file, my_files);
                         debug!(
                             "{} TidyScore after all rules applied: {:?}",
                             file.path.display(),
@@ -144,7 +152,7 @@ fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_alg
                         );
                         let file_path = file.path.clone();
                         let _ =
-                            my_files.set_tidyscore(file_path, &file.tidy_score.as_ref().unwrap());
+                            my_files.set_tidyscore(file_path, file.tidy_score.as_ref().unwrap());
                     }
                     Err(error) => {
                         error!("{:?}", error);
@@ -158,39 +166,47 @@ fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_alg
     }
 }
 
-fn update_all_grades(my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
-    let files = my_files.get_all_files_from_db();
-    match files {
-        Ok(files) => {
-            for file in files {
-                let file_path = file.path.clone();
-                my_files.update_grade(file_path, tidy_algo);
-            }
+async fn handle_file_events(
+    event: &notify::Event,
+    my_files: &my_files::MyFiles,
+    tidy_algo: &TidyAlgo,
+    watched_dirs: Vec<PathBuf>,
+) {
+    if event.kind.is_remove() {
+        info!("File removed: {}", event.paths[0].display());
+        //let xoxo = my_files.fetch_duplicated_files(my_files, event.paths[0]);
+        safe_remove_file_from_db(event.paths[0].clone(), my_files).await;
+    } else if event.kind.is_create() {
+        info!("File created: {}", event.paths[0].display());
+        let pretty_path = path_to_pretty_path(&event.paths[0], watched_dirs.clone());
+        safe_add_file_to_db(&pretty_path, my_files).await;
+        if let Some(mut file_info) = file_info::create_file_info(&pretty_path) {
+            tidy_algo.apply_rules(&mut file_info, my_files);
+            my_files.update_grade(event.paths[0].clone(), tidy_algo);
+            let _ = my_files.set_tidyscore(file_info.path, file_info.tidy_score.as_ref().unwrap());
         }
-        Err(error) => {
-            error!("{:?}", error);
-        }
-    }
-}
-
-fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
-    info!("event: kind: {:?}\tpaths: {:?}", event.kind, &event.paths);
-
-    if let EventKind::Remove(_) = event.kind {
-        match my_files.remove_file_from_db(event.paths[0].clone()) {
-            Ok(_) => {}
-            Err(error) => {
-                error!("{:?}", error);
+    } else if event.kind.is_modify() {
+        match event.kind {
+            EventKind::Modify(ModifyKind::Metadata(_)) => {
+                info!("Metadata modification: {}", event.paths[0].display());
+                update_file(&event.paths[0], my_files, tidy_algo);
             }
-        }
-    } else if let EventKind::Create(_) = event.kind {
-        if let Some(file) = file_info::create_file_info(&event.paths[0].clone()) {
-            match my_files.add_file_to_db(&file) {
-                Ok(_) => {}
-                Err(error) => {
-                    error!("{:?}", error);
-                }
+            EventKind::Modify(ModifyKind::Name(_)) => {
+                info!(
+                    "File moved: {}: {}",
+                    event.paths[0].display(),
+                    event.paths[1].display()
+                );
+                let new_pretty_path = path_to_pretty_path(&event.paths[1], watched_dirs.clone());
+                let _ =
+                    my_files.update_file_path(&event.paths[0], &event.paths[1], &new_pretty_path);
             }
+            EventKind::Modify(ModifyKind::Data(_)) => {
+                info!("File content modified: {}", event.paths[0].display());
+                // TODO: Create methods to update each fields in my_files
+                update_file(&event.paths[0], my_files, tidy_algo);
+            }
+            _ => {}
         }
     }
 }

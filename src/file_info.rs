@@ -137,6 +137,13 @@ pub fn create_file_info(path: &PathBuf) -> Option<FileInfo> {
     }
 }
 
+#[allow(dead_code)]
+pub fn get_last_access(path: &PathBuf) -> std::io::Result<SystemTime> {
+    let metadata = fs::metadata(path)?;
+    let last_access_time = metadata.accessed()?;
+    Ok(last_access_time)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

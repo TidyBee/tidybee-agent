@@ -23,7 +23,7 @@ fn parse_duration(duration_str: String) -> Result<Duration, Box<dyn std::error::
             };
             Ok(duration)
         }
-        _ => Err("No duration found".into())
+        _ => Err("No duration found".into()),
     }
 }
 
