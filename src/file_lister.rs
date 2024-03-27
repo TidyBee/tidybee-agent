@@ -4,24 +4,26 @@ use std::fs::read_dir;
 use std::fs::DirEntry;
 use std::path::PathBuf;
 
-pub fn list_directories(directory: PathBuf) -> Result<Vec<FileInfo>, MyError> {
+pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, MyError> {
     let mut file_info_vec: Vec<FileInfo> = Vec::new();
 
-    if directory.is_dir() {
-        for dir_entry in read_dir(&directory)? {
-            let dir_entry: DirEntry = dir_entry?;
-            let dir_path: PathBuf = dir_entry.path();
+    for directory in directories {
+        if directory.is_dir() {
+            for dir_entry in read_dir(&directory)? {
+                let dir_entry: DirEntry = dir_entry?;
+                let dir_path: PathBuf = dir_entry.path();
 
-            if dir_path.is_dir() {
-                file_info_vec.extend(list_directories(dir_path)?);
-            } else if dir_path.to_str().is_some() {
-                if let Some(file_info) = create_file_info(&dir_path) {
-                    file_info_vec.push(file_info);
+                if dir_path.is_dir() {
+                    file_info_vec.extend(list_directories(vec![dir_path])?);
+                } else if dir_path.to_str().is_some() {
+                    if let Some(file_info) = create_file_info(&dir_path) {
+                        file_info_vec.push(file_info);
+                    }
                 }
             }
+        } else {
+            return Err(MyError::NotADirectory());
         }
-    } else {
-        return Err(MyError::NotADirectory());
     }
 
     Ok(file_info_vec)
@@ -33,7 +35,7 @@ mod tests {
 
     #[test]
     fn valid() {
-        let res = list_directories(PathBuf::from("tests/assets/test_folder"));
+        let res = list_directories(vec![PathBuf::from("tests/assets/test_folder")]);
         if let Ok(file_infos) = res {
             assert!(file_infos.iter().any(|file_info| file_info.pretty_path
                 == PathBuf::from("tests/assets/test_folder/test-file-1")));
@@ -69,19 +71,19 @@ mod tests {
 
     #[test]
     fn empty_path() {
-        let res = list_directories(PathBuf::from(""));
+        let res = list_directories(vec![PathBuf::from("")]);
         assert!(res.is_err());
     }
 
     #[test]
     fn file_does_not_exist() {
-        let res = list_directories(PathBuf::from("file-does-not-exist"));
+        let res = list_directories(vec![PathBuf::from("file-does-not-exist")]);
         assert!(res.is_err());
     }
 
     #[test]
     fn is_reg_file() {
-        let res = list_directories(PathBuf::from("tests/assets/test_folder/test-file-1"));
+        let res = list_directories(vec![PathBuf::from("tests/assets/test_folder/test-file-1")]);
         assert!(res.is_err());
     }
 }

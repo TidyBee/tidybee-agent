@@ -703,7 +703,7 @@ mod tests {
         assert_eq!(my_files.get_all_files_from_db().unwrap().len(), 0);
 
         // Adding files to the database
-        let directory_path = [r"tests", "assets", "test_folder"].iter().collect();
+        let directory_path = vec![[r"tests", "assets", "test_folder"].iter().collect()];
         file_lister::list_directories(directory_path)
             .unwrap()
             .iter()
