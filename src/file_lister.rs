@@ -8,8 +8,8 @@ pub fn list_directories(directory: PathBuf) -> Result<Vec<FileInfo>, MyError> {
     let mut file_info_vec: Vec<FileInfo> = Vec::new();
 
     if directory.is_dir() {
-        for dir_entry in read_dir(&directory).map_err(MyError::Io)? {
-            let dir_entry: DirEntry = dir_entry.map_err(MyError::Io)?;
+        for dir_entry in read_dir(&directory)? {
+            let dir_entry: DirEntry = dir_entry?;
             let dir_path: PathBuf = dir_entry.path();
 
             if dir_path.is_dir() {

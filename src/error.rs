@@ -3,7 +3,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum MyError {
-    #[error("IO error")]
+    #[error(transparent)]
     Io(#[from] io_error),
     #[error("Path entry isn't a directory")]
     NotDirectory(),
