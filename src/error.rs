@@ -6,5 +6,5 @@ pub enum MyError {
     #[error(transparent)]
     Io(#[from] io_error),
     #[error("Path entry isn't a directory")]
-    NotDirectory(),
+    NotADirectory(),
 }
