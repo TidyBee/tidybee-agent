@@ -108,6 +108,13 @@ impl Configuration {
 
         info!("Loading configuration for environment: {}", env);
 
+        let mut config_dir = std::env::current_exe().expect("Failed to find current executable path");
+        config_dir.pop();
+        config_dir.push("config");
+
+        let _default_config = config_dir.join("default.json");
+        let _environment_config = config_dir.join(format!("{env}.json"));
+
         let builder = Config::builder()
             .add_source(File::from(Path::new("config/default.json")))
             .add_source(File::with_name(&format!("config/{env}.json")).required(false))
