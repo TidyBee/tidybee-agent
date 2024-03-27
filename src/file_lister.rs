@@ -21,7 +21,7 @@ pub fn list_directories(directory: PathBuf) -> Result<Vec<FileInfo>, MyError> {
             }
         }
     } else {
-        return Err(MyError::NotDirectory());
+        return Err(MyError::NotADirectory());
     }
 
     Ok(file_info_vec)
