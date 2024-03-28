@@ -1,8 +1,10 @@
 use crate::agent_data::AgentData;
-use crate::http::routes::{get_config, get_files, get_status, hello_world, AgentDataState, GlobalConfigState, MyFilesState};
+use crate::http::routes::{
+    get_config, get_files, get_status, hello_world, AgentDataState, GlobalConfigState, MyFilesState,
+};
+use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
 use crate::tidy_algo::{TidyAlgo, TidyRule};
 use crate::{configuration, my_files};
-use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
 use axum::{routing::get, Router};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
@@ -62,7 +64,10 @@ impl ServerBuilder {
         self
     }
 
-    pub fn inject_global_configuration(mut self, global_configuration: configuration::Configuration) -> Self {
+    pub fn inject_global_configuration(
+        mut self,
+        global_configuration: configuration::Configuration,
+    ) -> Self {
         self.global_configuration = global_configuration;
         self
     }

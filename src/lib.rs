@@ -1,5 +1,6 @@
 mod agent_data;
 mod configuration;
+mod error;
 mod file_info;
 mod file_lister;
 mod file_watcher;
@@ -74,7 +75,7 @@ pub async fn run() {
         Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
     };
 
-    list_directories(config.clone().file_lister_config.dir, &my_files, &tidy_algo);
+    list_directories(config.clone().filesystem_interface_config.dir, &my_files, &tidy_algo);
     update_all_grades(&my_files, &tidy_algo);
 
     let server = ServerBuilder::new()
@@ -84,7 +85,7 @@ pub async fn run() {
         .build(
             config.agent_data.latest_version.clone(),
             config.agent_data.minimal_version.clone(),
-            config.file_watcher_config.dir.clone(),
+            config.filesystem_interface_config.dir.clone(),
             config.server_config.address,
             &config.server_config.log_level,
         );
@@ -118,7 +119,7 @@ pub async fn run() {
     let (file_watcher_sender, file_watcher_receiver) = crossbeam_channel::unbounded();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
         file_watcher::watch_directories(
-            config.file_watcher_config.dir.clone(),
+            config.filesystem_interface_config.dir.clone(),
             file_watcher_sender,
         );
     });
@@ -130,8 +131,8 @@ pub async fn run() {
     file_watcher_thread.join().unwrap();
 }
 
-fn list_directories(config: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
-    match file_lister::list_directories(config) {
+fn list_directories(directories: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
+    match file_lister::list_directories(directories) {
         Ok(mut files_vec) => {
             for file in &mut files_vec {
                 match my_files.add_file_to_db(file) {

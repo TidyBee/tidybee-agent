@@ -23,12 +23,7 @@
     "db_path": "./my_files.db",
     "drop_db_on_start": true
   },
-  "file_watcher_config": {
-    "dir": [
-      "tests/assets/test_folder"
-    ]
-  },
-  "file_lister_config": {
+  "filesystem_interface_config": {
     "dir": [
       "tests/assets/test_folder"
     ]

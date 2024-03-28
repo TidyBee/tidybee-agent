@@ -11,12 +11,7 @@ pub struct AgentData {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct FileListerConfig {
-    pub dir: Vec<PathBuf>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct FileWatcherConfig {
+pub struct FileSystemInterfaceConfig {
     pub dir: Vec<PathBuf>,
 }
 
@@ -57,8 +52,7 @@ pub struct MyFilesConfiguration {
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct Configuration {
     pub agent_data: AgentData,
-    pub file_lister_config: FileListerConfig,
-    pub file_watcher_config: FileWatcherConfig,
+    pub filesystem_interface_config: FileSystemInterfaceConfig,
     pub server_config: ServerConfig,
     pub logger_config: LoggerConfig,
     pub my_files_config: MyFilesConfiguration,
@@ -72,10 +66,7 @@ impl Default for Configuration {
                 latest_version: String::new(),
                 minimal_version: String::new(),
             },
-            file_lister_config: FileListerConfig {
-                dir: vec![[r"tests", "assets", "test_folder"].iter().collect()],
-            },
-            file_watcher_config: FileWatcherConfig {
+            filesystem_interface_config: FileSystemInterfaceConfig {
                 dir: vec![[r"tests", "assets", "test_folder"].iter().collect()],
             },
             server_config: ServerConfig {
