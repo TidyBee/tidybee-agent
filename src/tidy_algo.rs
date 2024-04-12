@@ -264,7 +264,7 @@ mod tests {
 
     #[test]
     fn load_rules_from_file_basic() {
-        let configuration_instance: Configuration = Configuration::init();
+        let configuration_instance: Configuration = Configuration::init().unwrap();
 
         let mut tidy_algo = TidyAlgo::new();
         let rules_path: PathBuf = [r"tests", r"assets", r"rules_folder", r"basic.yml"]
@@ -286,7 +286,7 @@ mod tests {
 
     #[test]
     fn load_rules_from_file_failing() {
-        let configuration_instance: Configuration = Configuration::init();
+        let configuration_instance: Configuration = Configuration::init().unwrap();
 
         let mut tidy_algo = TidyAlgo::new();
         let rules_path: PathBuf = [r"tests", r"assets", r"rules_folder", r"invalid.yml"]

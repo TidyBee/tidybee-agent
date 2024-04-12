@@ -17,6 +17,8 @@ use std::{collections::HashMap, path::PathBuf, thread};
 use tidy_algo::TidyAlgo;
 use tracing::{debug, error, info, Level};
 
+use crate::error::MyError;
+
 lazy_static! {
     static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {
         let mut m = HashMap::new();
@@ -29,9 +31,14 @@ lazy_static! {
     };
 }
 
-pub async fn run() {
+pub async fn run() -> Result<(), MyError> {
     info!("Command-line Arguments Parsed");
-    let config = configuration::Configuration::init();
+    let config = match configuration::Configuration::init() {
+        Ok(config) => config,
+        Err(err) => {
+            return Err(err);
+        }
+    };
 
     let selected_cli_logger_level = match CLI_LOGGING_LEVEL.get(&config.logger_config.term_level) {
         Some(level) => level.to_owned(),
@@ -66,7 +73,7 @@ pub async fn run() {
     info!("MyFilesDB successfully initialized");
 
     let mut tidy_algo = TidyAlgo::new();
-    let basic_ruleset_path: PathBuf = vec![r"config", r"rules", r"basic.yml"].iter().collect();
+    let basic_ruleset_path: PathBuf = [r"config", r"rules", r"basic.yml"].iter().collect();
     info!("TidyAlgo successfully created");
     match tidy_algo.load_rules_from_file(&my_files, basic_ruleset_path) {
         Ok(loaded_rules_amt) => info!(
@@ -75,7 +82,11 @@ pub async fn run() {
         Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
     };
 
-    list_directories(config.clone().filesystem_interface_config.dir, &my_files, &tidy_algo);
+    list_directories(
+        config.clone().filesystem_interface_config.dir,
+        &my_files,
+        &tidy_algo,
+    );
     update_all_grades(&my_files, &tidy_algo);
 
     let server = ServerBuilder::new()
@@ -129,6 +140,7 @@ pub async fn run() {
     }
 
     file_watcher_thread.join().unwrap();
+    Ok(())
 }
 
 fn list_directories(directories: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
@@ -145,7 +157,7 @@ fn list_directories(directories: Vec<PathBuf>, my_files: &my_files::MyFiles, tid
                         );
                         let file_path = file.path.clone();
                         let _ =
-                            my_files.set_tidyscore(file_path, &file.tidy_score.as_ref().unwrap());
+                            my_files.set_tidyscore(file_path, file.tidy_score.as_ref().unwrap());
                     }
                     Err(error) => {
                         error!("{:?}", error);

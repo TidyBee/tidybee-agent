@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use crate::configuration::MyFilesConfiguration;
 use crate::file_info::{FileInfo, TidyScore};
 use crate::tidy_algo::TidyAlgo;
@@ -690,7 +692,7 @@ mod tests {
 
     #[test]
     pub fn main_test() {
-        let config = configuration::Configuration::init();
+        let config = configuration::Configuration::init().unwrap();
         let my_files_builder = MyFilesBuilder::new()
             .configure(config.my_files_config)
             .seal();

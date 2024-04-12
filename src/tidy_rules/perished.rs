@@ -8,6 +8,7 @@ use crate::{
     my_files::MyFiles,
 };
 
+#[allow(deprecated)]
 fn parse_duration(duration_str: String) -> Result<Duration, Box<dyn std::error::Error>> {
     let parts: Vec<&str> = duration_str.split_whitespace().collect();
     match parts.len() {
