@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option optimize_for = SPEED;
+
+package tidybee;
+
+enum Status {
+    OK = 0;
+    ERROR = 1;
+}
+
+message FileInfoUpdateRequest {
+    string pretty_path = 1;
+    string path = 2;
+    optional uint64 size = 3;
+    optional string hash = 4;
+    optional google.protobuf.Timestamp last_modified = 5;
+    optional google.protobuf.Timestamp last_accessed = 6;
+}
+
+message FileInfoDeleteRequest {
+    string pretty_path = 1;
+    string path = 2;
+}
+
+message AgentData {
+    string agent_version = 1;
+    string machine_name = 2;
+    uint32 process_id = 3;
+    uint64 uptime = 4;
+    repeated string watched_directories = 5;
+}
+
+message HubConnectionResponse {
+    Status status = 1;
+    string agent_uuid = 2;
+}
+
+message FileInfoUpdateResponse {
+    Status status = 1;
+}
+
+service TidyBeeService {
+   rpc UpdateFileInfo(FileInfoUpdateRequest) returns (FileInfoUpdateResponse);
+   rpc ConnectionRequest(AgentData) returns (FileInfoUpdateResponse);
+}
