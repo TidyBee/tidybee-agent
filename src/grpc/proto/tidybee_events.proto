@@ -4,7 +4,7 @@ import "google/protobuf/timestamp.proto";
 
 option optimize_for = SPEED;
 
-package tidybee;
+package tidybee_events;
 
 // General status enum
 enum Status {
@@ -58,9 +58,9 @@ message FileInfoUpdateResponse {
     Status status = 1;
 }
 
-service TidyBeeService {
+service TidyBeeEvents {
     // Ask the hub to update the file info
-    rpc UpdateFileInfo(FileInfoUpdateRequest) returns (FileInfoUpdateResponse);
+    rpc UpdateFileInfo(stream FileInfoUpdateRequest) returns (FileInfoUpdateResponse);
     // Ask the hub to delete the file from its database
-    rpc DeleteFileInfo(FileInfoDeleteRequest) returns (FileInfoUpdateResponse);
+    rpc DeleteFileInfo(stream FileInfoDeleteRequest) returns (FileInfoUpdateResponse);
 }
