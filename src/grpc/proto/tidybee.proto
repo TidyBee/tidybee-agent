@@ -12,7 +12,6 @@ enum Status {
     ERROR = 1;
 }
 
-
 // Request to update file content or when a file is created (see is_new)
 message FileInfoUpdateRequest {
     // Path relative to the watched directory
@@ -73,5 +72,5 @@ service TidyBeeService {
     // Ask the hub to delete the file from its database
     rpc DeleteFileInfo(FileInfoDeleteRequest) returns (FileInfoUpdateResponse);
     // Ask the hub to connect the agent
-    rpc ConnectionRequest(AgentData) returns (FileInfoUpdateResponse);
+    rpc ConnectionRequest(AgentData) returns (HubConnectionResponse);
 }
