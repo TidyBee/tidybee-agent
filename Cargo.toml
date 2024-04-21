@@ -18,6 +18,7 @@ lazy_static = "1.4.0"
 notify = "6.1.1"
 notify-debouncer-full = "0.3.1"
 prost = "0.12.4"
+prost-types = "0.12.4"
 r2d2 = "0.8.10"
 r2d2_sqlite = "0.23.0"
 regex = "1.10.3"
@@ -44,5 +45,4 @@ name = "tidybee-agent"
 path = "src/main.rs"
 
 [build-dependencies]
-prost-types = "0.12.4"
 tonic-build = "0.11.0"
