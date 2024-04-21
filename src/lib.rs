@@ -12,9 +12,12 @@ mod tidy_rules;
 
 use lazy_static::lazy_static;
 use notify::EventKind;
+use prost_types::Timestamp;
 use server::ServerBuilder;
 use std::{collections::HashMap, path::PathBuf, thread};
 use tidy_algo::TidyAlgo;
+use tokio_stream;
+use tonic::transport::Channel;
 use tracing::{debug, error, info, Level};
 
 lazy_static! {
@@ -27,6 +30,12 @@ lazy_static! {
         m.insert("error".to_owned(), Level::ERROR);
         m
     };
+}
+
+use tidybee_events::tidy_bee_events_client::TidyBeeEventsClient;
+use tidybee_events::{FileInfoUpdateRequest, FileInfoUpdateResponse};
+pub mod tidybee_events {
+    tonic::include_proto!("tidybee_events");
 }
 
 pub async fn run() {
@@ -56,6 +65,24 @@ pub async fn run() {
         }
     };
 
+    let mut tidybee_events_client = TidyBeeEventsClient::connect("http://[::1]:5057")
+        .await
+        .expect("Failed to connect to TidyBeeEventsClient");
+
+    let response_stream = tokio_stream::iter(vec![FileInfoUpdateRequest {
+        pretty_path: "test".to_string(),
+        path: "test".to_string(),
+        size: Some(0),
+        hash: Some("test".to_string()),
+        last_modified: Some(Timestamp::from(std::time::SystemTime::now())),
+        last_accessed: Some(Timestamp::from(std::time::SystemTime::now())),
+        is_new: Some(true),
+    }]);
+    tidybee_events_client
+        .update_file_info(response_stream)
+        .await
+        .expect("Failed to send file info update");
+
     let my_files_builder = my_files::MyFilesBuilder::new()
         .configure(config.clone().my_files_config.clone())
         .seal();
@@ -75,7 +102,12 @@ pub async fn run() {
         Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
     };
 
-    list_directories(config.clone().filesystem_interface_config.dir, &my_files, &tidy_algo);
+    list_directories(
+        config.clone().filesystem_interface_config.dir,
+        &my_files,
+        &tidy_algo,
+        &mut tidybee_events_client,
+    ).await;
     update_all_grades(&my_files, &tidy_algo);
 
     let server = ServerBuilder::new()
@@ -131,27 +163,28 @@ pub async fn run() {
     file_watcher_thread.join().unwrap();
 }
 
-fn list_directories(directories: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
+async fn list_directories(
+    directories: Vec<PathBuf>,
+    my_files: &my_files::MyFiles,
+    tidy_algo: &TidyAlgo,
+    tidybee_event_client: &mut TidyBeeEventsClient<Channel>,
+) {
     match file_lister::list_directories(directories) {
-        Ok(mut files_vec) => {
-            for file in &mut files_vec {
-                match my_files.add_file_to_db(file) {
-                    Ok(_) => {
-                        tidy_algo.apply_rules(file, &my_files);
-                        debug!(
-                            "{} TidyScore after all rules applied: {:?}",
-                            file.path.display(),
-                            file.tidy_score
-                        );
-                        let file_path = file.path.clone();
-                        let _ =
-                            my_files.set_tidyscore(file_path, &file.tidy_score.as_ref().unwrap());
-                    }
-                    Err(error) => {
-                        error!("{:?}", error);
-                    }
-                }
-            }
+        Ok(files_vec) => {
+            let file_info_update_requests = files_vec
+                .iter()
+                .map(|file| FileInfoUpdateRequest {
+                    pretty_path: file.pretty_path.display().to_string(),
+                    path: file.path.display().to_string(),
+                    size: Some(file.size),
+                    hash: Some(file.hash.clone().unwrap()),
+                    last_modified: Some(Timestamp::from(file.last_modified)),
+                    last_accessed: Some(Timestamp::from(file.last_accessed)),
+                    is_new: Some(true),
+                })
+                .collect::<Vec<FileInfoUpdateRequest>>();
+            tidybee_event_client
+                .update_file_info(tokio_stream::iter(file_info_update_requests)).await.expect("Failed to send file info update");
         }
         Err(error) => {
             error!("{}", error);
