@@ -6,43 +6,72 @@ option optimize_for = SPEED;
 
 package tidybee;
 
+// General status enum
 enum Status {
     OK = 0;
     ERROR = 1;
 }
 
+
+// Request to update file content or when a file is created (see is_new)
 message FileInfoUpdateRequest {
+    // Path relative to the watched directory
     string pretty_path = 1;
+    // Full canonical path
     string path = 2;
+    // File size in bytes
     optional uint64 size = 3;
+    // xxhash64 hash of the file content
     optional string hash = 4;
+    // Last modified timestamp
     optional google.protobuf.Timestamp last_modified = 5;
+    // Last accessed timestamp
     optional google.protobuf.Timestamp last_accessed = 6;
+    // True if the file was created
+    optional bool is_new = 7;
 }
 
+// Request to delete a file
 message FileInfoDeleteRequest {
+    // Path relative to the watched directory
     string pretty_path = 1;
+    // Full canonical path
     string path = 2;
 }
 
+// Data sent by the agent when connecting to the hub
 message AgentData {
+    // Agent version
     string agent_version = 1;
+    // Machine name (usually the hostname)
     string machine_name = 2;
+    // Process ID of the agent
     uint32 process_id = 3;
+    // Uptime of the machine in seconds
     uint64 uptime = 4;
+    // List of directories watched by the agent
     repeated string watched_directories = 5;
 }
 
+// Response sent by the hub when a connection request is received
 message HubConnectionResponse {
+    // Whether or not the connection was accepted
     Status status = 1;
+    // UUID assigned to the agent
     string agent_uuid = 2;
 }
 
+// Response to a file update request
 message FileInfoUpdateResponse {
+    // Status of the operation
     Status status = 1;
 }
 
 service TidyBeeService {
-   rpc UpdateFileInfo(FileInfoUpdateRequest) returns (FileInfoUpdateResponse);
-   rpc ConnectionRequest(AgentData) returns (FileInfoUpdateResponse);
+    // Ask the hub to update the file info
+    rpc UpdateFileInfo(FileInfoUpdateRequest) returns (FileInfoUpdateResponse);
+    // Ask the hub to delete the file from its database
+    rpc DeleteFileInfo(FileInfoDeleteRequest) returns (FileInfoUpdateResponse);
+    // Ask the hub to connect the agent
+    rpc ConnectionRequest(AgentData) returns (FileInfoUpdateResponse);
 }
