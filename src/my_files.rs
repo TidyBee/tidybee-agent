@@ -376,7 +376,7 @@ impl MyFiles {
     pub fn get_all_files_from_db(&self) -> Result<Vec<FileInfo>> {
         let mut statement = self.connection_pool.prepare("SELECT * FROM my_files")?;
         let file_iter_res = statement.query_map(params![], |row| {
-            MyFiles::create_fileinfo_from_row(self, &row)
+            MyFiles::create_fileinfo_from_row(self, row)
         });
 
         let file_iter = match file_iter_res {
@@ -547,10 +547,8 @@ impl MyFiles {
             "SELECT tidy_score_id FROM my_files
             WHERE path = ?1",
         )?;
-        let mut current_tidy_score_id: Option<i64> = statement
-            .query_row(params![str_filepath], |row| {
-                Ok(row.get::<_, Option<i64>>(0)?)
-            })?;
+        let mut current_tidy_score_id: Option<i64> =
+            statement.query_row(params![str_filepath], |row| row.get::<_, Option<i64>>(0))?;
 
         // If the file already has a tidyscore attached to it, we update it
         if current_tidy_score_id.is_some() {
@@ -610,9 +608,7 @@ impl MyFiles {
             )
             .unwrap();
         let current_tidy_score_id: Option<i64> = statement
-            .query_row(params![str_filepath], |row| {
-                Ok(row.get::<_, Option<i64>>(0)?)
-            })
+            .query_row(params![str_filepath], |row| row.get::<_, Option<i64>>(0))
             .unwrap();
 
         if current_tidy_score_id.is_none() {

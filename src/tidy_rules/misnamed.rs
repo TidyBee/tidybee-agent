@@ -21,7 +21,7 @@ pub fn apply_misnamed(
 
     if pattern.is_none() {
         warn!("No pattern provided for misnamed rule");
-        return new_score.clone();
+        new_score.clone()
     } else {
         let pattern_str = match pattern.unwrap().clone().into_string() {
             Ok(pattern) => pattern,
@@ -33,10 +33,10 @@ pub fn apply_misnamed(
 
         let re = Regex::new(pattern_str.as_str()).unwrap();
         if re.is_match(file_info.pretty_path.to_str().unwrap()) {
-            return new_score;
+            new_score
         } else {
             new_score.misnamed = true;
-            return new_score;
+            new_score
         }
     }
 }

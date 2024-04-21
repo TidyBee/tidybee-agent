@@ -183,7 +183,7 @@ impl TidyAlgo {
             }
             match &tidy_score.duplicated {
                 Some(duplicated) => {
-                    if rule_type == "duplicated" && duplicated.len() > 0 {
+                    if rule_type == "duplicated" && !duplicated.is_empty() {
                         grade += (1 / rule_weight) as f32;
                     }
                 }
@@ -217,7 +217,7 @@ fn get_u64_from_table_safe(
     key: &'static str,
 ) -> Result<u64, ConfigError> {
     match table.get(key) {
-        Some(value) => Ok(value.clone().into_uint().unwrap() as u64),
+        Some(value) => Ok(value.clone().into_uint().unwrap()),
         None => Err(ConfigError::NotFound(format!(
             "Error while getting the key {}",
             key

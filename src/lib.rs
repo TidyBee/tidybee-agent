@@ -149,7 +149,7 @@ fn list_directories(directories: Vec<PathBuf>, my_files: &my_files::MyFiles, tid
             for file in &mut files_vec {
                 match my_files.add_file_to_db(file) {
                     Ok(_) => {
-                        tidy_algo.apply_rules(file, &my_files);
+                        tidy_algo.apply_rules(file, my_files);
                         debug!(
                             "{} TidyScore after all rules applied: {:?}",
                             file.path.display(),
