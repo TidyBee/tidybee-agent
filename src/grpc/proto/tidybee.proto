@@ -52,14 +52,6 @@ message AgentData {
     repeated string watched_directories = 5;
 }
 
-// Response sent by the hub when a connection request is received
-message HubConnectionResponse {
-    // Whether or not the connection was accepted
-    Status status = 1;
-    // UUID assigned to the agent
-    string agent_uuid = 2;
-}
-
 // Response to a file update request
 message FileInfoUpdateResponse {
     // Status of the operation
@@ -71,6 +63,4 @@ service TidyBeeService {
     rpc UpdateFileInfo(FileInfoUpdateRequest) returns (FileInfoUpdateResponse);
     // Ask the hub to delete the file from its database
     rpc DeleteFileInfo(FileInfoDeleteRequest) returns (FileInfoUpdateResponse);
-    // Ask the hub to connect the agent
-    rpc ConnectionRequest(AgentData) returns (HubConnectionResponse);
 }
