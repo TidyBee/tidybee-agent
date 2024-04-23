@@ -1,4 +1,8 @@
+use tracing::error;
+
 #[tokio::main]
 async fn main() {
-    tidybee_agent::run().await;
+    if let Err(err) = tidybee_agent::run().await {
+        error!("Error: {}", err);
+    }
 }
