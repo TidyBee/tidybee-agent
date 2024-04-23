@@ -129,7 +129,9 @@ fn list_directories(directories: Vec<PathBuf>, my_files: &my_files::MyFiles) {
         Ok(mut files_vec) => {
             for file in &mut files_vec {
                 match my_files.add_file_to_db(file) {
-                    Ok(_) => {}
+                    Ok(_) => {
+                        // TODO: Send file to the hub
+                    }
                     Err(error) => {
                         error!("{:?}", error);
                     }

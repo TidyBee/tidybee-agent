@@ -28,9 +28,6 @@ pub struct GetFilesParams {
     sort_by: String,
 }
 
-#[derive(Deserialize)]
-pub struct GetConfigParams {}
-
 #[derive(Serialize)]
 pub struct Greeting {
     message: String,
