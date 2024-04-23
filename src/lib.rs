@@ -7,15 +7,12 @@ mod file_watcher;
 mod http;
 mod my_files;
 mod server;
-mod tidy_algo;
-mod tidy_rules;
 
 use lazy_static::lazy_static;
 use notify::EventKind;
 use server::ServerBuilder;
 use std::{collections::HashMap, path::PathBuf, thread};
-use tidy_algo::TidyAlgo;
-use tracing::{debug, error, info, Level};
+use tracing::{error, info, Level};
 
 use crate::error::MyError;
 
@@ -72,27 +69,11 @@ pub async fn run() -> Result<(), MyError> {
     my_files.init_db().unwrap();
     info!("MyFilesDB successfully initialized");
 
-    let mut tidy_algo = TidyAlgo::new();
-    let basic_ruleset_path: PathBuf = [r"config", r"rules", r"basic.yml"].iter().collect();
-    info!("TidyAlgo successfully created");
-    match tidy_algo.load_rules_from_file(&my_files, basic_ruleset_path) {
-        Ok(loaded_rules_amt) => info!(
-            "TidyAlgo successfully loaded {loaded_rules_amt} rules from config/rules/basic.yml"
-        ),
-        Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
-    };
-
-    list_directories(
-        config.clone().filesystem_interface_config.dir,
-        &my_files,
-        &tidy_algo,
-    );
-    update_all_grades(&my_files, &tidy_algo);
+    list_directories(config.clone().filesystem_interface_config.dir, &my_files);
 
     let server = ServerBuilder::new()
         .my_files_builder(my_files_builder)
         .inject_global_configuration(config.clone())
-        .inject_tidy_rules(tidy_algo.clone())
         .build(
             config.agent_data.latest_version.clone(),
             config.agent_data.minimal_version.clone(),
@@ -143,22 +124,12 @@ pub async fn run() -> Result<(), MyError> {
     Ok(())
 }
 
-fn list_directories(directories: Vec<PathBuf>, my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
+fn list_directories(directories: Vec<PathBuf>, my_files: &my_files::MyFiles) {
     match file_lister::list_directories(directories) {
         Ok(mut files_vec) => {
             for file in &mut files_vec {
                 match my_files.add_file_to_db(file) {
-                    Ok(_) => {
-                        tidy_algo.apply_rules(file, my_files);
-                        debug!(
-                            "{} TidyScore after all rules applied: {:?}",
-                            file.path.display(),
-                            file.tidy_score
-                        );
-                        let file_path = file.path.clone();
-                        let _ =
-                            my_files.set_tidyscore(file_path, file.tidy_score.as_ref().unwrap());
-                    }
+                    Ok(_) => {}
                     Err(error) => {
                         error!("{:?}", error);
                     }
@@ -167,21 +138,6 @@ fn list_directories(directories: Vec<PathBuf>, my_files: &my_files::MyFiles, tid
         }
         Err(error) => {
             error!("{}", error);
-        }
-    }
-}
-
-fn update_all_grades(my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
-    let files = my_files.get_all_files_from_db();
-    match files {
-        Ok(files) => {
-            for file in files {
-                let file_path = file.path.clone();
-                my_files.update_grade(file_path, tidy_algo);
-            }
-        }
-        Err(error) => {
-            error!("{:?}", error);
         }
     }
 }

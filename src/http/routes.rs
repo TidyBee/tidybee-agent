@@ -20,7 +20,6 @@ pub struct MyFilesState {
 #[derive(Clone)]
 pub struct GlobalConfigState {
     pub config: crate::configuration::Configuration,
-    pub rules: Vec<crate::tidy_algo::TidyRule>,
 }
 
 #[derive(Deserialize)]
@@ -30,9 +29,7 @@ pub struct GetFilesParams {
 }
 
 #[derive(Deserialize)]
-pub struct GetConfigParams {
-    rules: bool,
-}
+pub struct GetConfigParams {}
 
 #[derive(Serialize)]
 pub struct Greeting {
@@ -79,23 +76,13 @@ pub async fn get_files(
 #[derive(Serialize)]
 pub struct GetConfigResponseType {
     configuration: crate::configuration::Configuration,
-    rules: Option<Vec<crate::tidy_algo::TidyRule>>,
 }
 
 pub async fn get_config(
     State(global_config): State<GlobalConfigState>,
-    Query(query_params): Query<GetConfigParams>,
 ) -> Json<GetConfigResponseType> {
     let configuration = global_config.config;
-    let rules = global_config.rules;
-    let mut response = GetConfigResponseType {
-        configuration,
-        rules: None,
-    };
-
-    if query_params.rules {
-        response.rules = Some(rules);
-    }
+    let response = GetConfigResponseType { configuration };
 
     Json(response)
 }
