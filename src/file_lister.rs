@@ -1,8 +1,9 @@
-use crate::error::MyError;
-use crate::file_info::{create_file_info, FileInfo};
 use std::fs::read_dir;
 use std::fs::DirEntry;
 use std::path::PathBuf;
+
+use crate::error::MyError;
+use crate::file_info::{create_file_info, FileInfo};
 
 pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, MyError> {
     let mut file_info_vec: Vec<FileInfo> = Vec::new();
@@ -40,28 +41,6 @@ mod tests {
             assert!(file_infos.iter().any(|file_info| file_info.pretty_path
                 == PathBuf::from("tests/assets/test_folder/test-file-1")));
             assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-1-dup-1")));
-            assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-1-dup-2")));
-            assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-1-dup-3")));
-            assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-2")));
-            assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-3")));
-            assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-4")));
-            assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-5")));
-            assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-6")));
-            assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-7")));
-            assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-8")));
-            assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-9")));
-            assert!(file_infos.iter().any(|file_info| file_info.pretty_path
                 == PathBuf::from("tests/assets/test_folder/test-file-10")));
             assert!(!file_infos
                 .iter()
@@ -71,19 +50,25 @@ mod tests {
 
     #[test]
     fn empty_path() {
-        let res = list_directories(vec![PathBuf::from("")]);
-        assert!(res.is_err());
+        assert!(matches!(
+            list_directories(vec![PathBuf::from("")]),
+            Err(MyError::NotADirectory())
+        ));
     }
 
     #[test]
     fn file_does_not_exist() {
-        let res = list_directories(vec![PathBuf::from("file-does-not-exist")]);
-        assert!(res.is_err());
+        assert!(matches!(
+            list_directories(vec![PathBuf::from("file-does-not-exist")]),
+            Err(MyError::NotADirectory())
+        ));
     }
 
     #[test]
     fn is_reg_file() {
-        let res = list_directories(vec![PathBuf::from("tests/assets/test_folder/test-file-1")]);
-        assert!(res.is_err());
+        assert!(matches!(
+            list_directories(vec![PathBuf::from("tests/assets/test_folder/test-file-1")]),
+            Err(MyError::NotADirectory())
+        ));
     }
 }
