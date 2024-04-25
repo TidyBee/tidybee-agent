@@ -4,6 +4,8 @@ use std::env::var as env_var;
 use std::path::{Path, PathBuf};
 use tracing::info;
 
+use crate::error::MyError;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AgentData {
     pub latest_version: String,
@@ -22,9 +24,11 @@ pub struct ServerConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct HttpConfig {
+pub struct GrpcServerConfig {
     pub host: String,
-    pub auth_path: String,
+    pub protocol: String,
+    pub port: u16,
+    pub log_level: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -35,6 +39,7 @@ pub struct HubConfig {
     pub auth_path: String,
     pub disconnect_path: String,
     pub connection_attempt_limit: u32,
+    pub grpc_server: GrpcServerConfig,
 }
 
 #[derive(Debug, Serialize, Clone, Deserialize)]
@@ -80,6 +85,12 @@ impl Default for Configuration {
                 auth_path: String::from("/gateway/auth/AOTH"),
                 disconnect_path: String::from("/gateway/auth/AOTH/{agent_id}/disconnect"),
                 connection_attempt_limit: 30,
+                grpc_server: GrpcServerConfig {
+                    host: String::from("localhost"),
+                    protocol: String::from("http"),
+                    port: 5057,
+                    log_level: String::from("info"),
+                },
             },
             logger_config: LoggerConfig {
                 term_level: String::from("debug"),
@@ -94,17 +105,15 @@ impl Default for Configuration {
 }
 
 impl Configuration {
-    pub fn init() -> Self {
+    pub fn init() -> Result<Self, MyError> {
         let env = env_var("TIDY_ENV").unwrap_or_else(|_| "development".into());
 
         info!("Loading configuration for environment: {}", env);
 
-        let mut config_dir = std::env::current_exe().expect("Failed to find current executable path");
+        let mut config_dir =
+            std::env::current_exe().expect("Failed to find current executable path");
         config_dir.pop();
         config_dir.push("config");
-
-        let _default_config = config_dir.join("default.json");
-        let _environment_config = config_dir.join(format!("{env}.json"));
 
         let builder = Config::builder()
             .add_source(File::from(Path::new("config/default.json")))
@@ -112,6 +121,7 @@ impl Configuration {
             .build()
             .unwrap();
         let config: Configuration = builder.try_deserialize().unwrap_or_default();
-        config
+        //if config.server_config.log_level == "info" { return Err(MyError::InvalidConfiguration("test message invalid conf".to_owned())) }
+        Ok(config)
     }
 }
