@@ -1,4 +1,5 @@
 use crate::configuration::HubConfig;
+use crate::http::grpc::GrpcClient;
 use anyhow::{bail, Error};
 use gethostname::gethostname;
 use reqwest::header::CONTENT_TYPE;
@@ -6,22 +7,26 @@ use reqwest::Client;
 use std::env;
 use tracing::{info, warn};
 
+
 pub struct Hub {
     config: HubConfig,
     http_client: Client,
+    grpc_client: GrpcClient,
 }
 
 impl Hub {
     pub fn new(hub_config: HubConfig) -> Self {
         let http_client: Client = Client::new();
+        let grpc_client = GrpcClient::new(hub_config.grpc_server.clone());
 
         Self {
             config: hub_config,
             http_client,
+            grpc_client,
         }
     }
 
-    pub async fn connect(&self) -> Result<String, Error> {
+    pub async fn connect(&mut self) -> Result<String, Error> {
         let agent_uuid = env::var("AGENT_UUID");
         let base_url = format!(
             "{}://{}:{}",
@@ -68,6 +73,9 @@ impl Hub {
                                     text
                                 );
                                 env::set_var("AGENT_UUID", &text);
+
+                                self.grpc_client.set_agent_uuid(&text);
+                                self.grpc_client.connect().await;
                                 Ok(text)
                             }
                             Err(err) => {
