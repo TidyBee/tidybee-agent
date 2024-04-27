@@ -12,46 +12,32 @@ enum Status {
     ERROR = 1;
 }
 
-// Request to create a file info
-// The main difference between FileInfoCreateRequest and FileInfoUpdateRequest is that all fields are required in FileInfoCreateRequest
-message FileInfoCreateRequest {
-    // Path relative to the watched directory
-    string pretty_path = 1;
-    // Full canonical path
-    string path = 2;
-    // File size in bytes
-    uint64 size = 3;
-    // xxhash64 hash of the file content
-    string hash = 4;
-    // Last modified timestamp
-    google.protobuf.Timestamp last_modified = 5;
-    // Last accessed timestamp
-    google.protobuf.Timestamp last_accessed = 6;
+enum FileEventType {
+    UNKOWN = 0;
+    CREATED = 1;
+    UPDATED = 2;
+    DELETED = 3;
+    MOVED = 4;
 }
 
-// Request to update file content
-message FileInfoUpdateRequest {
+// Event sent by the agent when a file event occurs
+message FileEventRequest {
+    // Type of the event
+    FileEventType event_type = 1;
     // Path relative to the watched directory
-    string pretty_path = 1;
+    string pretty_path = 2;
     // Full canonical path
-    string path = 2;
+    string path = 3;
     // File size in bytes
-    optional uint64 size = 3;
+    optional uint64 size = 4;
     // xxhash64 hash of the file content
-    optional string hash = 4;
+    optional string hash = 5;
     // Last modified timestamp
-    optional google.protobuf.Timestamp last_modified = 5;
+    optional google.protobuf.Timestamp last_modified = 6;
     // Last accessed timestamp
-    optional google.protobuf.Timestamp last_accessed = 6;
+    optional google.protobuf.Timestamp last_accessed = 7;
 }
 
-// Request to delete a file
-message FileInfoDeleteRequest {
-    // Path relative to the watched directory
-    string pretty_path = 1;
-    // Full canonical path
-    string path = 2;
-}
 
 // Data sent by the agent when connecting to the hub
 message AgentData {
@@ -68,16 +54,11 @@ message AgentData {
 }
 
 // Response to a file update request
-message FileInfoUpdateResponse {
+message FileInfoEventResponse {
     // Status of the operation
     Status status = 1;
 }
 
 service TidyBeeEvents {
-    // Ask the hub to create a new file info
-    rpc CreateFileInfo(stream FileInfoCreateRequest) returns (FileInfoUpdateResponse);
-    // Ask the hub to update the file info
-    rpc UpdateFileInfo(stream FileInfoUpdateRequest) returns (FileInfoUpdateResponse);
-    // Ask the hub to delete the file from its database
-    rpc DeleteFileInfo(stream FileInfoDeleteRequest) returns (FileInfoUpdateResponse);
+    rpc FileEvent(stream FileEventRequest) returns (FileInfoEventResponse);
 }
