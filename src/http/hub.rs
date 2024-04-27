@@ -11,7 +11,7 @@ use tracing::{info, warn};
 pub struct Hub {
     config: HubConfig,
     http_client: Client,
-    grpc_client: GrpcClient,
+    pub grpc_client: GrpcClient,
 }
 
 impl Hub {

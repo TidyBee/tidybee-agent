@@ -1,14 +1,22 @@
-use std::str::FromStr;
+use self::tidybee_events::{FileEventRequest, FileInfoEventResponse, FileEventType};
+use crate::{
+    configuration::GrpcServerConfig,
+    file_info::{self, FileInfo},
+};
 
-use crate::{configuration::GrpcServerConfig, file_info::FileInfo};
+use config::File;
+use notify_debouncer_full::DebouncedEvent;
+use std::{ops::Deref, str::FromStr};
 use tidybee_events::tidy_bee_events_client::TidyBeeEventsClient;
+use tokio::sync::mpsc::UnboundedReceiver;
+use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
 use tonic::{
     metadata::MetadataValue,
     service::Interceptor,
     transport::{Channel, Endpoint},
     Request, Status,
 };
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 pub mod tidybee_events {
     tonic::include_proto!("tidybee_events");
@@ -16,7 +24,7 @@ pub mod tidybee_events {
 
 // region: --- Interceptors
 
-struct AuthInterceptor {
+pub struct AuthInterceptor {
     agent_uuid: String,
 }
 
@@ -89,48 +97,81 @@ impl GrpcClient {
                 panic!("Failed to connect to gRPC server: {}", e);
             }
         };
+        info!("Connected to gRPC server");
         let interceptor = AuthInterceptor {
             agent_uuid: self.agent_uuid.clone().unwrap(),
         };
         self.client = Some(TidyBeeEventsClient::with_interceptor(channel, interceptor));
     }
-}
 
-// region: --- FileInfo to gRPC message request conversions
+    pub async fn send_create_events_once(&mut self, events: Vec<FileInfo>) {
+        if self.client.is_none() {
+            panic!("gRPC client is not connected");
+            // TODO handle error
+        }
+        let stream = tokio_stream::iter(events.into_iter().map(|f| {
+            FileEventRequest {
+                event_type: FileEventType::Created as i32,
+                pretty_path: f.pretty_path.display().to_string(),
+                path: f.path.display().to_string(),
+                size: Some(f.size),
+                hash: f.hash,
+                last_accessed: Some(f.last_accessed.into()),
+                last_modified: Some(f.last_modified.into()),
+            }
+        }));
+        let _ = self.client.as_mut().unwrap().file_event(stream).await;
 
-impl From<FileInfo> for tidybee_events::FileInfoCreateRequest {
-    fn from(file_info: FileInfo) -> Self {
-        Self {
-            pretty_path: file_info.pretty_path.display().to_string(),
-            path: file_info.path.display().to_string(),
-            size: file_info.size,
-            hash: file_info.hash.clone().unwrap(),
-            last_modified: Some(prost_types::Timestamp::from(file_info.last_modified)), // Since the type is `google.protobuf.Timestamp` whih is a nested type, protobuf will render the field as optional by default. This is not modifiable.
-            last_accessed: Some(prost_types::Timestamp::from(file_info.last_accessed)), // (see https://github.com/protocolbuffers/protobuf/issues/249)
+    }
+
+    pub async fn send_events(&mut self, file_watcher_receiver: UnboundedReceiver<DebouncedEvent>) {
+        if self.client.is_none() {
+            panic!("gRPC client is not connected");
+            // TODO handle error
+        }
+        let stream: UnboundedReceiverStream<DebouncedEvent> =
+            UnboundedReceiverStream::new(file_watcher_receiver);
+        let manip = stream.filter_map(map_notify_events_to_grpc);
+        if self.client.as_mut().unwrap().file_event(manip).await.is_err() {
+            warn!("Failed to send file event to gRPC server");
         }
     }
 }
 
-impl From<FileInfo> for tidybee_events::FileInfoUpdateRequest {
-    fn from(file_info: FileInfo) -> Self {
-        Self {
-            pretty_path: file_info.pretty_path.display().to_string(),
-            path: file_info.path.display().to_string(),
-            size: Some(file_info.size),
-            hash: Some(file_info.hash.clone().unwrap()),
-            last_modified: Some(prost_types::Timestamp::from(file_info.last_modified)),
-            last_accessed: Some(prost_types::Timestamp::from(file_info.last_accessed)),
-        }
+pub fn map_notify_events_to_grpc(file_event: DebouncedEvent) -> Option<FileEventRequest> {
+
+    match file_event.kind {
+        notify::EventKind::Create(_) => {
+            let info = file_info::create_file_info(&file_event.paths[0].clone())?;
+            Some(FileEventRequest {
+                    event_type: FileEventType::Created as i32,
+                    pretty_path: info.pretty_path.display().to_string(),
+                    path: info.path.display().to_string(),
+                    size: Some(info.size),
+                    hash: info.hash,
+                    last_accessed: Some(info.last_accessed.into()),
+                    last_modified: Some(info.last_modified.into()),
+                })
+        },
+        notify::EventKind::Modify(_) => {
+            let info = file_info::create_file_info(&file_event.paths[0].clone())?;
+            Some(FileEventRequest {
+                    event_type: FileEventType::Updated as i32,
+                    pretty_path: info.pretty_path.display().to_string(),
+                    path: info.path.display().to_string(),
+                    size: Some(info.size),
+                    hash: info.hash,
+                    last_accessed: Some(info.last_accessed.into()),
+                    last_modified: Some(info.last_modified.into()),
+                })
+        },
+        notify::EventKind::Remove(_) => Some(FileEventRequest {
+            event_type: FileEventType::Deleted as i32,
+            pretty_path: file_event.paths[0].display().to_string(),
+            path: file_info::fix_canonicalize_path(&file_event.paths[0]).display().to_string(),
+            ..Default::default()
+        }),
+        _ => None,
+
     }
 }
-
-impl From<FileInfo> for tidybee_events::FileInfoDeleteRequest {
-    fn from(file_info: FileInfo) -> Self {
-        Self {
-            path: file_info.path.display().to_string(),
-            pretty_path: file_info.pretty_path.display().to_string(),
-        }
-    }
-}
-
-// endregion: --- FileInfo to gRPC message request conversions

@@ -2,12 +2,13 @@ use notify::RecursiveMode::Recursive as RecursiveWatcher;
 use notify::Watcher;
 use std::path::PathBuf;
 use std::sync::mpsc;
+use tokio::sync::mpsc::UnboundedSender;
 use std::time;
 use tracing::error;
 
 pub fn watch_directories(
     directories: Vec<PathBuf>,
-    sender: crossbeam_channel::Sender<notify_debouncer_full::DebouncedEvent>,
+    sender: UnboundedSender<notify_debouncer_full::DebouncedEvent>,
 ) {
     let (tx, rx) = mpsc::channel();
 

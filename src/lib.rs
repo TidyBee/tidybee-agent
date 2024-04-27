@@ -10,6 +10,7 @@ mod server;
 mod tidy_algo;
 mod tidy_rules;
 
+use http::hub;
 use lazy_static::lazy_static;
 use notify::EventKind;
 use server::ServerBuilder;
@@ -82,13 +83,6 @@ pub async fn run() -> Result<(), MyError> {
         Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
     };
 
-    list_directories(
-        config.clone().filesystem_interface_config.dir,
-        &my_files,
-        &tidy_algo,
-    );
-    update_all_grades(&my_files, &tidy_algo);
-
     let server = ServerBuilder::new()
         .my_files_builder(my_files_builder)
         .inject_global_configuration(config.clone())
@@ -97,7 +91,7 @@ pub async fn run() -> Result<(), MyError> {
             config.agent_data.latest_version.clone(),
             config.agent_data.minimal_version.clone(),
             config.filesystem_interface_config.dir.clone(),
-            config.server_config.address,
+            config.server_config.address.clone(),
             &config.server_config.log_level,
         );
     info!("Server build");
@@ -110,24 +104,31 @@ pub async fn run() -> Result<(), MyError> {
     });
     info!("Server Started");
 
-    tokio::spawn(async move {
-        let mut timeout = 5;
-        loop {
-            tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
-            if let Err(err) = hub_client.connect().await {
-                error!(
-                    "Error connecting to the hub: {}, retrying in {}",
-                    err,
-                    timeout * 2
-                );
-            } else {
-                break;
-            }
-            timeout *= 2;
+    let mut timeout = 5;
+    loop {
+        tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
+        if let Err(err) = hub_client.connect().await {
+            error!(
+                "Error connecting to the hub: {}, retrying in {}",
+                err,
+                timeout * 2
+            );
+        } else {
+            break;
         }
-    });
+        timeout *= 2;
+    }
 
-    let (file_watcher_sender, file_watcher_receiver) = crossbeam_channel::unbounded();
+    list_directories(
+        config.clone().filesystem_interface_config.dir,
+        &my_files,
+        &tidy_algo,
+        &mut hub_client,
+    ).await;
+
+    update_all_grades(&my_files, &tidy_algo);
+
+    let (file_watcher_sender, file_watcher_receiver) = tokio::sync::mpsc::unbounded_channel();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
         file_watcher::watch_directories(
             config.filesystem_interface_config.dir.clone(),
@@ -135,39 +136,46 @@ pub async fn run() -> Result<(), MyError> {
         );
     });
     info!("File Events Watcher Started");
-    for file_watcher_event in file_watcher_receiver {
-        handle_file_events(&file_watcher_event, &my_files);
-    }
+
+    hub_client.grpc_client.send_events(file_watcher_receiver).await;
 
     file_watcher_thread.join().unwrap();
     Ok(())
 }
 
-fn list_directories(
+async fn list_directories(
     directories: Vec<PathBuf>,
     my_files: &my_files::MyFiles,
     tidy_algo: &TidyAlgo,
+    hub_client: &mut hub::Hub,
 ) {
     match file_lister::list_directories(directories) {
         Ok(mut files_vec) => {
-            for file in &mut files_vec {
-                match my_files.add_file_to_db(file) {
-                    Ok(_) => {
-                        tidy_algo.apply_rules(file, my_files);
-                        debug!(
-                            "{} TidyScore after all rules applied: {:?}",
-                            file.path.display(),
-                            file.tidy_score
-                        );
-                        let file_path = file.path.clone();
-                        let _ =
-                            my_files.set_tidyscore(file_path, file.tidy_score.as_ref().unwrap());
-                    }
-                    Err(error) => {
-                        error!("{:?}", error);
-                    }
-                }
-            }
+            hub_client.grpc_client.send_create_events_once(files_vec).await;
+            // let update_request = files_vec.iter().map(|file| {
+            //     let request: FileInfoCreateRequest = file.into();
+            //     request
+            // });
+            // let stream = tokio_stream::iter(update_request);
+            // hub_client.grpc_client.client.unwrap().create_file_info(stream);
+            // for file in &mut files_vec {
+            //     match my_files.add_file_to_db(file) {
+            //         Ok(_) => {
+            //             tidy_algo.apply_rules(file, my_files);
+            //             debug!(
+            //                 "{} TidyScore after all rules applied: {:?}",
+            //                 file.path.display(),
+            //                 file.tidy_score
+            //             );
+            //             let file_path = file.path.clone();
+            //             let _ =
+            //                 my_files.set_tidyscore(file_path, file.tidy_score.as_ref().unwrap());
+            //         }
+            //         Err(error) => {
+            //             error!("{:?}", error);
+            //         }
+            //     }
+            // }
         }
         Err(error) => {
             error!("{}", error);
