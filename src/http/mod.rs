@@ -1,3 +1,3 @@
+mod grpc;
 pub mod hub;
 pub mod routes;
-mod grpc;

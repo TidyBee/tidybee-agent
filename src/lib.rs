@@ -124,7 +124,8 @@ pub async fn run() -> Result<(), MyError> {
         &my_files,
         &tidy_algo,
         &mut hub_client,
-    ).await;
+    )
+    .await;
 
     update_all_grades(&my_files, &tidy_algo);
 
@@ -137,7 +138,10 @@ pub async fn run() -> Result<(), MyError> {
     });
     info!("File Events Watcher Started");
 
-    hub_client.grpc_client.send_events(file_watcher_receiver).await;
+    hub_client
+        .grpc_client
+        .send_events(file_watcher_receiver)
+        .await;
 
     file_watcher_thread.join().unwrap();
     Ok(())
@@ -151,7 +155,10 @@ async fn list_directories(
 ) {
     match file_lister::list_directories(directories) {
         Ok(mut files_vec) => {
-            hub_client.grpc_client.send_create_events_once(files_vec).await;
+            hub_client
+                .grpc_client
+                .send_create_events_once(files_vec)
+                .await;
             // let update_request = files_vec.iter().map(|file| {
             //     let request: FileInfoCreateRequest = file.into();
             //     request

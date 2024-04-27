@@ -7,7 +7,6 @@ use reqwest::Client;
 use std::env;
 use tracing::{info, warn};
 
-
 pub struct Hub {
     config: HubConfig,
     http_client: Client,
@@ -17,7 +16,7 @@ pub struct Hub {
 impl Hub {
     pub fn new(hub_config: HubConfig) -> Self {
         let http_client: Client = Client::new();
-        let grpc_client = GrpcClient::new(hub_config.grpc_server.clone());
+        let grpc_client = GrpcClient::new(&hub_config.grpc_server);
 
         Self {
             config: hub_config,

@@ -2,8 +2,8 @@ use notify::RecursiveMode::Recursive as RecursiveWatcher;
 use notify::Watcher;
 use std::path::PathBuf;
 use std::sync::mpsc;
-use tokio::sync::mpsc::UnboundedSender;
 use std::time;
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::error;
 
 pub fn watch_directories(
