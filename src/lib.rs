@@ -7,16 +7,12 @@ mod file_watcher;
 mod http;
 mod my_files;
 mod server;
-mod tidy_algo;
-mod tidy_rules;
 
 use http::hub;
 use lazy_static::lazy_static;
-use notify::EventKind;
 use server::ServerBuilder;
 use std::{collections::HashMap, path::PathBuf, thread};
-use tidy_algo::TidyAlgo;
-use tracing::{debug, error, info, Level};
+use tracing::{error, info, Level};
 
 use crate::error::MyError;
 
@@ -73,20 +69,9 @@ pub async fn run() -> Result<(), MyError> {
     my_files.init_db().unwrap();
     info!("MyFilesDB successfully initialized");
 
-    let mut tidy_algo = TidyAlgo::new();
-    let basic_ruleset_path: PathBuf = [r"config", r"rules", r"basic.yml"].iter().collect();
-    info!("TidyAlgo successfully created");
-    match tidy_algo.load_rules_from_file(&my_files, basic_ruleset_path) {
-        Ok(loaded_rules_amt) => info!(
-            "TidyAlgo successfully loaded {loaded_rules_amt} rules from config/rules/basic.yml"
-        ),
-        Err(err) => error!("Failed to load rules into TidyAlgo from config/rules/basic.yml: {err}"),
-    };
-
     let server = ServerBuilder::new()
         .my_files_builder(my_files_builder)
         .inject_global_configuration(config.clone())
-        .inject_tidy_rules(tidy_algo.clone())
         .build(
             config.agent_data.latest_version.clone(),
             config.agent_data.minimal_version.clone(),
@@ -121,13 +106,10 @@ pub async fn run() -> Result<(), MyError> {
 
     list_directories(
         config.clone().filesystem_interface_config.dir,
-        &my_files,
-        &tidy_algo,
         &mut hub_client,
     )
     .await;
 
-    update_all_grades(&my_files, &tidy_algo);
 
     let (file_watcher_sender, file_watcher_receiver) = tokio::sync::mpsc::unbounded_channel();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
@@ -147,12 +129,7 @@ pub async fn run() -> Result<(), MyError> {
     Ok(())
 }
 
-async fn list_directories(
-    directories: Vec<PathBuf>,
-    my_files: &my_files::MyFiles,
-    tidy_algo: &TidyAlgo,
-    hub_client: &mut hub::Hub,
-) {
+async fn list_directories(directories: Vec<PathBuf>, hub_client: &mut hub::Hub) {
     match file_lister::list_directories(directories) {
         Ok(mut files_vec) => {
             hub_client
@@ -162,21 +139,6 @@ async fn list_directories(
         }
         Err(error) => {
             error!("{}", error);
-        }
-    }
-}
-
-fn update_all_grades(my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
-    let files = my_files.get_all_files_from_db();
-    match files {
-        Ok(files) => {
-            for file in files {
-                let file_path = file.path.clone();
-                my_files.update_grade(file_path, tidy_algo);
-            }
-        }
-        Err(error) => {
-            error!("{:?}", error);
         }
     }
 }

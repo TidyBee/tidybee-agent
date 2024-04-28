@@ -3,7 +3,6 @@ use crate::http::routes::{
     get_config, get_files, get_status, hello_world, AgentDataState, GlobalConfigState, MyFilesState,
 };
 use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
-use crate::tidy_algo::{TidyAlgo, TidyRule};
 use crate::{configuration, my_files};
 use axum::{routing::get, Router};
 use lazy_static::lazy_static;
@@ -37,7 +36,6 @@ pub struct Server {
 pub struct ServerBuilder {
     router: Router,
     global_configuration: configuration::Configuration,
-    tidy_rules: Vec<TidyRule>,
     my_files_builder:
         my_files::MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed>,
 }
@@ -72,11 +70,6 @@ impl ServerBuilder {
         self
     }
 
-    pub fn inject_tidy_rules(mut self, tidy_algo: TidyAlgo) -> Self {
-        self.tidy_rules = tidy_algo.get_rules().to_vec();
-        self
-    }
-
     pub fn build(
         self,
         latest_version: String,
@@ -99,7 +92,6 @@ impl ServerBuilder {
         };
         let global_config_state = GlobalConfigState {
             config: self.global_configuration,
-            rules: self.tidy_rules,
         };
 
         let server_logging_level: Level = AGENT_LOGGING_LEVEL.get(logging_level).map_or_else(
