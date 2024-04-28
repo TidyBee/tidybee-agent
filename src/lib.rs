@@ -14,7 +14,7 @@ use server::ServerBuilder;
 use std::{collections::HashMap, path::PathBuf, thread};
 use tracing::{error, info, Level};
 
-use crate::error::MyError;
+use crate::error::AgentError;
 
 lazy_static! {
     static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -28,7 +28,7 @@ lazy_static! {
     };
 }
 
-pub async fn run() -> Result<(), MyError> {
+pub async fn run() -> Result<(), AgentError> {
     info!("Command-line Arguments Parsed");
     let config = match configuration::Configuration::init() {
         Ok(config) => config,
@@ -131,7 +131,7 @@ pub async fn run() -> Result<(), MyError> {
 
 async fn list_directories(directories: Vec<PathBuf>, hub_client: &mut hub::Hub) {
     match file_lister::list_directories(directories) {
-        Ok(mut files_vec) => {
+        Ok(files_vec) => {
             hub_client
                 .grpc_client
                 .send_create_events_once(files_vec)

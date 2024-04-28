@@ -4,7 +4,7 @@ use std::env::var as env_var;
 use std::path::{Path, PathBuf};
 use tracing::info;
 
-use crate::error::MyError;
+use crate::error::AgentError;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AgentData {
@@ -105,7 +105,7 @@ impl Default for Configuration {
 }
 
 impl Configuration {
-    pub fn init() -> Result<Self, MyError> {
+    pub fn init() -> Result<Self, AgentError> {
         let env = env_var("TIDY_ENV").unwrap_or_else(|_| "development".into());
 
         info!("Loading configuration for environment: {}", env);
