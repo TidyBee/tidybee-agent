@@ -159,30 +159,6 @@ async fn list_directories(
                 .grpc_client
                 .send_create_events_once(files_vec)
                 .await;
-            // let update_request = files_vec.iter().map(|file| {
-            //     let request: FileInfoCreateRequest = file.into();
-            //     request
-            // });
-            // let stream = tokio_stream::iter(update_request);
-            // hub_client.grpc_client.client.unwrap().create_file_info(stream);
-            // for file in &mut files_vec {
-            //     match my_files.add_file_to_db(file) {
-            //         Ok(_) => {
-            //             tidy_algo.apply_rules(file, my_files);
-            //             debug!(
-            //                 "{} TidyScore after all rules applied: {:?}",
-            //                 file.path.display(),
-            //                 file.tidy_score
-            //             );
-            //             let file_path = file.path.clone();
-            //             let _ =
-            //                 my_files.set_tidyscore(file_path, file.tidy_score.as_ref().unwrap());
-            //         }
-            //         Err(error) => {
-            //             error!("{:?}", error);
-            //         }
-            //     }
-            // }
         }
         Err(error) => {
             error!("{}", error);
@@ -201,28 +177,6 @@ fn update_all_grades(my_files: &my_files::MyFiles, tidy_algo: &TidyAlgo) {
         }
         Err(error) => {
             error!("{:?}", error);
-        }
-    }
-}
-
-fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
-    info!("event: kind: {:?}\tpaths: {:?}", event.kind, &event.paths);
-
-    if let EventKind::Remove(_) = event.kind {
-        match my_files.remove_file_from_db(event.paths[0].clone()) {
-            Ok(_) => {}
-            Err(error) => {
-                error!("{:?}", error);
-            }
-        }
-    } else if let EventKind::Create(_) = event.kind {
-        if let Some(file) = file_info::create_file_info(&event.paths[0].clone()) {
-            match my_files.add_file_to_db(&file) {
-                Ok(_) => {}
-                Err(error) => {
-                    error!("{:?}", error);
-                }
-            }
         }
     }
 }
