@@ -66,7 +66,8 @@ impl Hub {
                 Ok(response) => {
                     if response.status().is_success() {
                         return match response.text().await {
-                            Ok(text) => {
+                            Ok(mut text) => {
+                                text = text.trim_matches('"').to_string();
                                 info!(
                                     "Successfully connected the agent to the Hub with id: {}",
                                     text
