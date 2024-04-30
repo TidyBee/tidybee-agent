@@ -81,8 +81,7 @@ pub async fn run() -> Result<(), AgentError> {
         );
     info!("Server build");
 
-    let mut hub_client = http::hub::Hub::new(config.hub_config.clone());
-    info!("Hub Client Created");
+    let mut hub_client = http::hub::Hub::new(config.hub_config.clone()).unwrap(); // The agent should fail if no communication is possible with the Hub
 
     tokio::spawn(async move {
         server.start().await;

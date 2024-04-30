@@ -1,9 +1,11 @@
 use self::tidybee_events::{FileEventRequest, FileEventType};
 use crate::{
     configuration::GrpcServerConfig,
+    error::GrpcClientError::*,
     file_info::{self, FileInfo},
 };
 
+use anyhow::{bail, ensure, Result};
 use notify_debouncer_full::DebouncedEvent;
 use std::str::FromStr;
 use tidybee_events::tidy_bee_events_client::TidyBeeEventsClient;
@@ -50,7 +52,7 @@ impl Interceptor for AuthInterceptor {
 }
 
 // endregion: --- Interceptors
-#[allow(private_interfaces)]
+
 pub struct GrpcClient {
     pub client: Option<
         TidyBeeEventsClient<
@@ -62,17 +64,17 @@ pub struct GrpcClient {
 }
 
 impl GrpcClient {
-    pub fn new(grpc_server_config: &GrpcServerConfig) -> Self {
-        let endpoint = Channel::from_shared(format!(
+    pub fn new(grpc_server_config: &GrpcServerConfig) -> Result<Self> {
+        match Channel::from_shared(format!(
             "{}://{}:{}",
             grpc_server_config.protocol, grpc_server_config.host, grpc_server_config.port
-        ))
-        .expect("Failed to create endpoint"); // TODO: Handle error
-
-        Self {
-            client: None,
-            agent_uuid: None,
-            endpoint,
+        )) {
+            Ok(endpoint) => Ok(Self {
+                client: None,
+                agent_uuid: None,
+                endpoint,
+            }),
+            Err(e) => bail!(e),
         }
     }
 
@@ -83,17 +85,13 @@ impl GrpcClient {
     }
 
     // Connect before setting interceptors !
-    pub async fn connect(&mut self) {
-        if self.agent_uuid.is_none() {
-            panic!("Agent UUID is not set for gRPC client");
-            // TODO handle error
-        }
+    pub async fn connect(&mut self) -> Result<()> {
+        ensure!(self.agent_uuid.is_some(), AgentUuidNotSet());
 
         let channel = match self.endpoint.connect().await {
             Ok(channel) => channel,
             Err(e) => {
-                // TODO: Manage connection failure
-                panic!("Failed to connect to gRPC server: {}", e);
+                bail!(InvalidEndpoint(e));
             }
         };
         info!("Connected to gRPC server");
@@ -101,6 +99,7 @@ impl GrpcClient {
             agent_uuid: self.agent_uuid.clone().unwrap(),
         };
         self.client = Some(TidyBeeEventsClient::with_interceptor(channel, interceptor));
+        Ok(())
     }
 
     pub async fn send_create_events_once(&mut self, events: Vec<FileInfo>) {
