@@ -1,27 +1,38 @@
-use crate::configuration::HubConfig;
+use crate::{
+    configuration::HubConfig,
+    http::grpc::GrpcClient,
+    error::HubError::*
+};
 use anyhow::{bail, Error};
 use gethostname::gethostname;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
 use std::env;
-use tracing::{info, warn};
+use tracing::{info};
 
 pub struct Hub {
     config: HubConfig,
     http_client: Client,
+    pub grpc_client: GrpcClient,
 }
 
 impl Hub {
-    pub fn new(hub_config: HubConfig) -> Self {
+    pub fn new(hub_config: HubConfig) -> Result<Self, Error> {
         let http_client: Client = Client::new();
-
-        Self {
+        let grpc_client = match GrpcClient::new(&hub_config.grpc_server) {
+            Ok(client) => client,
+            Err(e) => {
+                bail!(HubClientCreationFailed(e.to_string()))
+            }
+        };
+        Ok(Self {
             config: hub_config,
             http_client,
-        }
+            grpc_client,
+        })
     }
 
-    pub async fn connect(&self) -> Result<String, Error> {
+    pub async fn connect(&mut self) -> Result<String, Error> {
         let agent_uuid = env::var("AGENT_UUID");
         let base_url = format!(
             "{}://{}:{}",
@@ -62,27 +73,30 @@ impl Hub {
                 Ok(response) => {
                     if response.status().is_success() {
                         return match response.text().await {
-                            Ok(text) => {
+                            Ok(mut text) => {
+                                text = text.trim_matches('"').to_string();
                                 info!(
                                     "Successfully connected the agent to the Hub with id: {}",
                                     text
                                 );
                                 env::set_var("AGENT_UUID", &text);
+
+                                self.grpc_client.set_agent_uuid(&text);
+                                self.grpc_client.connect().await;
                                 Ok(text)
                             }
                             Err(err) => {
-                                warn!("Parsing error : {}", err);
-                                bail!("Failed to parse response from Hub when authenticating",)
+                                bail!(HttpError(err))
                             }
                         };
                     }
                 }
                 Err(e) => {
-                    warn!("Error connecting to hub: {:?}", e);
+                    bail!(UnExpectedError(e.to_string()))
                 }
             }
             tries += 1;
         }
-        bail!("Maximum number of retries reached without success")
+        bail!(MaximumAttemptsReached())
     }
 }

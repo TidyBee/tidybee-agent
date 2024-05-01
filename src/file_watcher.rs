@@ -3,11 +3,12 @@ use notify::Watcher;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time;
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::error;
 
 pub fn watch_directories(
     directories: Vec<PathBuf>,
-    sender: crossbeam_channel::Sender<notify_debouncer_full::DebouncedEvent>,
+    sender: UnboundedSender<notify_debouncer_full::DebouncedEvent>,
 ) {
     let (tx, rx) = mpsc::channel();
 

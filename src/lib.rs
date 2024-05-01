@@ -8,13 +8,13 @@ mod http;
 mod my_files;
 mod server;
 
+use http::hub;
 use lazy_static::lazy_static;
-use notify::EventKind;
 use server::ServerBuilder;
 use std::{collections::HashMap, path::PathBuf, thread};
 use tracing::{error, info, Level};
 
-use crate::error::MyError;
+use crate::error::AgentError;
 
 lazy_static! {
     static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -28,7 +28,7 @@ lazy_static! {
     };
 }
 
-pub async fn run() -> Result<(), MyError> {
+pub async fn run() -> Result<(), AgentError> {
     info!("Command-line Arguments Parsed");
     let config = match configuration::Configuration::init() {
         Ok(config) => config,
@@ -69,8 +69,6 @@ pub async fn run() -> Result<(), MyError> {
     my_files.init_db().unwrap();
     info!("MyFilesDB successfully initialized");
 
-    list_directories(config.clone().filesystem_interface_config.dir, &my_files);
-
     let server = ServerBuilder::new()
         .my_files_builder(my_files_builder)
         .inject_global_configuration(config.clone())
@@ -78,37 +76,41 @@ pub async fn run() -> Result<(), MyError> {
             config.agent_data.latest_version.clone(),
             config.agent_data.minimal_version.clone(),
             config.filesystem_interface_config.dir.clone(),
-            config.server_config.address,
+            config.server_config.address.clone(),
             &config.server_config.log_level,
         );
     info!("Server build");
 
-    let hub_client = http::hub::Hub::new(config.hub_config.clone());
-    info!("Hub Client Created");
+    let mut hub_client = http::hub::Hub::new(config.hub_config.clone()).unwrap(); // The agent should fail if no communication is possible with the Hub
 
     tokio::spawn(async move {
         server.start().await;
     });
     info!("Server Started");
 
-    tokio::spawn(async move {
-        let mut timeout = 5;
-        loop {
-            tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
-            if let Err(err) = hub_client.connect().await {
-                error!(
-                    "Error connecting to the hub: {}, retrying in {}",
-                    err,
-                    timeout * 2
-                );
-            } else {
-                break;
-            }
-            timeout *= 2;
+    let mut timeout = 5;
+    loop {
+        tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
+        if let Err(err) = hub_client.connect().await {
+            error!(
+                "Error connecting to the hub: {}, retrying in {}",
+                err,
+                timeout * 2
+            );
+        } else {
+            break;
         }
-    });
+        timeout *= 2;
+    }
 
-    let (file_watcher_sender, file_watcher_receiver) = crossbeam_channel::unbounded();
+    list_directories(
+        config.clone().filesystem_interface_config.dir,
+        &mut hub_client,
+    )
+    .await;
+
+
+    let (file_watcher_sender, file_watcher_receiver) = tokio::sync::mpsc::unbounded_channel();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
         file_watcher::watch_directories(
             config.filesystem_interface_config.dir.clone(),
@@ -116,52 +118,26 @@ pub async fn run() -> Result<(), MyError> {
         );
     });
     info!("File Events Watcher Started");
-    for file_watcher_event in file_watcher_receiver {
-        handle_file_events(&file_watcher_event, &my_files);
-    }
+
+    hub_client
+        .grpc_client
+        .send_events(file_watcher_receiver)
+        .await;
 
     file_watcher_thread.join().unwrap();
     Ok(())
 }
 
-fn list_directories(directories: Vec<PathBuf>, my_files: &my_files::MyFiles) {
+async fn list_directories(directories: Vec<PathBuf>, hub_client: &mut hub::Hub) {
     match file_lister::list_directories(directories) {
-        Ok(mut files_vec) => {
-            for file in &mut files_vec {
-                match my_files.add_file_to_db(file) {
-                    Ok(_) => {
-                        // TODO: Send file to the hub
-                    }
-                    Err(error) => {
-                        error!("{:?}", error);
-                    }
-                }
-            }
+        Ok(files_vec) => {
+            hub_client
+                .grpc_client
+                .send_create_events_once(files_vec)
+                .await;
         }
         Err(error) => {
             error!("{}", error);
-        }
-    }
-}
-
-fn handle_file_events(event: &notify::Event, my_files: &my_files::MyFiles) {
-    info!("event: kind: {:?}\tpaths: {:?}", event.kind, &event.paths);
-
-    if let EventKind::Remove(_) = event.kind {
-        match my_files.remove_file_from_db(event.paths[0].clone()) {
-            Ok(_) => {}
-            Err(error) => {
-                error!("{:?}", error);
-            }
-        }
-    } else if let EventKind::Create(_) = event.kind {
-        if let Some(file) = file_info::create_file_info(&event.paths[0].clone()) {
-            match my_files.add_file_to_db(&file) {
-                Ok(_) => {}
-                Err(error) => {
-                    error!("{:?}", error);
-                }
-            }
         }
     }
 }

@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option optimize_for = SPEED;
+
+package tidybee_events;
+
+// General status enum
+enum Status {
+    OK = 0;
+    ERROR = 1;
+}
+
+enum FileEventType {
+    UNKOWN = 0;
+    CREATED = 1;
+    UPDATED = 2;
+    DELETED = 3;
+    MOVED = 4;
+}
+
+// Event sent by the agent when a file event occurs
+message FileEventRequest {
+    // Type of the event
+    FileEventType event_type = 1;
+    // Path relative to the watched directory
+    string pretty_path = 2;
+    // Full canonical path
+    string path = 3;
+    // File size in bytes
+    optional uint64 size = 4;
+    // xxhash64 hash of the file content
+    optional string hash = 5;
+    // Last modified timestamp
+    optional google.protobuf.Timestamp last_modified = 6;
+    // Last accessed timestamp
+    optional google.protobuf.Timestamp last_accessed = 7;
+}
+
+
+// Data sent by the agent when connecting to the hub
+message AgentData {
+    // Agent version
+    string agent_version = 1;
+    // Machine name (usually the hostname)
+    string machine_name = 2;
+    // Process ID of the agent
+    uint32 process_id = 3;
+    // Uptime of the machine in seconds
+    uint64 uptime = 4;
+    // List of directories watched by the agent
+    repeated string watched_directories = 5;
+}
+
+// Response to a file update request
+message FileInfoEventResponse {
+    // Status of the operation
+    Status status = 1;
+}
+
+service TidyBeeEvents {
+    rpc FileEvent(stream FileEventRequest) returns (FileInfoEventResponse);
+}
