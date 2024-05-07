@@ -1,14 +1,10 @@
-use crate::{
-    configuration::HubConfig,
-    http::grpc::GrpcClient,
-    error::HubError::*
-};
+use crate::{configuration::HubConfig, error::HubError::*, http::grpc::GrpcClient};
 use anyhow::{bail, Error};
 use gethostname::gethostname;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
 use std::env;
-use tracing::{info};
+use tracing::info;
 
 pub struct Hub {
     config: HubConfig,

@@ -1,3 +1,9 @@
+use http::hub;
+use lazy_static::lazy_static;
+use server::ServerBuilder;
+use std::{collections::HashMap, path::PathBuf, thread};
+use tracing::{error, info, Level};
+
 mod agent_data;
 mod configuration;
 mod error;
@@ -5,14 +11,7 @@ mod file_info;
 mod file_lister;
 mod file_watcher;
 mod http;
-mod my_files;
 mod server;
-
-use http::hub;
-use lazy_static::lazy_static;
-use server::ServerBuilder;
-use std::{collections::HashMap, path::PathBuf, thread};
-use tracing::{error, info, Level};
 
 use crate::error::AgentError;
 
@@ -60,17 +59,7 @@ pub async fn run() -> Result<(), AgentError> {
         }
     };
 
-    let my_files_builder = my_files::MyFilesBuilder::new()
-        .configure(config.clone().my_files_config.clone())
-        .seal();
-
-    let my_files: my_files::MyFiles = my_files_builder.build().unwrap();
-    info!("MyFilesDB successfully created");
-    my_files.init_db().unwrap();
-    info!("MyFilesDB successfully initialized");
-
     let server = ServerBuilder::new()
-        .my_files_builder(my_files_builder)
         .inject_global_configuration(config.clone())
         .build(
             config.agent_data.latest_version.clone(),
@@ -108,7 +97,6 @@ pub async fn run() -> Result<(), AgentError> {
         &mut hub_client,
     )
     .await;
-
 
     let (file_watcher_sender, file_watcher_receiver) = tokio::sync::mpsc::unbounded_channel();
     let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {

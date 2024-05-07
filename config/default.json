@@ -23,10 +23,6 @@
       "port": "5057"
     }
   },
-  "my_files_config": {
-    "db_path": "./my_files.db",
-    "drop_db_on_start": true
-  },
   "filesystem_interface_config": {
     "dir": [
       "tests/assets/test_folder"
