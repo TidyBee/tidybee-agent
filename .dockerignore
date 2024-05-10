@@ -5,6 +5,4 @@
 .vscode
 Dockerfile
 README.md
-my_files.db
-my_files_tests.db
 target

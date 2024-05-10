@@ -1,9 +1,6 @@
 use crate::agent_data::AgentData;
-use crate::http::routes::{
-    get_config, get_files, get_status, hello_world, AgentDataState, GlobalConfigState, MyFilesState,
-};
-use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
-use crate::{configuration, my_files};
+use crate::configuration;
+use crate::http::routes::{get_config, get_status, hello_world, AgentDataState, GlobalConfigState};
 use axum::{routing::get, Router};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
@@ -12,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 use tower_http::trace::{self, TraceLayer};
-use tracing::{error, info, Level};
+use tracing::{error, Level};
 
 lazy_static! {
     static ref AGENT_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -36,8 +33,6 @@ pub struct Server {
 pub struct ServerBuilder {
     router: Router,
     global_configuration: configuration::Configuration,
-    my_files_builder:
-        my_files::MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed>,
 }
 
 trait ServerConfig {
@@ -48,18 +43,6 @@ trait ServerConfig {
 impl ServerBuilder {
     pub fn new() -> Self {
         Self::default()
-    }
-
-    pub fn my_files_builder(
-        mut self,
-        my_files_builder: my_files::MyFilesBuilder<
-            ConfigurationPresent,
-            ConnectionManagerPresent,
-            Sealed,
-        >,
-    ) -> Self {
-        self.my_files_builder = my_files_builder;
-        self
     }
 
     pub fn inject_global_configuration(
@@ -78,11 +61,6 @@ impl ServerBuilder {
         address: String,
         logging_level: &str,
     ) -> Server {
-        let my_files_instance = self.my_files_builder.build().unwrap();
-        info!("MyFiles instance successfully created for HTTP Server");
-        let my_files_state = MyFilesState {
-            my_files: Arc::new(Mutex::new(my_files_instance)),
-        };
         let agent_data_state = AgentDataState {
             agent_data: Arc::new(Mutex::new(AgentData::build(
                 latest_version,
@@ -108,7 +86,6 @@ impl ServerBuilder {
         let router = self
             .router
             .route("/", get(hello_world))
-            .route("/get_files", get(get_files).with_state(my_files_state))
             .route("/get_status", get(get_status).with_state(agent_data_state))
             .route("/config", get(get_config).with_state(global_config_state))
             .layer(
