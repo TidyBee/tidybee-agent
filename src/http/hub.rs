@@ -1,4 +1,6 @@
-use crate::{configuration::HubConfig, error::HubError::*, http::grpc::GrpcClient};
+use crate::configuration::HubConfig;
+use crate::error::HubError::*;
+use crate::http::grpc::GrpcClient;
 use anyhow::{bail, Error};
 use gethostname::gethostname;
 use reqwest::header::CONTENT_TYPE;
@@ -70,7 +72,7 @@ impl Hub {
                     if response.status().is_success() {
                         return match response.text().await {
                             Ok(mut text) => {
-                                text = text.trim_matches('"').to_string();
+                                text = text.trim_matches('"').to_owned();
                                 info!(
                                     "Successfully connected the agent to the Hub with id: {}",
                                     text

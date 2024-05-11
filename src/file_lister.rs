@@ -1,9 +1,7 @@
-use std::fs::read_dir;
-use std::fs::DirEntry;
-use std::path::PathBuf;
-
 use crate::error::AgentError;
 use crate::file_info::{create_file_info, FileInfo};
+use std::fs::{read_dir, DirEntry};
+use std::path::PathBuf;
 
 pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, AgentError> {
     let mut file_info_vec: Vec<FileInfo> = Vec::new();

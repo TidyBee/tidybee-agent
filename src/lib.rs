@@ -1,8 +1,12 @@
-use http::hub;
+use crate::configuration::Configuration;
+use crate::error::AgentError;
+use crate::http::hub::Hub;
+use crate::server::ServerBuilder;
 use lazy_static::lazy_static;
-use server::ServerBuilder;
-use std::{collections::HashMap, path::PathBuf, thread};
-use tracing::{error, info, Level};
+use std::collections::HashMap;
+use std::{borrow, env, thread};
+use tokio::{sync::mpsc, time};
+use tracing::{error, Level};
 
 mod agent_data;
 mod configuration;
@@ -12,8 +16,6 @@ mod file_lister;
 mod file_watcher;
 mod http;
 mod server;
-
-use crate::error::AgentError;
 
 lazy_static! {
     static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -28,19 +30,18 @@ lazy_static! {
 }
 
 pub async fn run() -> Result<(), AgentError> {
-    info!("Command-line Arguments Parsed");
-    let config = match configuration::Configuration::init() {
+    let config = match Configuration::init() {
         Ok(config) => config,
         Err(err) => {
             return Err(err);
         }
     };
 
-    let selected_cli_logger_level = match CLI_LOGGING_LEVEL.get(&config.logger_config.term_level) {
-        Some(level) => level.to_owned(),
-        None => Level::INFO,
-    };
-    match std::env::var("TIDY_BACKTRACE") {
+    let selected_cli_logger_level = CLI_LOGGING_LEVEL
+        .get(&config.logger_config.term_level)
+        .map_or(Level::INFO, borrow::ToOwned::to_owned);
+
+    match env::var("TIDY_BACKTRACE") {
         Ok(env) => {
             if env == "1" {
                 tracing_subscriber::fmt()
@@ -68,18 +69,16 @@ pub async fn run() -> Result<(), AgentError> {
             config.server_config.address.clone(),
             &config.server_config.log_level,
         );
-    info!("Server build");
 
-    let mut hub_client = http::hub::Hub::new(config.hub_config.clone()).unwrap(); // The agent should fail if no communication is possible with the Hub
+    let mut hub_client = Hub::new(config.hub_config.clone()).unwrap();
 
     tokio::spawn(async move {
         server.start().await;
     });
-    info!("Server Started");
 
     let mut timeout = 5;
     loop {
-        tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
+        time::sleep(time::Duration::from_secs(timeout)).await;
         if let Err(err) = hub_client.connect().await {
             error!(
                 "Error connecting to the hub: {}, retrying in {}",
@@ -92,32 +91,7 @@ pub async fn run() -> Result<(), AgentError> {
         timeout *= 2;
     }
 
-    list_directories(
-        config.clone().filesystem_interface_config.dir,
-        &mut hub_client,
-    )
-    .await;
-
-    let (file_watcher_sender, file_watcher_receiver) = tokio::sync::mpsc::unbounded_channel();
-    let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
-        file_watcher::watch_directories(
-            config.filesystem_interface_config.dir.clone(),
-            file_watcher_sender,
-        );
-    });
-    info!("File Events Watcher Started");
-
-    hub_client
-        .grpc_client
-        .send_events(file_watcher_receiver)
-        .await;
-
-    file_watcher_thread.join().unwrap();
-    Ok(())
-}
-
-async fn list_directories(directories: Vec<PathBuf>, hub_client: &mut hub::Hub) {
-    match file_lister::list_directories(directories) {
+    match file_lister::list_directories(config.clone().filesystem_interface_config.dir) {
         Ok(files_vec) => {
             hub_client
                 .grpc_client
@@ -128,4 +102,20 @@ async fn list_directories(directories: Vec<PathBuf>, hub_client: &mut hub::Hub) 
             error!("{}", error);
         }
     }
+
+    let (file_watcher_sender, file_watcher_receiver) = mpsc::unbounded_channel();
+    let file_watcher_thread: thread::JoinHandle<()> = thread::spawn(move || {
+        file_watcher::watch_directories(
+            config.filesystem_interface_config.dir.clone(),
+            file_watcher_sender,
+        );
+    });
+
+    hub_client
+        .grpc_client
+        .send_events(file_watcher_receiver)
+        .await;
+
+    file_watcher_thread.join().unwrap();
+    Ok(())
 }

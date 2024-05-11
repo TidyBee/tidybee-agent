@@ -1,10 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::{
-    fs,
-    io::Read,
-    path::{Path, PathBuf},
-    time::SystemTime,
-};
+use std::fs;
+use std::io::Read;
+use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 use tracing::warn;
 use xxhash_rust::xxh3::xxh3_128;
 
@@ -20,7 +18,7 @@ pub struct FileInfo {
 
 impl Default for FileInfo {
     fn default() -> Self {
-        FileInfo {
+        Self {
             pretty_path: PathBuf::new(),
             path: PathBuf::new(),
             size: 0,
@@ -107,7 +105,7 @@ mod tests {
 
     #[test]
     fn test_get_file_signature() {
-        let path: PathBuf = [r"tests", r"assets", r"test_folder", r"test-file-1"]
+        let path: PathBuf = ["tests", "assets", "test_folder", "test-file-1"]
             .iter()
             .collect();
         let hash = get_file_signature(&path);
@@ -116,7 +114,7 @@ mod tests {
 
     #[test]
     fn test_create_file_info() {
-        let path: PathBuf = [r"tests", r"assets", r"test_folder", r"test-file-1"]
+        let path: PathBuf = ["tests", "assets", "test_folder", "test-file-1"]
             .iter()
             .collect();
         if let Some(file_info) = create_file_info(&path) {

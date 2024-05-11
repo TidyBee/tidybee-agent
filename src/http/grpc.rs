@@ -1,22 +1,20 @@
 use self::tidybee_events::{FileEventRequest, FileEventType};
 use crate::{
     configuration::GrpcServerConfig,
-    error::GrpcClientError::*,
+    error::GrpcClientError::{AgentUuidNotSet, InvalidEndpoint},
     file_info::{self, FileInfo},
 };
-
 use anyhow::{bail, ensure, Result};
 use notify_debouncer_full::DebouncedEvent;
 use std::str::FromStr;
 use tidybee_events::tidy_bee_events_client::TidyBeeEventsClient;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
-use tonic::{
-    metadata::MetadataValue,
-    service::Interceptor,
-    transport::{Channel, Endpoint},
-    Request, Status,
-};
+use tonic::metadata::MetadataValue;
+use tonic::service::Interceptor;
+use tonic::transport::{Channel, Endpoint};
+use tonic::{Request, Status};
+
 use tracing::{debug, info, warn};
 
 pub mod tidybee_events {
@@ -41,12 +39,9 @@ impl Interceptor for AuthInterceptor {
                 request.metadata_mut().insert("authorization", auth_header);
                 Ok(request)
             }
-            Err(e) => {
-                return Err(Status::internal(format!(
-                    "Failed to create authorization header: {}",
-                    e
-                )));
-            }
+            Err(e) => Err(Status::internal(format!(
+                "Failed to create authorization header: {e}"
+            ))),
         }
     }
 }
@@ -145,6 +140,7 @@ pub fn map_notify_events_to_grpc(file_event: DebouncedEvent) -> Option<FileEvent
         notify::EventKind::Create(_) => {
             let info = file_info::create_file_info(&file_event.paths[0].clone())?;
             Some(FileEventRequest {
+                // todo: use try_into()
                 event_type: FileEventType::Created as i32,
                 pretty_path: info.pretty_path.display().to_string(),
                 path: info.path.display().to_string(),
@@ -157,6 +153,7 @@ pub fn map_notify_events_to_grpc(file_event: DebouncedEvent) -> Option<FileEvent
         notify::EventKind::Modify(_) => {
             let info = file_info::create_file_info(&file_event.paths[0].clone())?;
             Some(FileEventRequest {
+                // todo: use try_into()
                 event_type: FileEventType::Updated as i32,
                 pretty_path: info.pretty_path.display().to_string(),
                 path: info.path.display().to_string(),
@@ -167,6 +164,7 @@ pub fn map_notify_events_to_grpc(file_event: DebouncedEvent) -> Option<FileEvent
             })
         }
         notify::EventKind::Remove(_) => Some(FileEventRequest {
+            // todo: use try_into()
             event_type: FileEventType::Deleted as i32,
             pretty_path: file_event.paths[0].display().to_string(),
             path: file_info::fix_canonicalize_path(&file_event.paths[0])
