@@ -19,6 +19,7 @@ COPY . .
 RUN apt-get update \
     && apt-get install -y --no-install-recommends pkg-config=0.29-6 libssl-dev=1.1.1n-0+deb10u6 \
     && rm -rf /var/lib/apt/lists/*
+RUN apt install -y protobuf-compiler
 COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
 RUN cargo build --release
@@ -30,4 +31,5 @@ COPY --from=builder /app/config /app/config
 COPY --from=builder /app/tests/assets /app/tests/assets
 COPY --from=builder /app/target/release/tidybee-agent /app/tidybee-agent
 EXPOSE 8111
+RUN apt install -y protobuf-compiler
 CMD ["/app/tidybee-agent"]
