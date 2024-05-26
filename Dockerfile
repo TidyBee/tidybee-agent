@@ -19,6 +19,7 @@ COPY . .
 RUN apt-get update \
     && apt-get install -y --no-install-recommends pkg-config=0.29-6 libssl-dev=1.1.1n-0+deb10u6 \
     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update
 RUN apt install -y protobuf-compiler
 COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
