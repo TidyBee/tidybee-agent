@@ -8,7 +8,7 @@ use gethostname::gethostname;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
 use std::env;
-use tracing::{info};
+use tracing::info;
 
 pub struct Hub {
     config: HubConfig,
@@ -82,7 +82,10 @@ impl Hub {
                                 env::set_var("AGENT_UUID", &text);
 
                                 self.grpc_client.set_agent_uuid(&text);
-                                self.grpc_client.connect().await;
+                                while self.grpc_client.connect().await.is_err() {
+                                    info!("Failed to connect to the gRPC server, retrying in 5 seconds");
+                                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                                }
                                 Ok(text)
                             }
                             Err(err) => {
