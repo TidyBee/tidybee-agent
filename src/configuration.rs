@@ -48,19 +48,12 @@ pub struct LoggerConfig {
     pub file_level: String,
 }
 
-#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, Eq)]
-pub struct MyFilesConfiguration {
-    pub db_path: String,
-    pub drop_db_on_start: bool,
-}
-
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct Configuration {
     pub agent_data: AgentData,
     pub filesystem_interface_config: FileSystemInterfaceConfig,
     pub server_config: ServerConfig,
     pub logger_config: LoggerConfig,
-    pub my_files_config: MyFilesConfiguration,
     pub hub_config: HubConfig,
 }
 
@@ -95,10 +88,6 @@ impl Default for Configuration {
             logger_config: LoggerConfig {
                 term_level: String::from("debug"),
                 file_level: String::from("warn"),
-            },
-            my_files_config: MyFilesConfiguration {
-                db_path: String::from("my_files.db"),
-                drop_db_on_start: false,
             },
         }
     }

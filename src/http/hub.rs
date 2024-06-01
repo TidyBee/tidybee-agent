@@ -1,8 +1,4 @@
-use crate::{
-    configuration::HubConfig,
-    http::grpc::GrpcClient,
-    error::HubError::*
-};
+use crate::{configuration::HubConfig, error::HubError::*, http::grpc::GrpcClient};
 use anyhow::{bail, Error};
 use gethostname::gethostname;
 use reqwest::header::CONTENT_TYPE;
