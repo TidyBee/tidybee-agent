@@ -13,12 +13,6 @@ mod file_watcher;
 mod http;
 mod server;
 
-use http::hub;
-use lazy_static::lazy_static;
-use server::ServerBuilder;
-use std::{collections::HashMap, path::PathBuf, thread};
-use tracing::{error, info, Level};
-
 use crate::error::AgentError;
 
 lazy_static! {

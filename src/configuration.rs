@@ -1,7 +1,7 @@
 use config::{Config, File};
 use serde_derive::{Deserialize, Serialize};
 use std::env::var as env_var;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tracing::info;
 
 use crate::error::AgentError;
