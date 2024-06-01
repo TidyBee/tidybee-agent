@@ -18,9 +18,11 @@
     "auth_path": "/gateway/auth/AOTH",
     "disconnect_path": "/gateway/auth/AOTH/{agent_id}/disconnect",
     "connection_attempt_limit": "30",
-    "grpc_config": {
+    "grpc_server": {
       "host": "localhost",
-      "port": "5057"
+      "port": 5057,
+      "protocol": "http",
+      "log_level": "info"
     }
   },
   "my_files_config": {
