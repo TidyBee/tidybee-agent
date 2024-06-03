@@ -6,6 +6,7 @@ use crate::{
 };
 
 use anyhow::{bail, ensure, Result};
+use notify::event::ModifyKind;
 use notify_debouncer_full::DebouncedEvent;
 use std::str::FromStr;
 use tidybee_events::tidy_bee_events_client::TidyBeeEventsClient;
@@ -126,6 +127,9 @@ impl GrpcClient {
         }
         let stream: UnboundedReceiverStream<DebouncedEvent> =
             UnboundedReceiverStream::new(file_watcher_receiver);
+
+        // let manip = stream.map(map_notify_events_to_grpc2).filter(|x| x.is_some());
+
         let manip = stream.filter_map(map_notify_events_to_grpc);
         if self
             .client
@@ -137,6 +141,84 @@ impl GrpcClient {
         {
             warn!("Failed to send file event to gRPC server");
         }
+    }
+}
+
+fn map_modify_notify_events_to_grpc(modify_kind: ModifyKind, file_event: DebouncedEvent) -> Vec<Option<FileEventRequest>> {
+    match modify_kind {
+        ModifyKind::Name(_) => {
+            let info = file_info::create_file_info(&file_event.paths[1].clone());
+
+            match info {
+                Some(info) => vec![
+                    Some(FileEventRequest {
+                        event_type: FileEventType::Deleted as i32,
+                        pretty_path: file_event.paths[0].display().to_string(),
+                        path: file_info::fix_canonicalize_path(&file_event.paths[0])
+                            .display()
+                            .to_string(),
+                        ..Default::default()
+                    }),
+                    Some(FileEventRequest {
+                        event_type: FileEventType::Updated as i32,
+                        pretty_path: info.pretty_path.display().to_string(),
+                        path: info.path.display().to_string(),
+                        size: Some(info.size),
+                        hash: info.hash,
+                        last_accessed: Some(info.last_accessed.into()),
+                        last_modified: Some(info.last_modified.into()),
+                    })
+                    ],
+                None => vec![None]
+            }
+        }
+        _ => {
+            let info = file_info::create_file_info(&file_event.paths[0].clone());
+
+            match info {
+                Some(info) => vec![Some(FileEventRequest {
+                    event_type: FileEventType::Updated as i32,
+                    pretty_path: info.pretty_path.display().to_string(),
+                    path: info.path.display().to_string(),
+                    size: Some(info.size),
+                    hash: info.hash,
+                    last_accessed: Some(info.last_accessed.into()),
+                    last_modified: Some(info.last_modified.into()),
+                })],
+                None => vec![None]
+            }
+        }
+    }
+}
+
+pub fn map_notify_events_to_grpc2(file_event: DebouncedEvent) -> Vec<Option<FileEventRequest>> {
+    match file_event.kind {
+        notify::EventKind::Create(_) => {
+            let info = file_info::create_file_info(&file_event.paths[0].clone());
+
+            match info {
+                Some(info) => vec![Some(FileEventRequest {
+                    event_type: FileEventType::Updated as i32,
+                    pretty_path: info.pretty_path.display().to_string(),
+                    path: info.path.display().to_string(),
+                    size: Some(info.size),
+                    hash: info.hash,
+                    last_accessed: Some(info.last_accessed.into()),
+                    last_modified: Some(info.last_modified.into()),
+                })],
+                None => vec![None]
+            }
+        }
+        notify::EventKind::Modify(modify_kind) => map_modify_notify_events_to_grpc(modify_kind, file_event),
+        notify::EventKind::Remove(_) => vec![Some(FileEventRequest {
+            event_type: FileEventType::Deleted as i32,
+            pretty_path: file_event.paths[0].display().to_string(),
+            path: file_info::fix_canonicalize_path(&file_event.paths[0])
+                .display()
+                .to_string(),
+            ..Default::default()
+        })],
+        _ => vec![None],
     }
 }
 
