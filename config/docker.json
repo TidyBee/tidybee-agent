@@ -8,7 +8,7 @@
     "connection_attempt_limit": "30",
     "grpc_server": {
       "host": "hub-tidy-events",
-      "port": 5057,
+      "port": 8080,
       "protocol": "http",
       "log_level": "INFO"
     }
