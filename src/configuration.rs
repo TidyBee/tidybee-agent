@@ -1,7 +1,7 @@
 use config::{Config, File};
 use serde_derive::{Deserialize, Serialize};
 use std::env::var as env_var;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tracing::info;
 
 use crate::error::AgentError;
@@ -105,11 +105,11 @@ impl Configuration {
         config_dir.push("config");
 
         let builder = Config::builder()
-            .add_source(File::from(Path::new("config/default.json")))
+            .add_source(File::with_name(&format!("config/default.json")).required(false))
             .add_source(File::with_name(&format!("config/{env}.json")).required(false))
             .build()
             .unwrap();
-        let config: Configuration = builder.try_deserialize().unwrap_or_default();
+        let config: Configuration = builder.try_deserialize().unwrap();
         //if config.server_config.log_level == "info" { return Err(MyError::InvalidConfiguration("test message invalid conf".to_owned())) }
         Ok(config)
     }

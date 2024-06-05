@@ -69,7 +69,7 @@ pub fn create_file_info(path: &PathBuf) -> Option<FileInfo> {
             let file_signature = get_file_signature(path);
 
             Some(FileInfo {
-                pretty_path: path.clone(),
+                pretty_path: fix_canonicalize_path(fs::canonicalize(path).unwrap()),
                 path: fix_canonicalize_path(fs::canonicalize(path).unwrap()),
                 size,
                 hash: Some(file_signature.to_string()),

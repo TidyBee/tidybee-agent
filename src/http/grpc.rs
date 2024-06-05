@@ -6,6 +6,7 @@ use crate::{
 };
 
 use anyhow::{bail, ensure, Result};
+use notify::event::ModifyKind;
 use notify_debouncer_full::DebouncedEvent;
 use std::str::FromStr;
 use tidybee_events::tidy_bee_events_client::TidyBeeEventsClient;
@@ -110,7 +111,7 @@ impl GrpcClient {
         let stream = tokio_stream::iter(events.into_iter().map(|f| FileEventRequest {
             event_type: FileEventType::Created as i32,
             pretty_path: f.pretty_path.display().to_string(),
-            path: f.path.display().to_string(),
+            path: vec![f.path.display().to_string()],
             size: Some(f.size),
             hash: f.hash,
             last_accessed: Some(f.last_accessed.into()),
@@ -126,7 +127,9 @@ impl GrpcClient {
         }
         let stream: UnboundedReceiverStream<DebouncedEvent> =
             UnboundedReceiverStream::new(file_watcher_receiver);
+
         let manip = stream.filter_map(map_notify_events_to_grpc);
+
         if self
             .client
             .as_mut()
@@ -140,6 +143,42 @@ impl GrpcClient {
     }
 }
 
+fn map_modify_notify_events_to_grpc(
+    modify_kind: ModifyKind,
+    file_event: DebouncedEvent,
+) -> Option<FileEventRequest> {
+    match modify_kind {
+        ModifyKind::Name(_) => {
+            Some(FileEventRequest {
+                event_type: FileEventType::Moved as i32,
+                pretty_path: file_event.paths[1].display().to_string(),
+                last_modified: Some(std::time::SystemTime::now().into()),
+                path: vec![file_info::fix_canonicalize_path(&file_event.paths[0]).display().to_string(),
+                file_info::fix_canonicalize_path(&file_event.paths[1])
+                    .display()
+                    .to_string()],
+                ..Default::default()
+            })
+        }
+        _ => {
+            let info = file_info::create_file_info(&file_event.paths[0].clone());
+
+            match info {
+                Some(info) => Some(FileEventRequest {
+                    event_type: FileEventType::Updated as i32,
+                    pretty_path: info.pretty_path.display().to_string(),
+                    path: vec![info.path.display().to_string()],
+                    size: Some(info.size),
+                    hash: info.hash,
+                    last_accessed: Some(info.last_accessed.into()),
+                    last_modified: Some(info.last_modified.into()),
+                }),
+                None => None,
+            }
+        }
+    }
+}
+
 pub fn map_notify_events_to_grpc(file_event: DebouncedEvent) -> Option<FileEventRequest> {
     match file_event.kind {
         notify::EventKind::Create(_) => {
@@ -147,31 +186,20 @@ pub fn map_notify_events_to_grpc(file_event: DebouncedEvent) -> Option<FileEvent
             Some(FileEventRequest {
                 event_type: FileEventType::Created as i32,
                 pretty_path: info.pretty_path.display().to_string(),
-                path: info.path.display().to_string(),
+                path: vec![info.path.display().to_string()],
                 size: Some(info.size),
                 hash: info.hash,
                 last_accessed: Some(info.last_accessed.into()),
                 last_modified: Some(info.last_modified.into()),
             })
         }
-        notify::EventKind::Modify(_) => {
-            let info = file_info::create_file_info(&file_event.paths[0].clone())?;
-            Some(FileEventRequest {
-                event_type: FileEventType::Updated as i32,
-                pretty_path: info.pretty_path.display().to_string(),
-                path: info.path.display().to_string(),
-                size: Some(info.size),
-                hash: info.hash,
-                last_accessed: Some(info.last_accessed.into()),
-                last_modified: Some(info.last_modified.into()),
-            })
-        }
+        notify::EventKind::Modify(modify_kind) => map_modify_notify_events_to_grpc(modify_kind, file_event),
         notify::EventKind::Remove(_) => Some(FileEventRequest {
             event_type: FileEventType::Deleted as i32,
             pretty_path: file_event.paths[0].display().to_string(),
-            path: file_info::fix_canonicalize_path(&file_event.paths[0])
+            path: vec![file_info::fix_canonicalize_path(&file_event.paths[0])
                 .display()
-                .to_string(),
+                .to_string()],
             ..Default::default()
         }),
         _ => None,

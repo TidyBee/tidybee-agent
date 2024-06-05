@@ -27,7 +27,7 @@ message FileEventRequest {
     // Path relative to the watched directory
     string pretty_path = 2;
     // Full canonical path
-    string path = 3;
+    repeated string path = 3;
     // File size in bytes
     optional uint64 size = 4;
     // xxhash64 hash of the file content
