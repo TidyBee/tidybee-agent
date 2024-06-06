@@ -10,6 +10,10 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  RUST_BACKTRACE: full
+  PROTOC: ${{ runner.workspace }}/protoc/bin
+
 jobs:
   build:
     strategy:
@@ -59,6 +63,8 @@ jobs:
           Remove-Item protoc-27.1-win64.zip
 
       - uses: actions-rs/cargo@v1.0.1
+        env: 
+          PROTOC: ${{ env.PROTOC }}
         name: cargo test --verbose
         with:
           command: test
