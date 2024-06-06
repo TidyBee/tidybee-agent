@@ -28,15 +28,18 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Install protoc (linux)
+        env:
+          PATH: ${{ runner.workspace }}/protoc/bin:$PATH
         if: matrix.os == 'ubuntu-latest'
         run: |
           wget https://github.com/protocolbuffers/protobuf/releases/download/v26.0/protoc-26.0-linux-x86_64.zip &&
           mkdir protoc &&
           unzip protoc-26.0-linux-x86_64.zip -d ./protoc &&
-          set PATH="$PATH:$(pwd)/protoc/bin" &&
           rm protoc-26.0-linux-x86_64.zip
 
       - name: Install protoc (macos)
+        env:
+          PATH: ${{ runner.workspace }}/protoc/bin:$PATH
         if: matrix.os == 'macos-latest'
         run: |
           wget https://github.com/protocolbuffers/protobuf/releases/download/v27.1/protoc-27.1-osx-universal_binary.zip &&
