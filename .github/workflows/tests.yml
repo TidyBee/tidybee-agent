@@ -29,7 +29,7 @@ jobs:
 
       - name: Install protoc (linux)
         env:
-          PATH: ${{ runner.workspace }}/protoc/bin:$PATH
+          PROTOC: ${{ runner.workspace }}/protoc/bin
         if: matrix.os == 'ubuntu-latest'
         run: |
           wget https://github.com/protocolbuffers/protobuf/releases/download/v26.0/protoc-26.0-linux-x86_64.zip &&
@@ -39,7 +39,7 @@ jobs:
 
       - name: Install protoc (macos)
         env:
-          PATH: ${{ runner.workspace }}/protoc/bin:$PATH
+          PROTOC: ${{ runner.workspace }}/protoc/bin
         if: matrix.os == 'macos-latest'
         run: |
           wget https://github.com/protocolbuffers/protobuf/releases/download/v27.1/protoc-27.1-osx-universal_binary.zip &&
@@ -55,7 +55,7 @@ jobs:
           Invoke-WebRequest -Uri https://github.com/protocolbuffers/protobuf/releases/download/v27.1/protoc-27.1-win64.zip -OutFile protoc-27.1-win64.zip
           mkdir protoc
           Expand-Archive -Path protoc-27.1-win64.zip -DestinationPath protoc
-          setx PATH "$env:PATH;$(Get-Location)\protoc\bin"
+          setx PROTOC "${{ runner.workspace }}\protoc\bin"
           Remove-Item protoc-27.1-win64.zip
 
       - uses: actions-rs/cargo@v1.0.1
