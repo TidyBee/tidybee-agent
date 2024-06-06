@@ -40,7 +40,7 @@ jobs:
           mkdir protoc &&
           unzip protoc-26.0-linux-x86_64.zip -d ./protoc &&
           ls -lRa protoc &&
-          chown -R $USER:$USER protoc &&
+          sudo chown -R $(whoami) protoc &&
           rm protoc-26.0-linux-x86_64.zip
 
       - name: Install protoc (macos)
