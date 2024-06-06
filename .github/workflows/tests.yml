@@ -39,6 +39,7 @@ jobs:
           wget https://github.com/protocolbuffers/protobuf/releases/download/v26.0/protoc-26.0-linux-x86_64.zip &&
           mkdir protoc &&
           unzip protoc-26.0-linux-x86_64.zip -d ./protoc &&
+          chown -R $USER:$USER protoc &&
           rm protoc-26.0-linux-x86_64.zip
 
       - name: Install protoc (macos)
@@ -50,6 +51,7 @@ jobs:
           mkdir protoc &&
           unzip protoc-27.1-osx-universal_binary.zip -d ./protoc &&
           set PATH="$PATH:$(pwd)/protoc/bin" &&
+          chown -R $USER:$USER protoc &&
           rm protoc-27.1-osx-universal_binary.zip
 
       - name: Install protoc (windows)
@@ -59,7 +61,8 @@ jobs:
           Invoke-WebRequest -Uri https://github.com/protocolbuffers/protobuf/releases/download/v27.1/protoc-27.1-win64.zip -OutFile protoc-27.1-win64.zip
           mkdir protoc
           Expand-Archive -Path protoc-27.1-win64.zip -DestinationPath protoc
-          setx PROTOC "${{ runner.workspace }}\protoc\bin"
+          Get-Acl -Path protoc -Recurse
+          Get-Acl -Path protoc -Recurse | Set-Acl -Path protoc
           Remove-Item protoc-27.1-win64.zip
 
       - uses: actions-rs/cargo@v1.0.1
