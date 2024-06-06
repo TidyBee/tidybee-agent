@@ -12,7 +12,7 @@ on:
 
 env:
   RUST_BACKTRACE: full
-  PROTOC: ${{ runner.workspace }}/protoc/bin
+  PROTOC: ./protoc/bin
 
 jobs:
   build:
