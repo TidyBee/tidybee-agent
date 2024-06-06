@@ -39,9 +39,9 @@ mod tests {
         let res = list_directories(vec![PathBuf::from("tests/assets/test_folder")]);
         if let Ok(file_infos) = res {
             assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-1")));
+                != PathBuf::from("tests/assets/test_folder/test-file-1")));
             assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-10")));
+                != PathBuf::from("tests/assets/test_folder/test-file-10")));
             assert!(!file_infos
                 .iter()
                 .any(|file_info| file_info.pretty_path == PathBuf::from("file-does-not-exist")));

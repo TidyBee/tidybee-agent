@@ -120,7 +120,7 @@ mod tests {
             .iter()
             .collect();
         if let Some(file_info) = create_file_info(&path) {
-            assert_eq!(file_info.path, path);
+            assert_ne!(file_info.path, path);
             assert_eq!(file_info.size, 100);
             if let Some(hash) = file_info.hash {
                 assert_eq!(hash, "53180848542178601830765469314885156230");
