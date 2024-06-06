@@ -67,7 +67,7 @@ jobs:
           Remove-Item protoc-27.1-win64.zip
 
       - name: Protoc version
-        run: protoc --version
+        run: ./protoc/bin/protoc --version
 
       - uses: actions-rs/cargo@v1.0.1
         env: 
