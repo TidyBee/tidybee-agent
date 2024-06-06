@@ -69,7 +69,6 @@ jobs:
         name: cargo build --verbose (linux/macos)
         env: 
           PROTOC: ${{ env.PROTOC }}/protoc
-        name: cargo test --verbose
         with:
           command: test
           args: --verbose
