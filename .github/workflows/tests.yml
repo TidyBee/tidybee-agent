@@ -39,8 +39,6 @@ jobs:
           wget https://github.com/protocolbuffers/protobuf/releases/download/v26.0/protoc-26.0-linux-x86_64.zip &&
           mkdir protoc &&
           unzip protoc-26.0-linux-x86_64.zip -d ./protoc &&
-          ls -lRa protoc &&
-          sudo chown -R $(whoami) protoc &&
           rm protoc-26.0-linux-x86_64.zip
 
       - name: Install protoc (macos)
@@ -51,8 +49,6 @@ jobs:
           wget https://github.com/protocolbuffers/protobuf/releases/download/v27.1/protoc-27.1-osx-universal_binary.zip &&
           mkdir protoc &&
           unzip protoc-27.1-osx-universal_binary.zip -d ./protoc &&
-          set PATH="$PATH:$(pwd)/protoc/bin" &&
-          chown -R $USER:$USER protoc &&
           rm protoc-27.1-osx-universal_binary.zip
 
       - name: Install protoc (windows)
@@ -62,17 +58,27 @@ jobs:
           Invoke-WebRequest -Uri https://github.com/protocolbuffers/protobuf/releases/download/v27.1/protoc-27.1-win64.zip -OutFile protoc-27.1-win64.zip
           mkdir protoc
           Expand-Archive -Path protoc-27.1-win64.zip -DestinationPath protoc
-          Get-Acl -Path protoc -Recurse
-          Get-Acl -Path protoc -Recurse | Set-Acl -Path protoc
           Remove-Item protoc-27.1-win64.zip
 
       - name: Protoc version
         run: ./protoc/bin/protoc --version
 
+        
       - uses: actions-rs/cargo@v1.0.1
+        if : matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+        name: cargo build --verbose (linux/macos)
         env: 
-          PROTOC: ${{ env.PROTOC }}
+          PROTOC: ${{ env.PROTOC }}/protoc
         name: cargo test --verbose
         with:
           command: test
+          args: --verbose
+      
+      - uses: actions-rs/cargo@v1.0.1
+        if: matrix.os == 'windows-latest'
+        name: cargo build --verbose (windows)
+        env: 
+          PROTOC: ${{ env.PROTOC }}/protoc.exe
+        with:
+          command: build
           args: --verbose
