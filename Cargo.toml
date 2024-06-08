@@ -32,9 +32,5 @@ xxhash-rust = { version = "0.8.8", features = ["xxh3"] }
 [dev-dependencies]
 ctor = "0.2.5"
 
-[[bin]]
-name = "tidybee-agent"
-path = "src/main.rs"
-
 [build-dependencies]
 tonic-build = "0.11.0"

@@ -105,12 +105,11 @@ impl Configuration {
         config_dir.push("config");
 
         let builder = Config::builder()
-            .add_source(File::with_name(&format!("config/default.json")).required(false))
+            .add_source(File::with_name("config/default.json").required(false))
             .add_source(File::with_name(&format!("config/{env}.json")).required(false))
             .build()
             .unwrap();
         let config: Configuration = builder.try_deserialize().unwrap();
-        //if config.server_config.log_level == "info" { return Err(MyError::InvalidConfiguration("test message invalid conf".to_owned())) }
         Ok(config)
     }
 }

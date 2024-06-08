@@ -1,6 +1,6 @@
 use crate::agent_data::AgentData;
 use crate::configuration;
-use crate::http::routes::{get_config, get_status, hello_world, AgentDataState, GlobalConfigState};
+use crate::http::routes::{get_config, get_status, AgentDataState, GlobalConfigState};
 use axum::{routing::get, Router};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
@@ -85,7 +85,6 @@ impl ServerBuilder {
 
         let router = self
             .router
-            .route("/", get(hello_world))
             .route("/get_status", get(get_status).with_state(agent_data_state))
             .route("/config", get(get_config).with_state(global_config_state))
             .layer(

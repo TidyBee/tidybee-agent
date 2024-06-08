@@ -1,7 +1,7 @@
 use self::tidybee_events::{FileEventRequest, FileEventType};
 use crate::{
     configuration::GrpcServerConfig,
-    error::GrpcClientError::*,
+    error::GrpcClientError,
     file_info::{self, FileInfo},
 };
 
@@ -42,12 +42,10 @@ impl Interceptor for AuthInterceptor {
                 request.metadata_mut().insert("authorization", auth_header);
                 Ok(request)
             }
-            Err(e) => {
-                return Err(Status::internal(format!(
-                    "Failed to create authorization header: {}",
-                    e
-                )));
-            }
+            Err(e) => Err(Status::internal(format!(
+                "Failed to create authorization header: {}",
+                e
+            ))),
         }
     }
 }
@@ -87,12 +85,14 @@ impl GrpcClient {
 
     // Connect before setting interceptors !
     pub async fn connect(&mut self) -> Result<()> {
-        ensure!(self.agent_uuid.is_some(), AgentUuidNotSet());
-
+        ensure!(
+            self.agent_uuid.is_some(),
+            GrpcClientError::AgentUuidNotSet()
+        );
         let channel = match self.endpoint.connect().await {
             Ok(channel) => channel,
             Err(e) => {
-                bail!(InvalidEndpoint(e));
+                bail!(GrpcClientError::InvalidEndpoint(e));
             }
         };
         info!("Connected to gRPC server");
@@ -103,10 +103,12 @@ impl GrpcClient {
         Ok(())
     }
 
-    pub async fn send_create_events_once(&mut self, events: Vec<FileInfo>) {
+    pub async fn send_create_events_once(
+        &mut self,
+        events: Vec<FileInfo>,
+    ) -> Result<(), GrpcClientError> {
         if self.client.is_none() {
-            panic!("gRPC client is not connected");
-            // TODO handle error
+            return Err(GrpcClientError::ClientNotConnected());
         }
         let stream = tokio_stream::iter(events.into_iter().map(|f| FileEventRequest {
             event_type: FileEventType::Created as i32,
@@ -118,12 +120,15 @@ impl GrpcClient {
             last_modified: Some(f.last_modified.into()),
         }));
         let _ = self.client.as_mut().unwrap().file_event(stream).await;
+        Ok(())
     }
 
-    pub async fn send_events(&mut self, file_watcher_receiver: UnboundedReceiver<DebouncedEvent>) {
+    pub async fn send_events(
+        &mut self,
+        file_watcher_receiver: UnboundedReceiver<DebouncedEvent>,
+    ) -> Result<(), GrpcClientError> {
         if self.client.is_none() {
-            panic!("gRPC client is not connected");
-            // TODO handle error
+            return Err(GrpcClientError::ClientNotConnected());
         }
         let stream: UnboundedReceiverStream<DebouncedEvent> =
             UnboundedReceiverStream::new(file_watcher_receiver);
@@ -140,6 +145,7 @@ impl GrpcClient {
         {
             warn!("Failed to send file event to gRPC server");
         }
+        Ok(())
     }
 }
 
@@ -148,18 +154,20 @@ fn map_modify_notify_events_to_grpc(
     file_event: DebouncedEvent,
 ) -> Option<FileEventRequest> {
     match modify_kind {
-        ModifyKind::Name(_) => {
-            Some(FileEventRequest {
-                event_type: FileEventType::Moved as i32,
-                pretty_path: file_event.paths[1].display().to_string(),
-                last_modified: Some(std::time::SystemTime::now().into()),
-                path: vec![file_info::fix_canonicalize_path(&file_event.paths[0]).display().to_string(),
+        ModifyKind::Name(_) => Some(FileEventRequest {
+            event_type: FileEventType::Moved as i32,
+            pretty_path: file_event.paths[1].display().to_string(),
+            last_modified: Some(std::time::SystemTime::now().into()),
+            path: vec![
+                file_info::fix_canonicalize_path(&file_event.paths[0])
+                    .display()
+                    .to_string(),
                 file_info::fix_canonicalize_path(&file_event.paths[1])
                     .display()
-                    .to_string()],
-                ..Default::default()
-            })
-        }
+                    .to_string(),
+            ],
+            ..Default::default()
+        }),
         _ => {
             let info = file_info::create_file_info(&file_event.paths[0].clone());
 
@@ -193,7 +201,9 @@ pub fn map_notify_events_to_grpc(file_event: DebouncedEvent) -> Option<FileEvent
                 last_modified: Some(info.last_modified.into()),
             })
         }
-        notify::EventKind::Modify(modify_kind) => map_modify_notify_events_to_grpc(modify_kind, file_event),
+        notify::EventKind::Modify(modify_kind) => {
+            map_modify_notify_events_to_grpc(modify_kind, file_event)
+        }
         notify::EventKind::Remove(_) => Some(FileEventRequest {
             event_type: FileEventType::Deleted as i32,
             pretty_path: file_event.paths[0].display().to_string(),

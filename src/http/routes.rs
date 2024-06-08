@@ -1,4 +1,5 @@
 use crate::agent_data::AgentData;
+use crate::configuration::Configuration;
 use axum::extract::State;
 use axum::Json;
 use serde_derive::Serialize;
@@ -11,19 +12,12 @@ pub struct AgentDataState {
 
 #[derive(Clone)]
 pub struct GlobalConfigState {
-    pub config: crate::configuration::Configuration,
+    pub config: Configuration,
 }
 
 #[derive(Serialize)]
 pub struct Greeting {
     message: String,
-}
-
-pub async fn hello_world() -> Json<Greeting> {
-    let greeting: Greeting = Greeting {
-        message: "Hello from server".to_owned(),
-    };
-    Json(greeting)
 }
 
 pub async fn get_status(State(agent_data): State<AgentDataState>) -> Json<AgentData> {
@@ -35,7 +29,7 @@ pub async fn get_status(State(agent_data): State<AgentDataState>) -> Json<AgentD
 
 #[derive(Serialize)]
 pub struct GetConfigResponseType {
-    configuration: crate::configuration::Configuration,
+    configuration: Configuration,
 }
 
 pub async fn get_config(

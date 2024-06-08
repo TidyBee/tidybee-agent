@@ -1,11 +1,13 @@
+use config::ConfigError as config_error;
+use std::io::Error as io_error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum AgentError {
-    #[error("Invalid configuration: {0}")]
-    InvalidConfiguration(String),
     #[error(transparent)]
-    Io(#[from] std::io::Error),
+    InvalidConfig(#[from] config_error),
+    #[error(transparent)]
+    Io(#[from] io_error),
     #[error("Path entry isn't a directory")]
     NotADirectory(),
 }
@@ -30,4 +32,6 @@ pub enum GrpcClientError {
     InvalidEndpoint(#[from] tonic::transport::Error),
     #[error("Agent UUID not set")]
     AgentUuidNotSet(),
+    #[error("gRPC client is not connected")]
+    ClientNotConnected(),
 }
