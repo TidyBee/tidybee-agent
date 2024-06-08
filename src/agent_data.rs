@@ -24,8 +24,8 @@ impl AgentData {
         latest_version: String,
         minimal_version: String,
         directories_watch_args: Vec<PathBuf>,
-    ) -> Self {
-        Self {
+    ) -> AgentData {
+        AgentData {
             agent_version: AgentVersion {
                 latest_version,
                 minimal_version,

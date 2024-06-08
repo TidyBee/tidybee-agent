@@ -19,6 +19,13 @@ COPY . .
 RUN apt-get update \
     && apt-get install -y --no-install-recommends pkg-config=0.29-6 libssl-dev=1.1.1n-0+deb10u6 \
     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y wget unzip
+
+# Install protoc from source
+RUN wget https://github.com/protocolbuffers/protobuf/releases/download/v26.0/protoc-26.0-linux-x86_64.zip && \
+    unzip protoc-26.0-linux-x86_64.zip -d /usr/local && \
+    rm protoc-26.0-linux-x86_64.zip
+
 COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
 RUN cargo build --release
@@ -29,5 +36,8 @@ WORKDIR /app
 COPY --from=builder /app/config /app/config
 COPY --from=builder /app/tests/assets /app/tests/assets
 COPY --from=builder /app/target/release/tidybee-agent /app/tidybee-agent
-EXPOSE 8111
+COPY --from=builder /usr/local/bin/protoc /usr/local/bin/protoc
+COPY --from=builder /usr/local/include/google /usr/local/include/google
+ENV TIDY_ENV=docker
+
 CMD ["/app/tidybee-agent"]

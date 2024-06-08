@@ -1,8 +1,10 @@
-use crate::error::AgentError;
 use config::{Config, File};
 use serde_derive::{Deserialize, Serialize};
-use std::env;
-use std::path::{Path, PathBuf};
+use std::env::var as env_var;
+use std::path::PathBuf;
+use tracing::info;
+
+use crate::error::AgentError;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AgentData {
@@ -13,6 +15,12 @@ pub struct AgentData {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileSystemInterfaceConfig {
     pub dir: Vec<PathBuf>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ServerConfig {
+    pub address: String,
+    pub log_level: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -40,19 +48,13 @@ pub struct LoggerConfig {
     pub file_level: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ServerConfig {
-    pub address: String,
-    pub log_level: String,
-}
-
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct Configuration {
     pub agent_data: AgentData,
     pub filesystem_interface_config: FileSystemInterfaceConfig,
-    pub hub_config: HubConfig,
-    pub logger_config: LoggerConfig,
     pub server_config: ServerConfig,
+    pub logger_config: LoggerConfig,
+    pub hub_config: HubConfig,
 }
 
 impl Default for Configuration {
@@ -63,7 +65,11 @@ impl Default for Configuration {
                 minimal_version: String::new(),
             },
             filesystem_interface_config: FileSystemInterfaceConfig {
-                dir: vec![["tests", "assets", "test_folder"].iter().collect()],
+                dir: vec![[r"tests", "assets", "test_folder"].iter().collect()],
+            },
+            server_config: ServerConfig {
+                address: String::from("0.0.0.0:8111"),
+                log_level: String::from("info"),
             },
             hub_config: HubConfig {
                 host: String::from("localhost"),
@@ -83,27 +89,28 @@ impl Default for Configuration {
                 term_level: String::from("debug"),
                 file_level: String::from("warn"),
             },
-            server_config: ServerConfig {
-                address: String::from("0.0.0.0:8111"),
-                log_level: String::from("info"),
-            },
         }
     }
 }
 
 impl Configuration {
     pub fn init() -> Result<Self, AgentError> {
-        let env = env::var("TIDY_ENV").unwrap_or_else(|_| "development".into());
+        let env = env_var("TIDY_ENV").unwrap_or_else(|_| "development".into());
 
-        let mut config_dir = env::current_exe()?;
+        info!("Loading configuration for environment: {}", env);
+
+        let mut config_dir =
+            std::env::current_exe().expect("Failed to find current executable path");
         config_dir.pop();
         config_dir.push("config");
 
         let builder = Config::builder()
-            .add_source(File::from(Path::new("config/default.json")))
+            .add_source(File::with_name(&format!("config/default.json")).required(false))
             .add_source(File::with_name(&format!("config/{env}.json")).required(false))
             .build()
             .unwrap();
-        Ok(builder.try_deserialize().unwrap_or_default())
+        let config: Configuration = builder.try_deserialize().unwrap();
+        //if config.server_config.log_level == "info" { return Err(MyError::InvalidConfiguration("test message invalid conf".to_owned())) }
+        Ok(config)
     }
 }

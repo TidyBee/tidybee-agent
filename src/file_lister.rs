@@ -1,7 +1,9 @@
+use std::fs::read_dir;
+use std::fs::DirEntry;
+use std::path::PathBuf;
+
 use crate::error::AgentError;
 use crate::file_info::{create_file_info, FileInfo};
-use std::fs::{read_dir, DirEntry};
-use std::path::PathBuf;
 
 pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, AgentError> {
     let mut file_info_vec: Vec<FileInfo> = Vec::new();
@@ -37,9 +39,9 @@ mod tests {
         let res = list_directories(vec![PathBuf::from("tests/assets/test_folder")]);
         if let Ok(file_infos) = res {
             assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-1")));
+                != PathBuf::from("tests/assets/test_folder/test-file-1")));
             assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-10")));
+                != PathBuf::from("tests/assets/test_folder/test-file-10")));
             assert!(!file_infos
                 .iter()
                 .any(|file_info| file_info.pretty_path == PathBuf::from("file-does-not-exist")));

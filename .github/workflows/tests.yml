@@ -10,14 +10,18 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  RUST_BACKTRACE: full
+  PROTOC: ./protoc/bin
+
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
         os:
-          - macos-latest
           - ubuntu-latest
+          - macos-latest
           - windows-latest
     runs-on: ${{matrix.os}}
     steps:
@@ -26,8 +30,54 @@ jobs:
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@v2
+
+      - name: Install protoc (linux)
+        env:
+          PROTOC: ${{ runner.workspace }}/protoc/bin
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          wget https://github.com/protocolbuffers/protobuf/releases/download/v26.0/protoc-26.0-linux-x86_64.zip &&
+          mkdir protoc &&
+          unzip protoc-26.0-linux-x86_64.zip -d ./protoc &&
+          rm protoc-26.0-linux-x86_64.zip
+
+      - name: Install protoc (macos)
+        env:
+          PROTOC: ${{ runner.workspace }}/protoc/bin
+        if: matrix.os == 'macos-latest'
+        run: |
+          wget https://github.com/protocolbuffers/protobuf/releases/download/v27.1/protoc-27.1-osx-universal_binary.zip &&
+          mkdir protoc &&
+          unzip protoc-27.1-osx-universal_binary.zip -d ./protoc &&
+          rm protoc-27.1-osx-universal_binary.zip
+
+      - name: Install protoc (windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/protocolbuffers/protobuf/releases/download/v27.1/protoc-27.1-win64.zip -OutFile protoc-27.1-win64.zip
+          mkdir protoc
+          Expand-Archive -Path protoc-27.1-win64.zip -DestinationPath protoc
+          Remove-Item protoc-27.1-win64.zip
+
+      - name: Protoc version
+        run: ./protoc/bin/protoc --version
+
+        
       - uses: actions-rs/cargo@v1.0.1
-        name: cargo test --verbose
+        if : matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+        name: cargo build --verbose (linux/macos)
+        env: 
+          PROTOC: ${{ env.PROTOC }}/protoc
         with:
           command: test
+          args: --verbose
+      
+      - uses: actions-rs/cargo@v1.0.1
+        if: matrix.os == 'windows-latest'
+        name: cargo build --verbose (windows)
+        env: 
+          PROTOC: ${{ env.PROTOC }}/protoc.exe
+        with:
+          command: build
           args: --verbose

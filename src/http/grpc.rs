@@ -1,20 +1,23 @@
 use self::tidybee_events::{FileEventRequest, FileEventType};
 use crate::{
     configuration::GrpcServerConfig,
-    error::GrpcClientError::{AgentUuidNotSet, InvalidEndpoint},
+    error::GrpcClientError::*,
     file_info::{self, FileInfo},
 };
+
 use anyhow::{bail, ensure, Result};
+use notify::event::ModifyKind;
 use notify_debouncer_full::DebouncedEvent;
 use std::str::FromStr;
 use tidybee_events::tidy_bee_events_client::TidyBeeEventsClient;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
-use tonic::metadata::MetadataValue;
-use tonic::service::Interceptor;
-use tonic::transport::{Channel, Endpoint};
-use tonic::{Request, Status};
-
+use tonic::{
+    metadata::MetadataValue,
+    service::Interceptor,
+    transport::{Channel, Endpoint},
+    Request, Status,
+};
 use tracing::{debug, info, warn};
 
 pub mod tidybee_events {
@@ -39,9 +42,12 @@ impl Interceptor for AuthInterceptor {
                 request.metadata_mut().insert("authorization", auth_header);
                 Ok(request)
             }
-            Err(e) => Err(Status::internal(format!(
-                "Failed to create authorization header: {e}"
-            ))),
+            Err(e) => {
+                return Err(Status::internal(format!(
+                    "Failed to create authorization header: {}",
+                    e
+                )));
+            }
         }
     }
 }
@@ -105,7 +111,7 @@ impl GrpcClient {
         let stream = tokio_stream::iter(events.into_iter().map(|f| FileEventRequest {
             event_type: FileEventType::Created as i32,
             pretty_path: f.pretty_path.display().to_string(),
-            path: f.path.display().to_string(),
+            path: vec![f.path.display().to_string()],
             size: Some(f.size),
             hash: f.hash,
             last_accessed: Some(f.last_accessed.into()),
@@ -121,7 +127,9 @@ impl GrpcClient {
         }
         let stream: UnboundedReceiverStream<DebouncedEvent> =
             UnboundedReceiverStream::new(file_watcher_receiver);
+
         let manip = stream.filter_map(map_notify_events_to_grpc);
+
         if self
             .client
             .as_mut()
@@ -135,41 +143,67 @@ impl GrpcClient {
     }
 }
 
+fn map_modify_notify_events_to_grpc(
+    modify_kind: ModifyKind,
+    file_event: DebouncedEvent,
+) -> Option<FileEventRequest> {
+    match modify_kind {
+        ModifyKind::Name(_) => Some(FileEventRequest {
+            event_type: FileEventType::Moved as i32,
+            pretty_path: file_event.paths[1].display().to_string(),
+            last_modified: Some(std::time::SystemTime::now().into()),
+            path: vec![
+                file_info::fix_canonicalize_path(&file_event.paths[0])
+                    .display()
+                    .to_string(),
+                file_info::fix_canonicalize_path(&file_event.paths[1])
+                    .display()
+                    .to_string(),
+            ],
+            ..Default::default()
+        }),
+        _ => {
+            let info = file_info::create_file_info(&file_event.paths[0].clone());
+
+            match info {
+                Some(info) => Some(FileEventRequest {
+                    event_type: FileEventType::Updated as i32,
+                    pretty_path: info.pretty_path.display().to_string(),
+                    path: vec![info.path.display().to_string()],
+                    size: Some(info.size),
+                    hash: info.hash,
+                    last_accessed: Some(info.last_accessed.into()),
+                    last_modified: Some(info.last_modified.into()),
+                }),
+                None => None,
+            }
+        }
+    }
+}
+
 pub fn map_notify_events_to_grpc(file_event: DebouncedEvent) -> Option<FileEventRequest> {
     match file_event.kind {
         notify::EventKind::Create(_) => {
             let info = file_info::create_file_info(&file_event.paths[0].clone())?;
             Some(FileEventRequest {
-                // todo: use try_into()
                 event_type: FileEventType::Created as i32,
                 pretty_path: info.pretty_path.display().to_string(),
-                path: info.path.display().to_string(),
+                path: vec![info.path.display().to_string()],
                 size: Some(info.size),
                 hash: info.hash,
                 last_accessed: Some(info.last_accessed.into()),
                 last_modified: Some(info.last_modified.into()),
             })
         }
-        notify::EventKind::Modify(_) => {
-            let info = file_info::create_file_info(&file_event.paths[0].clone())?;
-            Some(FileEventRequest {
-                // todo: use try_into()
-                event_type: FileEventType::Updated as i32,
-                pretty_path: info.pretty_path.display().to_string(),
-                path: info.path.display().to_string(),
-                size: Some(info.size),
-                hash: info.hash,
-                last_accessed: Some(info.last_accessed.into()),
-                last_modified: Some(info.last_modified.into()),
-            })
+        notify::EventKind::Modify(modify_kind) => {
+            map_modify_notify_events_to_grpc(modify_kind, file_event)
         }
         notify::EventKind::Remove(_) => Some(FileEventRequest {
-            // todo: use try_into()
             event_type: FileEventType::Deleted as i32,
             pretty_path: file_event.paths[0].display().to_string(),
-            path: file_info::fix_canonicalize_path(&file_event.paths[0])
+            path: vec![file_info::fix_canonicalize_path(&file_event.paths[0])
                 .display()
-                .to_string(),
+                .to_string()],
             ..Default::default()
         }),
         _ => None,

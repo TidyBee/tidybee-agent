@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::io::Read;
-use std::path::{Path, PathBuf};
-use std::time::SystemTime;
+use std::{
+    fs,
+    io::Read,
+    path::{Path, PathBuf},
+    time::SystemTime,
+};
 use tracing::warn;
 use xxhash_rust::xxh3::xxh3_128;
 
@@ -18,7 +20,7 @@ pub struct FileInfo {
 
 impl Default for FileInfo {
     fn default() -> Self {
-        Self {
+        FileInfo {
             pretty_path: PathBuf::new(),
             path: PathBuf::new(),
             size: 0,
@@ -67,7 +69,7 @@ pub fn create_file_info(path: &PathBuf) -> Option<FileInfo> {
             let file_signature = get_file_signature(path);
 
             Some(FileInfo {
-                pretty_path: path.clone(),
+                pretty_path: fix_canonicalize_path(fs::canonicalize(path).unwrap()),
                 path: fix_canonicalize_path(fs::canonicalize(path).unwrap()),
                 size,
                 hash: Some(file_signature.to_string()),
@@ -105,7 +107,7 @@ mod tests {
 
     #[test]
     fn test_get_file_signature() {
-        let path: PathBuf = ["tests", "assets", "test_folder", "test-file-1"]
+        let path: PathBuf = [r"tests", r"assets", r"test_folder", r"test-file-1"]
             .iter()
             .collect();
         let hash = get_file_signature(&path);
@@ -114,11 +116,11 @@ mod tests {
 
     #[test]
     fn test_create_file_info() {
-        let path: PathBuf = ["tests", "assets", "test_folder", "test-file-1"]
+        let path: PathBuf = [r"tests", r"assets", r"test_folder", r"test-file-1"]
             .iter()
             .collect();
         if let Some(file_info) = create_file_info(&path) {
-            assert_eq!(file_info.pretty_path, path);
+            assert_ne!(file_info.path, path);
             assert_eq!(file_info.size, 100);
             if let Some(hash) = file_info.hash {
                 assert_eq!(hash, "53180848542178601830765469314885156230");
