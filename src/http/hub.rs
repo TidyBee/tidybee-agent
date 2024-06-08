@@ -1,12 +1,12 @@
 use crate::configuration::HubConfig;
 use crate::error::HubError::*;
 use crate::http::grpc::GrpcClient;
+use crate::uuid;
 use anyhow::{bail, Error};
 use gethostname::gethostname;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
-use std::env;
-use tracing::info;
+use tracing::{error, info};
 
 pub struct Hub {
     config: HubConfig,
@@ -31,7 +31,7 @@ impl Hub {
     }
 
     pub async fn connect(&mut self) -> Result<String, Error> {
-        let agent_uuid = env::var("AGENT_UUID");
+        let agent_uuid = uuid::get_uuid();
         let base_url = format!(
             "{}://{}:{}",
             self.config.protocol, self.config.host, self.config.port
@@ -77,8 +77,9 @@ impl Hub {
                                     "Successfully connected the agent to the Hub with id: {}",
                                     text
                                 );
-                                env::set_var("AGENT_UUID", &text);
-
+                                if let Err(err) = uuid::set_uuid(text.clone()) {
+                                    error!("{err}");
+                                }
                                 self.grpc_client.set_agent_uuid(&text);
                                 while self.grpc_client.connect().await.is_err() {
                                     info!("Failed to connect to the gRPC server, retrying in 5 seconds");

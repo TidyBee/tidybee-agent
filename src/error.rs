@@ -1,7 +1,6 @@
 use config::ConfigError as config_error;
 use std::io::Error as io_error;
 use thiserror::Error;
-use tonic::transport::Error as tonic_error;
 
 #[derive(Error, Debug)]
 pub enum AgentError {
@@ -30,7 +29,9 @@ pub enum HubError {
 #[derive(Error, Debug)]
 pub enum GrpcClientError {
     #[error(transparent)]
-    InvalidEndpoint(#[from] tonic_error),
+    InvalidEndpoint(#[from] tonic::transport::Error),
     #[error("Agent UUID not set")]
     AgentUuidNotSet(),
+    #[error("gRPC client is not connected")]
+    ClientNotConnected(),
 }

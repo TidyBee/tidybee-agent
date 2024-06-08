@@ -1,7 +1,7 @@
 use self::tidybee_events::{FileEventRequest, FileEventType};
 use crate::{
     configuration::GrpcServerConfig,
-    error::GrpcClientError::*,
+    error::GrpcClientError,
     file_info::{self, FileInfo},
 };
 
@@ -42,12 +42,10 @@ impl Interceptor for AuthInterceptor {
                 request.metadata_mut().insert("authorization", auth_header);
                 Ok(request)
             }
-            Err(e) => {
-                return Err(Status::internal(format!(
-                    "Failed to create authorization header: {}",
-                    e
-                )));
-            }
+            Err(e) => Err(Status::internal(format!(
+                "Failed to create authorization header: {}",
+                e
+            ))),
         }
     }
 }
@@ -87,12 +85,14 @@ impl GrpcClient {
 
     // Connect before setting interceptors !
     pub async fn connect(&mut self) -> Result<()> {
-        ensure!(self.agent_uuid.is_some(), AgentUuidNotSet());
-
+        ensure!(
+            self.agent_uuid.is_some(),
+            GrpcClientError::AgentUuidNotSet()
+        );
         let channel = match self.endpoint.connect().await {
             Ok(channel) => channel,
             Err(e) => {
-                bail!(InvalidEndpoint(e));
+                bail!(GrpcClientError::InvalidEndpoint(e));
             }
         };
         info!("Connected to gRPC server");
@@ -103,10 +103,12 @@ impl GrpcClient {
         Ok(())
     }
 
-    pub async fn send_create_events_once(&mut self, events: Vec<FileInfo>) {
+    pub async fn send_create_events_once(
+        &mut self,
+        events: Vec<FileInfo>,
+    ) -> Result<(), GrpcClientError> {
         if self.client.is_none() {
-            panic!("gRPC client is not connected");
-            // TODO handle error
+            return Err(GrpcClientError::ClientNotConnected());
         }
         let stream = tokio_stream::iter(events.into_iter().map(|f| FileEventRequest {
             event_type: FileEventType::Created as i32,
@@ -118,12 +120,15 @@ impl GrpcClient {
             last_modified: Some(f.last_modified.into()),
         }));
         let _ = self.client.as_mut().unwrap().file_event(stream).await;
+        Ok(())
     }
 
-    pub async fn send_events(&mut self, file_watcher_receiver: UnboundedReceiver<DebouncedEvent>) {
+    pub async fn send_events(
+        &mut self,
+        file_watcher_receiver: UnboundedReceiver<DebouncedEvent>,
+    ) -> Result<(), GrpcClientError> {
         if self.client.is_none() {
-            panic!("gRPC client is not connected");
-            // TODO handle error
+            return Err(GrpcClientError::ClientNotConnected());
         }
         let stream: UnboundedReceiverStream<DebouncedEvent> =
             UnboundedReceiverStream::new(file_watcher_receiver);
@@ -140,6 +145,7 @@ impl GrpcClient {
         {
             warn!("Failed to send file event to gRPC server");
         }
+        Ok(())
     }
 }
 

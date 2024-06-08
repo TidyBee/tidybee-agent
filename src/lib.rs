@@ -16,6 +16,7 @@ mod file_lister;
 mod file_watcher;
 mod http;
 mod server;
+mod uuid;
 
 lazy_static! {
     static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -93,10 +94,13 @@ pub async fn run() -> Result<(), AgentError> {
 
     match file_lister::list_directories(config.clone().filesystem_interface_config.dir) {
         Ok(files_vec) => {
-            hub_client
+            if let Err(err) = hub_client
                 .grpc_client
                 .send_create_events_once(files_vec)
-                .await;
+                .await
+            {
+                error!("{err}");
+            }
         }
         Err(error) => {
             error!("{}", error);
@@ -111,10 +115,13 @@ pub async fn run() -> Result<(), AgentError> {
         );
     });
 
-    hub_client
+    if let Err(err) = hub_client
         .grpc_client
         .send_events(file_watcher_receiver)
-        .await;
+        .await
+    {
+        error!("{err}");
+    }
 
     file_watcher_thread.join().unwrap();
     Ok(())
