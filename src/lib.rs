@@ -9,6 +9,7 @@ use tokio::{sync::mpsc, time};
 use tracing::{error, Level};
 
 mod agent_data;
+mod agent_uuid;
 mod configuration;
 mod error;
 mod file_info;
@@ -16,7 +17,6 @@ mod file_lister;
 mod file_watcher;
 mod http;
 mod server;
-mod uuid;
 
 lazy_static! {
     static ref CLI_LOGGING_LEVEL: HashMap<String, Level> = {

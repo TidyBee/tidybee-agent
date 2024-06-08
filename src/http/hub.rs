@@ -1,7 +1,7 @@
+use crate::agent_uuid;
 use crate::configuration::HubConfig;
 use crate::error::HubError::*;
 use crate::http::grpc::GrpcClient;
-use crate::uuid;
 use anyhow::{bail, Error};
 use gethostname::gethostname;
 use reqwest::header::CONTENT_TYPE;
@@ -31,7 +31,7 @@ impl Hub {
     }
 
     pub async fn connect(&mut self) -> Result<String, Error> {
-        let agent_uuid = uuid::get_uuid();
+        let agent_uuid = agent_uuid::get_uuid();
         let base_url = format!(
             "{}://{}:{}",
             self.config.protocol, self.config.host, self.config.port
@@ -77,7 +77,7 @@ impl Hub {
                                     "Successfully connected the agent to the Hub with id: {}",
                                     text
                                 );
-                                if let Err(err) = uuid::set_uuid(text.clone()) {
+                                if let Err(err) = agent_uuid::set_uuid(text.clone()) {
                                     error!("{err}");
                                 }
                                 self.grpc_client.set_agent_uuid(&text);
