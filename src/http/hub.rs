@@ -1,28 +1,37 @@
+use crate::agent_uuid;
 use crate::configuration::HubConfig;
+use crate::error::HubError::*;
+use crate::http::grpc::GrpcClient;
 use anyhow::{bail, Error};
 use gethostname::gethostname;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Client;
-use std::env;
-use tracing::{info, warn};
+use tracing::{error, info};
 
 pub struct Hub {
     config: HubConfig,
     http_client: Client,
+    pub grpc_client: GrpcClient,
 }
 
 impl Hub {
-    pub fn new(hub_config: HubConfig) -> Self {
+    pub fn new(hub_config: HubConfig) -> Result<Self, Error> {
         let http_client: Client = Client::new();
-
-        Self {
+        let grpc_client = match GrpcClient::new(&hub_config.grpc_server) {
+            Ok(client) => client,
+            Err(e) => {
+                bail!(HubClientCreationFailed(e.to_string()))
+            }
+        };
+        Ok(Self {
             config: hub_config,
             http_client,
-        }
+            grpc_client,
+        })
     }
 
-    pub async fn connect(&self) -> Result<String, Error> {
-        let agent_uuid = env::var("AGENT_UUID");
+    pub async fn connect(&mut self) -> Result<String, Error> {
+        let agent_uuid = agent_uuid::get_uuid();
         let base_url = format!(
             "{}://{}:{}",
             self.config.protocol, self.config.host, self.config.port
@@ -62,27 +71,34 @@ impl Hub {
                 Ok(response) => {
                     if response.status().is_success() {
                         return match response.text().await {
-                            Ok(text) => {
+                            Ok(mut text) => {
+                                text = text.trim_matches('"').to_owned();
                                 info!(
                                     "Successfully connected the agent to the Hub with id: {}",
                                     text
                                 );
-                                env::set_var("AGENT_UUID", &text);
+                                if let Err(err) = agent_uuid::set_uuid(text.clone()) {
+                                    error!("{err}");
+                                }
+                                self.grpc_client.set_agent_uuid(&text);
+                                while self.grpc_client.connect().await.is_err() {
+                                    info!("Failed to connect to the gRPC server, retrying in 5 seconds");
+                                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                                }
                                 Ok(text)
                             }
                             Err(err) => {
-                                warn!("Parsing error : {}", err);
-                                bail!("Failed to parse response from Hub when authenticating",)
+                                bail!(HttpError(err))
                             }
                         };
                     }
                 }
                 Err(e) => {
-                    warn!("Error connecting to hub: {:?}", e);
+                    bail!(UnExpectedError(e.to_string()))
                 }
             }
             tries += 1;
         }
-        bail!("Maximum number of retries reached without success")
+        bail!(MaximumAttemptsReached())
     }
 }

@@ -1,10 +1,6 @@
 use crate::agent_data::AgentData;
-use crate::http::routes::{
-    get_config, get_files, get_status, hello_world, AgentDataState, GlobalConfigState, MyFilesState,
-};
-use crate::my_files::{ConfigurationPresent, ConnectionManagerPresent, Sealed};
-use crate::tidy_algo::{TidyAlgo, TidyRule};
-use crate::{configuration, my_files};
+use crate::configuration;
+use crate::http::routes::{get_config, get_status, AgentDataState, GlobalConfigState};
 use axum::{routing::get, Router};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
@@ -13,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 use tower_http::trace::{self, TraceLayer};
-use tracing::{error, info, Level};
+use tracing::{error, Level};
 
 lazy_static! {
     static ref AGENT_LOGGING_LEVEL: HashMap<String, Level> = {
@@ -37,9 +33,6 @@ pub struct Server {
 pub struct ServerBuilder {
     router: Router,
     global_configuration: configuration::Configuration,
-    tidy_rules: Vec<TidyRule>,
-    my_files_builder:
-        my_files::MyFilesBuilder<ConfigurationPresent, ConnectionManagerPresent, Sealed>,
 }
 
 trait ServerConfig {
@@ -52,28 +45,11 @@ impl ServerBuilder {
         Self::default()
     }
 
-    pub fn my_files_builder(
-        mut self,
-        my_files_builder: my_files::MyFilesBuilder<
-            ConfigurationPresent,
-            ConnectionManagerPresent,
-            Sealed,
-        >,
-    ) -> Self {
-        self.my_files_builder = my_files_builder;
-        self
-    }
-
     pub fn inject_global_configuration(
         mut self,
         global_configuration: configuration::Configuration,
     ) -> Self {
         self.global_configuration = global_configuration;
-        self
-    }
-
-    pub fn inject_tidy_rules(mut self, tidy_algo: TidyAlgo) -> Self {
-        self.tidy_rules = tidy_algo.get_rules().to_vec();
         self
     }
 
@@ -85,11 +61,6 @@ impl ServerBuilder {
         address: String,
         logging_level: &str,
     ) -> Server {
-        let my_files_instance = self.my_files_builder.build().unwrap();
-        info!("MyFiles instance successfully created for HTTP Server");
-        let my_files_state = MyFilesState {
-            my_files: Arc::new(Mutex::new(my_files_instance)),
-        };
         let agent_data_state = AgentDataState {
             agent_data: Arc::new(Mutex::new(AgentData::build(
                 latest_version,
@@ -99,7 +70,6 @@ impl ServerBuilder {
         };
         let global_config_state = GlobalConfigState {
             config: self.global_configuration,
-            rules: self.tidy_rules,
         };
 
         let server_logging_level: Level = AGENT_LOGGING_LEVEL.get(logging_level).map_or_else(
@@ -115,8 +85,6 @@ impl ServerBuilder {
 
         let router = self
             .router
-            .route("/", get(hello_world))
-            .route("/get_files", get(get_files).with_state(my_files_state))
             .route("/get_status", get(get_status).with_state(agent_data_state))
             .route("/config", get(get_config).with_state(global_config_state))
             .layer(

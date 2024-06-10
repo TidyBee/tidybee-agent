@@ -1,7 +1,3 @@
-use rusqlite::{
-    types::{FromSql, FromSqlError, FromSqlResult, Value, ValueRef},
-    ToSql,
-};
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -20,7 +16,6 @@ pub struct FileInfo {
     pub hash: Option<String>,
     pub last_modified: SystemTime,
     pub last_accessed: SystemTime,
-    pub tidy_score: Option<TidyScore>,
 }
 
 impl Default for FileInfo {
@@ -32,7 +27,6 @@ impl Default for FileInfo {
             hash: None,
             last_modified: SystemTime::UNIX_EPOCH,
             last_accessed: SystemTime::UNIX_EPOCH,
-            tidy_score: None,
         }
     }
 }
@@ -40,52 +34,6 @@ impl Default for FileInfo {
 impl PartialEq for FileInfo {
     fn eq(&self, other: &Self) -> bool {
         self.hash == other.hash
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
-pub struct TidyScore {
-    pub misnamed: bool,
-    pub unused: bool,
-    pub duplicated: Option<Vec<FileInfo>>,
-    pub grade: Option<u8>,
-}
-
-impl TidyScore {
-    pub const fn new(misnamed: bool, unused: bool, duplicated: Option<Vec<FileInfo>>) -> Self {
-        Self {
-            misnamed,
-            unused,
-            duplicated,
-            grade: None,
-        }
-    }
-}
-
-impl ToSql for TidyScore {
-    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
-        Ok(rusqlite::types::ToSqlOutput::Owned(Value::from(
-            serde_json::to_string(self).unwrap(),
-        )))
-    }
-}
-
-impl FromSql for TidyScore {
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        match value {
-            ValueRef::Text(s) => {
-                let tidy_score: TidyScore =
-                    match serde_json::from_str(match core::str::from_utf8(s) {
-                        Ok(s) => s,
-                        Err(_) => return Err(FromSqlError::InvalidType),
-                    }) {
-                        Ok(tidy_score) => tidy_score,
-                        Err(_) => return Err(FromSqlError::InvalidType),
-                    };
-                Ok(tidy_score)
-            }
-            _ => Err(FromSqlError::InvalidType),
-        }
     }
 }
 
@@ -121,7 +69,7 @@ pub fn create_file_info(path: &PathBuf) -> Option<FileInfo> {
             let file_signature = get_file_signature(path);
 
             Some(FileInfo {
-                pretty_path: path.clone(),
+                pretty_path: fix_canonicalize_path(fs::canonicalize(path).unwrap()),
                 path: fix_canonicalize_path(fs::canonicalize(path).unwrap()),
                 size,
                 hash: Some(file_signature.to_string()),
@@ -172,7 +120,7 @@ mod tests {
             .iter()
             .collect();
         if let Some(file_info) = create_file_info(&path) {
-            assert_eq!(file_info.pretty_path, path);
+            assert_ne!(file_info.path, path);
             assert_eq!(file_info.size, 100);
             if let Some(hash) = file_info.hash {
                 assert_eq!(hash, "53180848542178601830765469314885156230");

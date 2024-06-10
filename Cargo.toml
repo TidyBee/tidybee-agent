@@ -7,27 +7,23 @@ authors = ["majent4", "Cavonstavant", "Ju"]
 [dependencies]
 anyhow = "1.0.80"
 axum = { version = "0.7.4", features = ["macros"] }
-chrono = "0.4.31"
 config = "0.13.3"
-crossbeam-channel = "0.5.8"
 env_logger = "0.11.0"
 futures = "0.3.30"
 gethostname = "0.4.3"
-itertools = "0.12.0"
 lazy_static = "1.4.0"
 notify = "6.1.1"
-notify-debouncer-full = "0.3.1"
-r2d2 = "0.8.10"
-r2d2_sqlite = "0.23.0"
-regex = "1.10.3"
+notify-debouncer-full = { version = "0.3.1", default-features = false }
+prost = "0.12.4"
+prost-types = "0.12.4"
 reqwest = { version = "0.11.24", features = ["json"] }
-rusqlite = { version = "0.30.0", features = ["bundled"] }
 serde = { version = "1.0.185", features = ["derive"] }
 serde_derive = "1.0.8"
-serde_json = "1.0.106"
 sysinfo = "0.30.5"
 thiserror = "1.0.58"
 tokio = { version = "1.32.0", features = ["full"] }
+tokio-stream = "0.1.15"
+tonic = "0.11.0"
 tower-http = { version = "0.5.1", features = ["trace"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
@@ -36,6 +32,5 @@ xxhash-rust = { version = "0.8.8", features = ["xxh3"] }
 [dev-dependencies]
 ctor = "0.2.5"
 
-[[bin]]
-name = "tidybee-agent"
-path = "src/main.rs"
+[build-dependencies]
+tonic-build = "0.11.0"

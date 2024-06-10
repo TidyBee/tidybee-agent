@@ -492,14 +492,10 @@ MigrationBackup/
 .ionide/
 
 # End of https://www.toptal.com/developers/gitignore/api/rust,rust-analyzer,dotnetcore,dotenv,intellij+all,vs,visualstudiocode
-/agent/my_files.db
-
-agent/my_files.db-journal
-
-my_files*.db
-*.db-journal
 firedbg/target.json
 firedbg/version.toml
 .vscode/launch.json
 .vscode/settings.json
 docker-cache/
+
+config/uuid

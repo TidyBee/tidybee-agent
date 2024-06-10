@@ -17,11 +17,13 @@
     "protocol": "http",
     "auth_path": "/gateway/auth/AOTH",
     "disconnect_path": "/gateway/auth/AOTH/{agent_id}/disconnect",
-    "connection_attempt_limit": "30"
-  },
-  "my_files_config": {
-    "db_path": "./my_files.db",
-    "drop_db_on_start": true
+    "connection_attempt_limit": "30",
+    "grpc_server": {
+      "host": "localhost",
+      "port": 5057,
+      "protocol": "http",
+      "log_level": "info"
+    }
   },
   "filesystem_interface_config": {
     "dir": [

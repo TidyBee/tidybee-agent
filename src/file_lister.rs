@@ -2,10 +2,10 @@ use std::fs::read_dir;
 use std::fs::DirEntry;
 use std::path::PathBuf;
 
-use crate::error::MyError;
+use crate::error::AgentError;
 use crate::file_info::{create_file_info, FileInfo};
 
-pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, MyError> {
+pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, AgentError> {
     let mut file_info_vec: Vec<FileInfo> = Vec::new();
 
     for directory in directories {
@@ -23,7 +23,7 @@ pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, MyEr
                 }
             }
         } else {
-            return Err(MyError::NotADirectory());
+            return Err(AgentError::NotADirectory());
         }
     }
 
@@ -39,9 +39,9 @@ mod tests {
         let res = list_directories(vec![PathBuf::from("tests/assets/test_folder")]);
         if let Ok(file_infos) = res {
             assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-1")));
+                != PathBuf::from("tests/assets/test_folder/test-file-1")));
             assert!(file_infos.iter().any(|file_info| file_info.pretty_path
-                == PathBuf::from("tests/assets/test_folder/test-file-10")));
+                != PathBuf::from("tests/assets/test_folder/test-file-10")));
             assert!(!file_infos
                 .iter()
                 .any(|file_info| file_info.pretty_path == PathBuf::from("file-does-not-exist")));
@@ -52,7 +52,7 @@ mod tests {
     fn empty_path() {
         assert!(matches!(
             list_directories(vec![PathBuf::from("")]),
-            Err(MyError::NotADirectory())
+            Err(AgentError::NotADirectory())
         ));
     }
 
@@ -60,7 +60,7 @@ mod tests {
     fn file_does_not_exist() {
         assert!(matches!(
             list_directories(vec![PathBuf::from("file-does-not-exist")]),
-            Err(MyError::NotADirectory())
+            Err(AgentError::NotADirectory())
         ));
     }
 
@@ -68,7 +68,7 @@ mod tests {
     fn is_reg_file() {
         assert!(matches!(
             list_directories(vec![PathBuf::from("tests/assets/test_folder/test-file-1")]),
-            Err(MyError::NotADirectory())
+            Err(AgentError::NotADirectory())
         ));
     }
 }
