@@ -96,6 +96,10 @@ jobs:
           mv ${{ env.ARTIFACT_DIR }}/${{ env.MACOS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.MACOS_TARGET }}/macos-latest-${{ env.BIN_NAME }} ${{ env.ARTIFACT_DIR }}/${{ env.MACOS_TARGET }}-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-${{ env.BIN_NAME }}
           mv ${{ env.ARTIFACT_DIR }}/${{ env.WINDOWS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.WINDOWS_TARGET }}/windows-latest-${{ env.BIN_NAME }}.exe ${{ env.ARTIFACT_DIR }}/${{ env.WINDOWS_TARGET }}-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-${{ env.BIN_NAME }}.exe
 
+          chown 777 ${{ env.ARTIFACT_DIR }}/x86_64-unknown-linux-gnu-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-tidybee-agent
+          chown 777 ${{ env.ARTIFACT_DIR }}/x86_64-apple-darwin-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-tidybee-agent
+          chown 777 ${{ env.ARTIFACT_DIR }}/x86_64-pc-windows-msvc-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-tidybee-agent.exe
+
       - name: Debug artifact directory
         run: ls -lRa ${{ env.ARTIFACT_DIR }}
 
