@@ -14,7 +14,6 @@ env:
   PROTOC_VERSION: 27.1
   PB_REL: https://github.com/protocolbuffers/protobuf/releases
   PROTOC: protoc/bin/protoc
-  VERSION: $(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')
 
 jobs:
   build:
@@ -99,6 +98,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload ${{ github.ref_name }} \
-            ${{ env.ARTIFACT_DIR }}/${{ env.LINUX_AMD64_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.LINUX_AMD64_TARGET }}/ubuntu-${{ env.VERSION }}-${{ env.BIN_NAME }} \
-            ${{ env.ARTIFACT_DIR }}/${{ env.MACOS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.MACOS_TARGET }}/macos-${{ env.VERSION }}-${{ env.BIN_NAME }} \
-            ${{ env.ARTIFACT_DIR }}/${{ env.WINDOWS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.WINDOWS_TARGET }}/windows-${{ env.VERSION }}-${{ env.BIN_NAME }}.exe
+            ${{ env.ARTIFACT_DIR }}/${{ env.LINUX_AMD64_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.LINUX_AMD64_TARGET }}/ubuntu-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-${{ env.BIN_NAME }} \
+            ${{ env.ARTIFACT_DIR }}/${{ env.MACOS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.MACOS_TARGET }}/macos-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-${{ env.BIN_NAME }} \
+            ${{ env.ARTIFACT_DIR }}/${{ env.WINDOWS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.WINDOWS_TARGET }}/windows-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-${{ env.BIN_NAME }}.exe
