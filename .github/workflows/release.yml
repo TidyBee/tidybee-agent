@@ -40,7 +40,7 @@ jobs:
       - name: Install protoc from release
         shell: bash
         run: |
-          curl -LO ${{ env.PB_REL }}/download/v${{ env.PROTOC_VERSION }}/protoc-${{ env.PROTOC_VERSION }}-${{ matrix.os }}.zip
+          curl -LO ${{ env.PB_REL }}/download/v${{ env.PROTOC_VERSION }}/protoc-${{ env.PROTOC_VERSION }}-${{ matrix.protoc_release_name }}.zip
           unzip protoc-${{ env.PROTOC_VERSION }}-${{ matrix.protoc_release_name }}.zip -d protoc
 
       - uses: crusty-pie/toolchain@v1
