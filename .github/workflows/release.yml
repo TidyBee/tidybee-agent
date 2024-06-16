@@ -103,8 +103,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          chmod 777 -R ${{ env.ARTIFACT_DIR }}/
-          gh release upload ${{ github.ref_name }} \
+          sudo chmod 777 -R ${{ env.ARTIFACT_DIR }}/
+          sudo gh release upload ${{ github.ref_name }} \
             ${{ env.ARTIFACT_DIR }}/x86_64-unknown-linux-gnu-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-tidybee-agent
             ${{ env.ARTIFACT_DIR }}/x86_64-apple-darwin-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-tidybee-agent
             ${{ env.ARTIFACT_DIR }}/x86_64-pc-windows-msvc-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-tidybee-agent.exe
