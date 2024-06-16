@@ -104,6 +104,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload ${{ github.ref_name }} \
-            ${{ env.ARTIFACT_DIR }}/x86_64-unknown-linux-gnu-1-0-8-tidybee-agent
-            ${{ env.ARTIFACT_DIR }}/x86_64-apple-darwin-1-0-8-tidybee-agent
-            ${{ env.ARTIFACT_DIR }}/x86_64-pc-windows-msvc-1-0-8-tidybee-agent.exe
+            ${{ env.ARTIFACT_DIR }}/x86_64-unknown-linux-gnu-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-tidybee-agent
+            ${{ env.ARTIFACT_DIR }}/x86_64-apple-darwin-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-tidybee-agent
+            ${{ env.ARTIFACT_DIR }}/x86_64-pc-windows-msvc-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-tidybee-agent.exe
