@@ -36,21 +36,23 @@ jobs:
             protoc_release_name: win64
     steps:
       - uses: actions/checkout@v4
-      - uses: crusty-pie/toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust_channel }}
-          targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@v2
-      - name: cargo build
-        env:
-          RUSTUP_TOOLCHAIN: ${{ matrix.rust_channel }}-${{ matrix.target }}
-        run: cargo build --release --verbose
 
       - name: Install protoc from release
         shell: bash
         run: |
           curl -LO ${{ env.PB_REL }}/download/v${{ env.PROTOC_VERSION }}/protoc-${{ env.PROTOC_VERSION }}-${{ matrix.os }}.zip
           unzip protoc-${{ env.PROTOC_VERSION }}-${{ matrix.protoc_release_name }}.zip -d protoc
+
+      - uses: crusty-pie/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust_channel }}
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo build
+        env:
+          RUSTUP_TOOLCHAIN: ${{ matrix.rust_channel }}-${{ matrix.target }}
+        run: cargo build --release --verbose
 
       - name: Create artifact dir
         run: |
