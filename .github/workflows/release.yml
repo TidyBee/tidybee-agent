@@ -100,4 +100,4 @@ jobs:
           gh release upload ${{ github.ref_name }} \
             ${{ env.ARTIFACT_DIR }}/${{ env.LINUX_AMD64_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.LINUX_AMD64_TARGET }}/ubuntu-latest-${{ env.BIN_NAME }} \
             ${{ env.ARTIFACT_DIR }}/${{ env.MACOS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.MACOS_TARGET }}/macos-latest-${{ env.BIN_NAME }} \
-            ${{ env.ARTIFACT_DIR }}/${{ env.WINDOWS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.WINDOWS_TARGET }}/windows-latest-${{ env.BIN_NAME }}.exe --title ${{ github.ref_name }} --generate-notes
+            ${{ env.ARTIFACT_DIR }}/${{ env.WINDOWS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.WINDOWS_TARGET }}/windows-latest-${{ env.BIN_NAME }}.exe
