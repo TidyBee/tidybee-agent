@@ -11,6 +11,9 @@ env:
   LINUX_AMD64_TARGET: x86_64-unknown-linux-gnu
   MACOS_TARGET: x86_64-apple-darwin
   WINDOWS_TARGET: x86_64-pc-windows-msvc
+  PROTOC_VERSION: 27.1
+  PB_REL: https://github.com/protocolbuffers/protobuf/releases
+  PROTOC: protoc/bin/protoc
 
 jobs:
   build:
@@ -22,12 +25,15 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             rust_channel: stable
+            protoc_release_name: linux-x86_64
           - os: macos-latest
             target: x86_64-apple-darwin
             rust_channel: stable
+            protoc_release_name: osx-x86_64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             rust_channel: stable
+            protoc_release_name: win64
     steps:
       - uses: actions/checkout@v4
       - uses: crusty-pie/toolchain@v1
@@ -39,6 +45,13 @@ jobs:
         env:
           RUSTUP_TOOLCHAIN: ${{ matrix.rust_channel }}-${{ matrix.target }}
         run: cargo build --release --verbose
+
+      - name: Install protoc from release
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          curl -LO ${{ env.PB_REL }}/download/v${{ env.PROTOC_VERSION }}/protoc-${{ env.PROTOC_VERSION }}-${{ matrix.os }}.zip
+          unzip protoc-${{ env.PROTOC_VERSION }}-${{ matrix.protoc_release_name }}.zip -d protoc
 
       - name: Create artifact dir
         run: |
