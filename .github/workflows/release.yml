@@ -47,7 +47,6 @@ jobs:
         run: cargo build --release --verbose
 
       - name: Install protoc from release
-        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
         shell: bash
         run: |
           curl -LO ${{ env.PB_REL }}/download/v${{ env.PROTOC_VERSION }}/protoc-${{ env.PROTOC_VERSION }}-${{ matrix.os }}.zip

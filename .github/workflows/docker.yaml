@@ -12,6 +12,7 @@ env:
 
 jobs:
   build-and-push:
+    if: github.repository == 'tidybee/tidybee-agent' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     permissions:
