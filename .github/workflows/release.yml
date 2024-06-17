@@ -11,6 +11,9 @@ env:
   LINUX_AMD64_TARGET: x86_64-unknown-linux-gnu
   MACOS_TARGET: x86_64-apple-darwin
   WINDOWS_TARGET: x86_64-pc-windows-msvc
+  PROTOC_VERSION: 27.1
+  PB_REL: https://github.com/protocolbuffers/protobuf/releases
+  PROTOC: protoc/bin/protoc
 
 jobs:
   build:
@@ -22,18 +25,29 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             rust_channel: stable
+            protoc_release_name: linux-x86_64
           - os: macos-latest
             target: x86_64-apple-darwin
             rust_channel: stable
+            protoc_release_name: osx-x86_64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             rust_channel: stable
+            protoc_release_name: win64
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install protoc from release
+        shell: bash
+        run: |
+          curl -LO ${{ env.PB_REL }}/download/v${{ env.PROTOC_VERSION }}/protoc-${{ env.PROTOC_VERSION }}-${{ matrix.protoc_release_name }}.zip
+          unzip protoc-${{ env.PROTOC_VERSION }}-${{ matrix.protoc_release_name }}.zip -d protoc
+
       - uses: crusty-pie/toolchain@v1
         with:
           toolchain: ${{ matrix.rust_channel }}
           targets: ${{ matrix.target }}
+
       - uses: Swatinem/rust-cache@v2
       - name: cargo build
         env:
@@ -76,6 +90,12 @@ jobs:
           path: ${{ env.ARTIFACT_DIR }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Rename binaries from latest to current version
+        run: |
+          cp ${{ env.ARTIFACT_DIR }}/${{ env.LINUX_AMD64_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.LINUX_AMD64_TARGET }}/ubuntu-latest-${{ env.BIN_NAME }} ${{ env.ARTIFACT_DIR }}/${{ env.LINUX_AMD64_TARGET }}-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-${{ env.BIN_NAME }}
+          cp ${{ env.ARTIFACT_DIR }}/${{ env.MACOS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.MACOS_TARGET }}/macos-latest-${{ env.BIN_NAME }} ${{ env.ARTIFACT_DIR }}/${{ env.MACOS_TARGET }}-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-${{ env.BIN_NAME }}
+          cp ${{ env.ARTIFACT_DIR }}/${{ env.WINDOWS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.WINDOWS_TARGET }}/windows-latest-${{ env.BIN_NAME }}.exe ${{ env.ARTIFACT_DIR }}/${{ env.WINDOWS_TARGET }}-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-${{ env.BIN_NAME }}.exe
+
       - name: Debug artifact directory
         run: ls -lRa ${{ env.ARTIFACT_DIR }}
 
@@ -83,7 +103,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create ${{ github.ref_name }} \
-            ${{ env.ARTIFACT_DIR }}/${{ env.LINUX_AMD64_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.LINUX_AMD64_TARGET }}/ubuntu-latest-${{ env.BIN_NAME }} \
-            ${{ env.ARTIFACT_DIR }}/${{ env.MACOS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.MACOS_TARGET }}/macos-latest-${{ env.BIN_NAME }} \
-            ${{ env.ARTIFACT_DIR }}/${{ env.WINDOWS_TARGET }}/${{ env.BIN_NAME }}-${{ github.ref_name }}-${{ env.WINDOWS_TARGET }}/windows-latest-${{ env.BIN_NAME }}.exe --title ${{ github.ref_name }} --generate-notes
+          gh release upload ${{ github.ref_name }} \
+            ${{ env.ARTIFACT_DIR }}/x86_64-unknown-linux-gnu-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-tidybee-agent \
+            ${{ env.ARTIFACT_DIR }}/x86_64-apple-darwin-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-tidybee-agent \
+            ${{ env.ARTIFACT_DIR }}/x86_64-pc-windows-msvc-$(echo ${{ github.ref_name }} | sed 's/v//; s/\./-/g')-tidybee-agent.exe
