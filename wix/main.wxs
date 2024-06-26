@@ -1,0 +1,264 @@
+<?xml version='1.0' encoding='windows-1252'?>
+
+<?if $(sys.BUILDARCH) = x64 or $(sys.BUILDARCH) = arm64 ?>
+    <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?else ?>
+    <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?endif ?>
+
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+
+    <Product
+        Id='*'
+        Name='tidybee-agent'
+        UpgradeCode='7E7B121C-B3C3-4AD1-9A45-8F9FF72370B1'
+        Manufacturer='majent4; Cavonstavant; Ju'
+        Language='1033'
+        Codepage='1252'
+        Version='$(var.Version)'>
+
+        <Package Id='*'
+            Keywords='Installer'
+            Manufacturer='majent4; Cavonstavant; Ju'
+            InstallerVersion='450'
+            Languages='1033'
+            Compressed='yes'
+            InstallScope='perMachine'
+            SummaryCodepage='1252'
+            />
+
+        <MajorUpgrade
+            Schedule='afterInstallInitialize'
+            DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
+
+        <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
+        <Property Id='DiskPrompt' Value='tidybee-agent Installation'/>
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
+                <Directory Id='INSTALLDIR' Name='tidybee-agent'>
+                    <Directory Id='Bin' Name='bin'>
+
+                        <Component Id='Path' Guid='5C46F107-E7D7-4FBA-BC3D-AEEB1630114C' KeyPath='yes'>
+                            <Environment
+                                Id='PATH'
+                                Name='PATH'
+                                Value='[Bin]'
+                                Permanent='no'
+                                Part='last'
+                                Action='set'
+                                System='yes'/>
+                        </Component>
+
+                        <Component Id='binary0' Guid='*'>
+                            <File
+                                Id='exe0'
+                                Name='tidybee-agent.exe'
+                                DiskId='1'
+                                Source='$(var.CargoTargetBinDir)\tidybee-agent.exe'
+                                KeyPath='yes'/>
+                        </Component>
+
+                        <Component Id="AgentShortcut" Guid="03da65b7-89dc-43ea-bdba-6273c2790d30" Win64="yes">
+                            <Shortcut Id="DesktopShortcut"
+                                      Directory="DesktopFolder"
+                                      Name="tidybee-agent"
+                                      Target="[INSTALLDIR]Bin\tidybee-agent.exe"
+                                      WorkingDirectory="Bin" />
+                            <RegistryKey Root="HKCU" Key="Software\tidybee-agent">
+                                <RegistryValue Type="integer" Name="installed" Value="1" KeyPath="yes" />
+                            </RegistryKey>
+                        </Component>
+
+                        <Directory Id="TESTS_DIR" Name="tests">
+                        </Directory>
+                        <Directory Id='ConfigDir' Name='config'>
+                            <Component Id='ConfigDefaultJson' Guid='*'>
+                                <File Id='DefaultJson' Name='default.json' DiskId='1' Source='config\default.json' KeyPath='yes'/>
+                            </Component>
+                            <Component Id='ConfigDockerJson' Guid='*'>
+                                <File Id='DockerJson' Name='docker.json' DiskId='1' Source='config\docker.json' KeyPath='yes'/>
+                            </Component>
+                        </Directory>
+
+                    </Directory>
+                </Directory>
+                <Directory Id="DesktopFolder" Name="Desktop" />
+            </Directory>
+        </Directory>
+
+        <Feature
+            Id='Binaries'
+            Title='Application'
+            Description='Installs all binaries and the license.'
+            Level='1'
+            ConfigurableDirectory='INSTALLDIR'
+            AllowAdvertise='no'
+            Display='expand'
+            Absent='disallow'>
+
+            <ComponentRef Id='binary0'/>
+            <ComponentRef Id='AgentShortcut'/>
+
+            <Feature
+                Id='Environment'
+                Title='PATH Environment Variable'
+                Description='Add the install location of the [ProductName] executable to the PATH system environment variable. This allows the [ProductName] executable to be called from any location.'
+                Level='1'
+                Absent='allow'>
+                <ComponentRef Id='Path'/>
+            </Feature>
+
+            <ComponentRef Id='ConfigDefaultJson'/>
+            <ComponentRef Id='ConfigDockerJson'/>
+
+            <ComponentGroupRef Id="TestsComponentGroup" />
+        </Feature>
+
+        <SetProperty Id='ARPINSTALLLOCATION' Value='[INSTALLDIR]' After='CostFinalize'/>
+
+        <UI>
+            <UIRef Id='WixUI_FeatureTree'/>
+            
+            <Publish Dialog='WelcomeDlg' Control='Next' Event='NewDialog' Value='CustomizeDlg' Order='99'>1</Publish>
+            <Publish Dialog='CustomizeDlg' Control='Back' Event='NewDialog' Value='WelcomeDlg' Order='99'>1</Publish>
+
+        </UI>
+
+    </Product>
+
+</Wix>
+
+
+
+
+<!-- <?xml version='1.0' encoding='windows-1252'?>
+
+<?if $(sys.BUILDARCH) = x64 or $(sys.BUILDARCH) = arm64 ?>
+    <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?else ?>
+    <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?endif ?>
+
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+
+    <Product
+        Id='*'
+        Name='tidybee-agent'
+        UpgradeCode='7E7B121C-B3C3-4AD1-9A45-8F9FF72370B1'
+        Manufacturer='majent4; Cavonstavant; Ju'
+        Language='1033'
+        Codepage='1252'
+        Version='$(var.Version)'>
+
+        <Package Id='*'
+            Keywords='Installer'
+            Manufacturer='majent4; Cavonstavant; Ju'
+            InstallerVersion='450'
+            Languages='1033'
+            Compressed='yes'
+            InstallScope='perMachine'
+            SummaryCodepage='1252'
+            />
+
+        <MajorUpgrade
+            Schedule='afterInstallInitialize'
+            DowngradeErrorMessage='A newer version of tidybee-agent is already installed. Setup will now exit.'/>
+
+        <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
+        <Property Id='DiskPrompt' Value='tidybee-agent Installation'/>
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
+                <Directory Id='INSTALLDIR' Name='tidybee-agent'>
+                    <Directory Id='Bin' Name='bin'>
+
+                        <Component Id='Path' Guid='5C46F107-E7D7-4FBA-BC3D-AEEB1630114C' KeyPath='yes'>
+                            <Environment
+                                Id='PATH'
+                                Name='PATH'
+                                Value='[Bin]'
+                                Permanent='no'
+                                Part='last'
+                                Action='set'
+                                System='yes'/>
+                        </Component>
+
+                        <Component Id='binary0' Guid='*'>
+                            <File
+                                Id='exe0'
+                                Name='tidybee-agent.exe'
+                                DiskId='1'
+                                Source='$(var.CargoTargetBinDir)\tidybee-agent.exe'
+                                KeyPath='yes'/>
+                        </Component>
+
+                        <Component Id="AgentShortcut" Guid="03da65b7-89dc-43ea-bdba-6273c2790d30" Win64="yes">
+                            <Shortcut Id="DesktopShortcut"
+                                      Directory="DesktopFolder"
+                                      Name="tidybee-agent"
+                                      Target="[INSTALLDIR]Bin\tidybee-agent.exe"
+                                      WorkingDirectory="[INSTALLDIR]Bin" />
+                            <RegistryKey Root="HKCU" Key="Software\tidybee-agent">
+                                <RegistryValue Type="integer" Name="installed" Value="1" KeyPath="yes" />
+                            </RegistryKey>
+                        </Component>
+
+                        <Directory Id="TESTS_DIR" Name="tests">
+                        </Directory>
+                        <Directory Id='ConfigDir' Name='config'>
+                            <Component Id='ConfigDefaultJson' Guid='*'>
+                                <File Id='DefaultJson' Name='default.json' DiskId='1' Source='config\default.json' KeyPath='yes'/>
+                            </Component>
+                            <Component Id='ConfigDockerJson' Guid='*'>
+                                <File Id='DockerJson' Name='docker.json' DiskId='1' Source='config\docker.json' KeyPath='yes'/>
+                            </Component>
+                        </Directory>
+
+                    </Directory>
+                </Directory>
+                <Directory Id="DesktopFolder" Name="Desktop" />
+            </Directory>
+        </Directory>
+
+        <Feature
+            Id='Binaries'
+            Title='Application'
+            Description='Installs all binaries and the license.'
+            Level='1'
+            ConfigurableDirectory='INSTALLDIR'
+            AllowAdvertise='no'
+            Display='expand'
+            Absent='disallow'>
+
+            <ComponentRef Id='binary0'/>
+            <ComponentRef Id='AgentShortcut'/>
+
+            <Feature
+                Id='Environment'
+                Title='PATH Environment Variable'
+                Description='Add the install location of the tidybee-agent executable to the PATH system environment variable. This allows the [ProductName] executable to be called from any location.'
+                Level='1'
+                Absent='allow'>
+                <ComponentRef Id='Path'/>
+            </Feature>
+
+            <ComponentRef Id='ConfigDefaultJson'/>
+            <ComponentRef Id='ConfigDockerJson'/>
+
+            <ComponentGroupRef Id="TestsComponentGroup" />
+        </Feature>
+
+        <SetProperty Id='ARPINSTALLLOCATION' Value='[INSTALLDIR]' After='CostFinalize'/>
+
+        <UI>
+            <UIRef Id='WixUI_FeatureTree'/>
+            
+            <Publish Dialog='WelcomeDlg' Control='Next' Event='NewDialog' Value='CustomizeDlg' Order='99'>1</Publish>
+            <Publish Dialog='CustomizeDlg' Control='Back' Event='NewDialog' Value='WelcomeDlg' Order='99'>1</Publish>
+
+        </UI>
+
+    </Product>
+
+</Wix> -->

@@ -1,0 +1,17 @@
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Bundle Name="tidybee-agent" Version="1.0.0.0" Manufacturer="TidyBee" UpgradeCode="93fd272c-72da-4752-91b2-c72e04f717bb">
+        <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.RtfLicense" />
+
+        <Chain>
+            <ExePackage Id="VCRedist"
+                        SourceFile="C:\Users\kiNGB\source\repos\tidybee-agent\VC_redist.x64.exe"
+                        Permanent="yes"
+                        Vital="yes"
+                        InstallCommand="/install /quiet /norestart"
+                        DetectCondition="(VCRedistInstalled OR NOT VersionNT64)"
+                        Compressed="no" />
+
+            <MsiPackage SourceFile="C:\Users\kiNGB\source\repos\tidybee-agent\target\wix\tidybee-agent-0.1.0-x86_64.msi" />
+        </Chain>
+    </Bundle>
+</Wix>

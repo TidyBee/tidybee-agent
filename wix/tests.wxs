@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<?define TestsSourceDir="C:\Users\kiNGB\source\repos\tidybee-agent\tests" ?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Fragment>
+        <DirectoryRef Id="TESTS_DIR">
+            <Directory Id="dir6DA121B0FD1FB8FB5BC9B2FFFF00EFF7" Name="assets" />
+        </DirectoryRef>
+    </Fragment>
+    <Fragment>
+        <ComponentGroup Id="TestsComponentGroup">
+            <Component Id="cmp40AC7E7EEBBC27D06A93EC48595E7CBD" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="832f5f37-8e2a-4178-8b5e-fefbd7a51f80">
+                <File Id="filD13BC7EA2990E59A9B26A283E2388005" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-1" />
+            </Component>
+            <Component Id="cmp4B726591B5446D7BC8C86C4CC19E54F7" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="0f07e210-6375-4337-86fe-99ce81d022d3">
+                <File Id="filA0EEB3F3323F2C48E571196A12D5B57D" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-1-dup-1" />
+            </Component>
+            <Component Id="cmp0487EABDA5FAEF8247A3E1E9339EC635" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="9147ceeb-7e52-4e92-9633-45e39eccd42c">
+                <File Id="fil1C5E396C7B73A9FBA91D5233EEF5C66B" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-1-dup-2" />
+            </Component>
+            <Component Id="cmpB56269BF70F4B76E7ECADEFBC8E96A7D" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="1106c579-943e-477e-84fe-f22cfa4368f6">
+                <File Id="filC15724B65D30EA77A07451AC323C8EB2" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-1-dup-3" />
+            </Component>
+            <Component Id="cmpB8B542E85EE5AB608A44747358F57D89" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="97b46b94-fbf2-4ae6-b503-ae61a82c90af">
+                <File Id="fil22F07DB59810ECF91B42C9B4BFF8EA18" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-10" />
+            </Component>
+            <Component Id="cmp4AF1662726C9504963FB5DEB39F259DD" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="e5987497-acb9-4405-a549-f3b1f92b0fb5">
+                <File Id="fil861162900B75EB2D16C0D7F6A120BD67" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-2" />
+            </Component>
+            <Component Id="cmp224415AD9E4045FFB0D7ABBABA7F878C" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="b7733f17-1ef0-42b5-897d-89d9aff5bbfd">
+                <File Id="fil429BA72ADBFC0C1A70EF40FFB33398C8" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-3" />
+            </Component>
+            <Component Id="cmpC8A8CF9F94AAC970E255B69E45FB71A5" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="78ccfd7f-fb4b-401a-a9ea-7c2f529c5232">
+                <File Id="fil107AA8676416D70F17654DF6D67DBECC" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-4" />
+            </Component>
+            <Component Id="cmpADDCC0B457869501BCB1167C7C653B2B" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="8229f9ec-aa7c-4c1b-9b53-3bd92ac16312">
+                <File Id="filAEFE3E9C931459DC13DD9C72AD3150CD" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-5" />
+            </Component>
+            <Component Id="cmp068185E01BF49EA06C34AFB67E138A1A" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="fafe8af7-5409-4e40-a503-c6d7723a0464">
+                <File Id="fil7F27386355DFC8FC62DCC01D57871C4B" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-6" />
+            </Component>
+            <Component Id="cmp74FB8E0E6DC76B0E0299DF7739B8C240" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="17f3b5d9-f9ef-4c26-bbd8-65d3bf531b64">
+                <File Id="fil3344923FCC286ABC53F719E27DD652FA" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-7" />
+            </Component>
+            <Component Id="cmpD9118EA840D59099457FCA6648F45FDE" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="11da9c73-4181-4d27-a0e7-06ca621c9ab5">
+                <File Id="filFA7135F6DA3597A470C675CE4A397C07" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-8" />
+            </Component>
+            <Component Id="cmp4DBC10499BB1E6CDAE5EF0A3B37B3764" Directory="dir40D9D5068E1955DD79C5768376C34EFC" Guid="f60cc106-9b2e-4db6-8749-7b3e948a4ac4">
+                <File Id="fil89BC7A789174B044E214FD8DD98B3B6D" KeyPath="yes" Source="$(var.TestsSourceDir)\assets\test_folder\test-file-9" />
+            </Component>
+        </ComponentGroup>
+    </Fragment>
+    <Fragment>
+        <DirectoryRef Id="dir6DA121B0FD1FB8FB5BC9B2FFFF00EFF7">
+            <Directory Id="dir40D9D5068E1955DD79C5768376C34EFC" Name="test_folder" />
+        </DirectoryRef>
+    </Fragment>
+</Wix>
