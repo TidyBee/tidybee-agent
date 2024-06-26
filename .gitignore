@@ -499,3 +499,10 @@ firedbg/version.toml
 docker-cache/
 
 config/uuid
+
+# WiX Toolset (Installer)
+wix/bootstrapper.wixobj
+wix/tidybee-agent.wixpdb
+wix/tidybee-agent.exe
+VC_redist.x64.exe
+desktop.ini
