@@ -29,6 +29,7 @@ pub struct GrpcServerConfig {
     pub protocol: String,
     pub port: u16,
     pub log_level: String,
+    pub pem_path: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -83,6 +84,7 @@ impl Default for Configuration {
                     protocol: String::from("http"),
                     port: 5057,
                     log_level: String::from("info"),
+                    pem_path: String::from("tls/cert.pem"),
                 },
             },
             logger_config: LoggerConfig {

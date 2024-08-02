@@ -15,7 +15,7 @@ use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
 use tonic::{
     metadata::MetadataValue,
     service::Interceptor,
-    transport::{Channel, Endpoint},
+    transport::{Channel, Endpoint, Certificate, ClientTlsConfig},
     Request, Status,
 };
 use tracing::{debug, info, warn};
@@ -68,11 +68,15 @@ impl GrpcClient {
             "{}://{}:{}",
             grpc_server_config.protocol, grpc_server_config.host, grpc_server_config.port
         )) {
-            Ok(endpoint) => Ok(Self {
-                client: None,
-                agent_uuid: None,
-                endpoint,
-            }),
+            Ok(endpoint) => {
+            let tls_config = get_tls_config(&grpc_server_config.pem_path.clone())?;
+
+                Ok(Self {
+                    client: None,
+                    agent_uuid: None,
+                    endpoint: endpoint.tls_config(tls_config)?,
+                })
+            },
             Err(e) => bail!(e),
         }
     }
@@ -89,6 +93,8 @@ impl GrpcClient {
             self.agent_uuid.is_some(),
             GrpcClientError::AgentUuidNotSet()
         );
+
+
         let channel = match self.endpoint.connect().await {
             Ok(channel) => channel,
             Err(e) => {
@@ -214,4 +220,12 @@ pub fn map_notify_events_to_grpc(file_event: DebouncedEvent) -> Option<FileEvent
         }),
         _ => None,
     }
+}
+
+fn get_tls_config(pem_path: &str) -> Result<ClientTlsConfig> {
+    let pem = std::fs::read_to_string(pem_path)?;
+    let ca = Certificate::from_pem(pem);
+    let tls_config = ClientTlsConfig::new().ca_certificate(ca).domain_name("tidybee.fr").assume_http2(true);
+
+    Ok(tls_config)
 }

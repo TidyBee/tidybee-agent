@@ -81,8 +81,8 @@ impl Hub {
                                     error!("{err}");
                                 }
                                 self.grpc_client.set_agent_uuid(&text);
-                                while self.grpc_client.connect().await.is_err() {
-                                    info!("Failed to connect to the gRPC server, retrying in 5 seconds");
+                                while let Err(e) = self.grpc_client.connect().await {
+                                    error!("Failed to connect to the gRPC server: {e:?}, retrying in 5 seconds");
                                     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
                                 }
                                 Ok(text)

@@ -20,9 +20,10 @@
     "connection_attempt_limit": "30",
     "grpc_server": {
       "host": "localhost",
-      "port": 5057,
-      "protocol": "http",
-      "log_level": "info"
+      "port": 5001,
+      "protocol": "https",
+      "log_level": "debug",
+      "pem_path": "tls/cert.pem"
     }
   },
   "filesystem_interface_config": {
