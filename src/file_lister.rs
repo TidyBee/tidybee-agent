@@ -1,6 +1,7 @@
 use std::fs::read_dir;
 use std::fs::DirEntry;
 use std::path::PathBuf;
+use tracing::info;
 
 use crate::error::AgentError;
 use crate::file_info::{create_file_info, FileInfo};
@@ -18,6 +19,7 @@ pub fn list_directories(directories: Vec<PathBuf>) -> Result<Vec<FileInfo>, Agen
                     file_info_vec.extend(list_directories(vec![dir_path])?);
                 } else if dir_path.to_str().is_some() {
                     if let Some(file_info) = create_file_info(&dir_path) {
+                        info!("Found file {}", file_info.path.display());
                         file_info_vec.push(file_info);
                     }
                 }
