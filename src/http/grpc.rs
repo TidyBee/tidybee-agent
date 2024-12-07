@@ -133,6 +133,9 @@ impl GrpcClient {
         let stream: UnboundedReceiverStream<DebouncedEvent> =
             UnboundedReceiverStream::new(file_watcher_receiver);
 
+
+            
+
         let manip = stream.filter_map(map_notify_events_to_grpc);
 
         if self
@@ -148,6 +151,11 @@ impl GrpcClient {
         Ok(())
     }
 }
+
+
+// fn map_create_notify_events_to_grpc(create_kind: CreateKind, file_event: DebouncedEvent) -> Option<FileEventRequest> {
+
+// }
 
 fn map_modify_notify_events_to_grpc(
     modify_kind: ModifyKind,
