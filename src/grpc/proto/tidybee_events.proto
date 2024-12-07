@@ -38,6 +38,15 @@ message FileEventRequest {
     optional google.protobuf.Timestamp last_accessed = 7;
 }
 
+// Separate event for folder events needed by the Hub when a Delete or Modify event occurs on a folder so that childs can be removed
+message FolderEventRequest {
+    // Type of the event
+    FileEventType event_type = 1;
+    // Path relative to the watched directory
+    string old_path = 2;
+    // Full canonical path
+    optional string new_path  = 3;
+}
 
 // Data sent by the agent when connecting to the hub
 message AgentData {
@@ -61,4 +70,5 @@ message FileInfoEventResponse {
 
 service TidyBeeEvents {
     rpc FileEvent(stream FileEventRequest) returns (FileInfoEventResponse);
+    rpc FolderEvent(stream FolderEventRequest) returns (FileInfoEventResponse);
 }
