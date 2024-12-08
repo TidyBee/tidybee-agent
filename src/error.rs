@@ -34,4 +34,8 @@ pub enum GrpcClientError {
     AgentUuidNotSet(),
     #[error("gRPC client is not connected")]
     ClientNotConnected(),
+    #[error("Error creating file info")]
+    FileInfoError(),
+    #[error("Error sending event to Hub")]
+    EventSendError(),
 }
