@@ -12,7 +12,6 @@ use notify_debouncer_full::DebouncedEvent;
 use std::{str::FromStr, vec};
 use tidybee_events::{tidy_bee_events_client::TidyBeeEventsClient, FolderEventRequest};
 use tokio::sync::mpsc::UnboundedReceiver;
-use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
 use tonic::{
     metadata::MetadataValue,
     service::Interceptor,
@@ -131,8 +130,6 @@ impl GrpcClient {
         if self.client.is_none() {
             bail!(GrpcClientError::ClientNotConnected());
         }
-        // let stream: UnboundedReceiverStream<DebouncedEvent> =
-        //     UnboundedReceiverStream::new(file_watcher_receiver);
 
         while let Some(file_event) = file_watcher_receiver.recv().await {
             if file_event.kind
@@ -172,21 +169,18 @@ impl GrpcClient {
                 notify::EventKind::Modify(modify_kind) => {
                     self.handle_modify_events(modify_kind, file_event).await?
                 }
-                // notify::EventKind::Modify(notify::event::ModifyKind::Name(notify::event::RenameMode::To))
-                // notify::EventKind::Modify(notify::event::ModifyKind)
-                // notify::EventKind::Create(notify::event::CreateKind::Directory) => {
-                //     let dir_path = file_info::fix_canonicalize_path(&file_event.paths[0]);
-                // }
+                notify::EventKind::Remove(remove_kind) => {
+                    self.handle_remove_events(remove_kind, file_event).await?
+                }
                 _ => (),
             };
-            // if file_event.kind == notify::EventKind::Create(_) {
-
-            // }
-            // if file_eve
         }
 
         Ok(())
     }
+
+    // region: --- event handlers
+
     async fn handle_modify_events(
         &mut self,
         modify_kind: notify::event::ModifyKind,
@@ -370,4 +364,58 @@ impl GrpcClient {
         };
         Ok(())
     }
+
+    async fn handle_remove_events(
+        &mut self,
+        remove_kind: notify::event::RemoveKind,
+        file_event: DebouncedEvent,
+    ) -> Result<(), Error> {
+        match remove_kind {
+            notify::event::RemoveKind::File => {
+                let event = FileEventRequest {
+                    event_type: FileEventType::Deleted as i32,
+                    pretty_path: file_event.paths[0].display().to_string(),
+                    path: vec![file_event.paths[0].display().to_string()],
+                    size: None,
+                    hash: None,
+                    last_accessed: None,
+                    last_modified: None,
+                };
+                if self
+                    .client
+                    .as_mut()
+                    .unwrap()
+                    .file_event(tokio_stream::iter(vec![event]))
+                    .await
+                    .is_err()
+                {
+                    warn!("Failed to send file event to gRPC server");
+                    bail!(GrpcClientError::EventSendError());
+                }
+
+                Ok(())
+            }
+            notify::event::RemoveKind::Folder => {
+                let event = FolderEventRequest {
+                    event_type: FileEventType::Deleted as i32,
+                    old_path: file_event.paths[0].display().to_string(),
+                    new_path: None,
+                };
+                if self
+                    .client
+                    .as_mut()
+                    .unwrap()
+                    .folder_event(tokio_stream::iter(vec![event]))
+                    .await
+                    .is_err()
+                {
+                    warn!("Failed to send file event to gRPC server");
+                    bail!(GrpcClientError::EventSendError());
+                }
+                Ok(())
+            }
+            _ => Ok(()),
+        }
+    }
+    // endregion: --- event handlers
 }
