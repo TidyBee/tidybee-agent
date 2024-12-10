@@ -3,15 +3,15 @@ use crate::{
     configuration::GrpcServerConfig,
     error::GrpcClientError,
     file_info::{self, FileInfo},
+    file_lister,
 };
 
-use anyhow::{bail, ensure, Result};
+use anyhow::{bail, ensure, Error, Result};
 use notify::event::ModifyKind;
 use notify_debouncer_full::DebouncedEvent;
-use std::str::FromStr;
-use tidybee_events::tidy_bee_events_client::TidyBeeEventsClient;
+use std::{str::FromStr, vec};
+use tidybee_events::{tidy_bee_events_client::TidyBeeEventsClient, FolderEventRequest};
 use tokio::sync::mpsc::UnboundedReceiver;
-use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
 use tonic::{
     metadata::MetadataValue,
     service::Interceptor,
@@ -125,93 +125,297 @@ impl GrpcClient {
 
     pub async fn send_events(
         &mut self,
-        file_watcher_receiver: UnboundedReceiver<DebouncedEvent>,
-    ) -> Result<(), GrpcClientError> {
+        mut file_watcher_receiver: UnboundedReceiver<DebouncedEvent>,
+    ) -> Result<(), Error> {
         if self.client.is_none() {
-            return Err(GrpcClientError::ClientNotConnected());
+            bail!(GrpcClientError::ClientNotConnected());
         }
-        let stream: UnboundedReceiverStream<DebouncedEvent> =
-            UnboundedReceiverStream::new(file_watcher_receiver);
 
-        let manip = stream.filter_map(map_notify_events_to_grpc);
-
-        if self
-            .client
-            .as_mut()
-            .unwrap()
-            .file_event(manip)
-            .await
-            .is_err()
-        {
-            warn!("Failed to send file event to gRPC server");
+        while let Some(file_event) = file_watcher_receiver.recv().await {
+            if file_event.kind
+                == notify::event::EventKind::Access(notify::event::AccessKind::Open(
+                    notify::event::AccessMode::Any,
+                ))
+            {
+                continue;
+            }
+            println!("{:?}", file_event);
+            match file_event.kind {
+                notify::EventKind::Create(notify::event::CreateKind::File) => {
+                    let info = match file_info::create_file_info(&file_event.paths[0].clone()) {
+                        Some(info) => info,
+                        None => continue,
+                    };
+                    let event = FileEventRequest {
+                        event_type: FileEventType::Created as i32,
+                        pretty_path: info.pretty_path.display().to_string(),
+                        path: vec![info.path.display().to_string()],
+                        size: Some(info.size),
+                        hash: info.hash,
+                        last_accessed: Some(info.last_accessed.into()),
+                        last_modified: Some(info.last_modified.into()),
+                    };
+                    if self
+                        .client
+                        .as_mut()
+                        .unwrap()
+                        .file_event(tokio_stream::iter(vec![event]))
+                        .await
+                        .is_err()
+                    {
+                        warn!("Failed to send file event to gRPC server");
+                    }
+                }
+                notify::EventKind::Modify(modify_kind) => {
+                    self.handle_modify_events(modify_kind, file_event).await?
+                }
+                notify::EventKind::Remove(remove_kind) => {
+                    self.handle_remove_events(remove_kind, file_event).await?
+                }
+                _ => (),
+            };
         }
+
         Ok(())
     }
-}
 
-fn map_modify_notify_events_to_grpc(
-    modify_kind: ModifyKind,
-    file_event: DebouncedEvent,
-) -> Option<FileEventRequest> {
-    match modify_kind {
-        ModifyKind::Name(_) => Some(FileEventRequest {
-            event_type: FileEventType::Moved as i32,
-            pretty_path: file_event.paths[1].display().to_string(),
-            last_modified: Some(std::time::SystemTime::now().into()),
-            path: vec![
-                file_info::fix_canonicalize_path(&file_event.paths[0])
-                    .display()
-                    .to_string(),
-                file_info::fix_canonicalize_path(&file_event.paths[1])
-                    .display()
-                    .to_string(),
-            ],
-            ..Default::default()
-        }),
-        _ => {
-            let info = file_info::create_file_info(&file_event.paths[0].clone());
+    // region: --- event handlers
 
-            match info {
-                Some(info) => Some(FileEventRequest {
-                    event_type: FileEventType::Updated as i32,
+    async fn handle_modify_events(
+        &mut self,
+        modify_kind: notify::event::ModifyKind,
+        file_event: DebouncedEvent,
+    ) -> Result<(), Error> {
+        match modify_kind {
+            ModifyKind::Data(_) => {
+                let info = match file_info::create_file_info(&file_event.paths[0].clone()) {
+                    Some(info) => info,
+                    None => bail!(GrpcClientError::FileInfoError()),
+                };
+                let event = FileEventRequest {
+                    event_type: FileEventType::Created as i32,
                     pretty_path: info.pretty_path.display().to_string(),
                     path: vec![info.path.display().to_string()],
                     size: Some(info.size),
                     hash: info.hash,
                     last_accessed: Some(info.last_accessed.into()),
                     last_modified: Some(info.last_modified.into()),
-                }),
-                None => None,
+                };
+                if self
+                    .client
+                    .as_mut()
+                    .unwrap()
+                    .file_event(tokio_stream::iter(vec![event]))
+                    .await
+                    .is_err()
+                {
+                    warn!("Failed to send file event to gRPC server");
+                    bail!(GrpcClientError::EventSendError());
+                }
             }
-        }
+            // The ModifyKind::Name documentation is a bit unprecise, notify::event::RenameMode::To represent a new file or folder that was moved in the scope of the watcher
+            ModifyKind::Name(notify::event::RenameMode::To) => {
+                if file_event.paths[0].is_dir() {
+                    match file_lister::list_directories(vec![file_event.paths[0].clone()]) {
+                        Ok(file_info_vec) => {
+                            let events = file_info_vec.into_iter().map(|f| FileEventRequest {
+                                event_type: FileEventType::Created as i32,
+                                pretty_path: f.pretty_path.display().to_string(),
+                                path: vec![f.path.display().to_string()],
+                                size: Some(f.size),
+                                hash: f.hash,
+                                last_accessed: Some(f.last_accessed.into()),
+                                last_modified: Some(f.last_modified.into()),
+                            });
+                            if self
+                                .client
+                                .as_mut()
+                                .unwrap()
+                                .file_event(tokio_stream::iter(events))
+                                .await
+                                .is_err()
+                            {
+                                warn!("Failed to send file event to gRPC server");
+                                bail!(GrpcClientError::EventSendError());
+                            }
+                        }
+                        Err(e) => {
+                            warn!("Failed to list directory: {:?}", e);
+                            bail!(GrpcClientError::FileInfoError());
+                        }
+                    }
+                } else {
+                    let info = match file_info::create_file_info(&file_event.paths[0].clone()) {
+                        Some(info) => info,
+                        None => bail!(GrpcClientError::FileInfoError()),
+                    };
+                    let event = FileEventRequest {
+                        event_type: FileEventType::Created as i32,
+                        pretty_path: info.pretty_path.display().to_string(),
+                        path: vec![info.path.display().to_string()],
+                        size: Some(info.size),
+                        hash: info.hash,
+                        last_accessed: Some(info.last_accessed.into()),
+                        last_modified: Some(info.last_modified.into()),
+                    };
+                    if self
+                        .client
+                        .as_mut()
+                        .unwrap()
+                        .file_event(tokio_stream::iter(vec![event]))
+                        .await
+                        .is_err()
+                    {
+                        warn!("Failed to send file event to gRPC server");
+                        bail!(GrpcClientError::EventSendError());
+                    }
+                }
+            }
+            // The ModifyKind::Name documentation is a bit unprecise, notify::event::RenameMode::From represent a file or folder that was moved out of the scope of the watcher
+            // Thus files associated with this event should be deleted from the database
+            ModifyKind::Name(notify::event::RenameMode::From) => {
+                if file_event.paths[0].is_dir() {
+                    let event = FolderEventRequest {
+                        event_type: FileEventType::Deleted as i32,
+                        old_path: file_event.paths[0].display().to_string(),
+                        new_path: None,
+                    };
+                    if self
+                        .client
+                        .as_mut()
+                        .unwrap()
+                        .folder_event(tokio_stream::iter(vec![event]))
+                        .await
+                        .is_err()
+                    {
+                        warn!("Failed to send file event to gRPC server");
+                        bail!(GrpcClientError::EventSendError());
+                    }
+                } else {
+                    let event = FileEventRequest {
+                        event_type: FileEventType::Deleted as i32,
+                        pretty_path: file_event.paths[0].display().to_string(),
+                        path: vec![file_event.paths[0].display().to_string()],
+                        size: None,
+                        hash: None,
+                        last_accessed: None,
+                        last_modified: None,
+                    };
+                    if self
+                        .client
+                        .as_mut()
+                        .unwrap()
+                        .file_event(tokio_stream::iter(vec![event]))
+                        .await
+                        .is_err()
+                    {
+                        warn!("Failed to send file event to gRPC server");
+                        bail!(GrpcClientError::EventSendError());
+                    }
+                }
+            }
+            // In this case, the object was actually renamed, so we can use the Moved event type
+            ModifyKind::Name(notify::event::RenameMode::Both) => {
+                if file_event.paths[0].is_dir() {
+                    let event = FolderEventRequest {
+                        event_type: FileEventType::Moved as i32,
+                        old_path: file_event.paths[0].display().to_string(),
+                        new_path: Some(file_event.paths[1].display().to_string()),
+                    };
+                    if self
+                        .client
+                        .as_mut()
+                        .unwrap()
+                        .folder_event(tokio_stream::iter(vec![event]))
+                        .await
+                        .is_err()
+                    {
+                        warn!("Failed to send file event to gRPC server");
+                        bail!(GrpcClientError::EventSendError());
+                    }
+                } else {
+                    let info = match file_info::create_file_info(&file_event.paths[0].clone()) {
+                        Some(info) => info,
+                        None => bail!(GrpcClientError::FileInfoError()),
+                    };
+                    let event = FileEventRequest {
+                        event_type: FileEventType::Created as i32,
+                        pretty_path: info.pretty_path.display().to_string(),
+                        path: vec![info.path.display().to_string()],
+                        size: Some(info.size),
+                        hash: info.hash,
+                        last_accessed: Some(info.last_accessed.into()),
+                        last_modified: Some(info.last_modified.into()),
+                    };
+                    if self
+                        .client
+                        .as_mut()
+                        .unwrap()
+                        .file_event(tokio_stream::iter(vec![event]))
+                        .await
+                        .is_err()
+                    {
+                        warn!("Failed to send file event to gRPC server");
+                        bail!(GrpcClientError::EventSendError());
+                    }
+                }
+            }
+            _ => (),
+        };
+        Ok(())
     }
-}
 
-pub fn map_notify_events_to_grpc(file_event: DebouncedEvent) -> Option<FileEventRequest> {
-    match file_event.kind {
-        notify::EventKind::Create(_) => {
-            let info = file_info::create_file_info(&file_event.paths[0].clone())?;
-            Some(FileEventRequest {
-                event_type: FileEventType::Created as i32,
-                pretty_path: info.pretty_path.display().to_string(),
-                path: vec![info.path.display().to_string()],
-                size: Some(info.size),
-                hash: info.hash,
-                last_accessed: Some(info.last_accessed.into()),
-                last_modified: Some(info.last_modified.into()),
-            })
+    async fn handle_remove_events(
+        &mut self,
+        remove_kind: notify::event::RemoveKind,
+        file_event: DebouncedEvent,
+    ) -> Result<(), Error> {
+        match remove_kind {
+            notify::event::RemoveKind::File => {
+                let event = FileEventRequest {
+                    event_type: FileEventType::Deleted as i32,
+                    pretty_path: file_event.paths[0].display().to_string(),
+                    path: vec![file_event.paths[0].display().to_string()],
+                    size: None,
+                    hash: None,
+                    last_accessed: None,
+                    last_modified: None,
+                };
+                if self
+                    .client
+                    .as_mut()
+                    .unwrap()
+                    .file_event(tokio_stream::iter(vec![event]))
+                    .await
+                    .is_err()
+                {
+                    warn!("Failed to send file event to gRPC server");
+                    bail!(GrpcClientError::EventSendError());
+                }
+
+                Ok(())
+            }
+            notify::event::RemoveKind::Folder => {
+                let event = FolderEventRequest {
+                    event_type: FileEventType::Deleted as i32,
+                    old_path: file_event.paths[0].display().to_string(),
+                    new_path: None,
+                };
+                if self
+                    .client
+                    .as_mut()
+                    .unwrap()
+                    .folder_event(tokio_stream::iter(vec![event]))
+                    .await
+                    .is_err()
+                {
+                    warn!("Failed to send file event to gRPC server");
+                    bail!(GrpcClientError::EventSendError());
+                }
+                Ok(())
+            }
+            _ => Ok(()),
         }
-        notify::EventKind::Modify(modify_kind) => {
-            map_modify_notify_events_to_grpc(modify_kind, file_event)
-        }
-        notify::EventKind::Remove(_) => Some(FileEventRequest {
-            event_type: FileEventType::Deleted as i32,
-            pretty_path: file_event.paths[0].display().to_string(),
-            path: vec![file_info::fix_canonicalize_path(&file_event.paths[0])
-                .display()
-                .to_string()],
-            ..Default::default()
-        }),
-        _ => None,
     }
+    // endregion: --- event handlers
 }
