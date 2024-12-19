@@ -1,5 +1,5 @@
-use notify::RecursiveMode::Recursive as RecursiveWatcher;
-use notify::Watcher;
+// use notify::Watcher;
+use notify_debouncer_full::new_debouncer;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time;
@@ -13,9 +13,9 @@ pub fn watch_directories(
     let (tx, rx) = mpsc::channel();
 
     let mut debouncer: notify_debouncer_full::Debouncer<
-        notify::RecommendedWatcher,
-        notify_debouncer_full::FileIdMap,
-    > = match notify_debouncer_full::new_debouncer(time::Duration::from_secs(2), None, tx) {
+        notify_debouncer_full::notify::INotifyWatcher,
+        notify_debouncer_full::NoCache,
+    > = match new_debouncer(time::Duration::from_secs(2), None, tx) {
         Ok(debouncer) => debouncer,
         Err(err) => {
             error!("{:?}", err);
@@ -32,15 +32,8 @@ pub fn watch_directories(
             }
         };
 
-        if let Err(err) = debouncer
-            .watcher()
-            .watch(&clean_directory, RecursiveWatcher)
-        {
+        if let Err(err) = debouncer.watch(&clean_directory, notify::RecursiveMode::Recursive) {
             error!("{:?}: {:?}", clean_directory, err);
-        } else {
-            debouncer
-                .cache()
-                .add_root(&clean_directory, RecursiveWatcher);
         }
     }
 
