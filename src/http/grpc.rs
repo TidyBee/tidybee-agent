@@ -334,11 +334,11 @@ impl GrpcClient {
                         bail!(GrpcClientError::EventSendError());
                     }
                 } else {
-                    let info = match file_info::create_file_info(&file_event.paths[0].clone()) {
+                    let info = match file_info::create_file_info(&file_event.paths[1].clone()) {
                         Some(info) => info,
                         None => bail!(GrpcClientError::FileInfoError()),
                     };
-                    let event = FileEventRequest {
+                    let event = !vec[FileEventRequest {
                         event_type: FileEventType::Created as i32,
                         pretty_path: info.pretty_path.display().to_string(),
                         path: vec![info.path.display().to_string()],
@@ -346,7 +346,16 @@ impl GrpcClient {
                         hash: info.hash,
                         last_accessed: Some(info.last_accessed.into()),
                         last_modified: Some(info.last_modified.into()),
-                    };
+                    },
+                    FileEventRequest {
+                        event_type: FileEventType::Deleted as i32,
+                        pretty_path: &file_event.paths[0].clone(),
+                        path: vec![&file_event.paths[0].clone()],
+                        size: None,
+                        hash: None,
+                        last_accessed: None,
+                        last_modified: None,
+                    }];
                     if self
                         .client
                         .as_mut()
