@@ -142,7 +142,7 @@ impl GrpcClient {
             println!("{:?}", file_event);
             match file_event.kind {
                 notify::EventKind::Create(notify::event::CreateKind::File) => {
-                    let info = match file_info::create_file_info(&file_event.paths[0].clone()) {
+                    let info = match file_info::create_file_info(&file_event.paths[1].clone()) {
                         Some(info) => info,
                         None => continue,
                     };
