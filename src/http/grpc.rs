@@ -338,7 +338,7 @@ impl GrpcClient {
                         Some(info) => info,
                         None => bail!(GrpcClientError::FileInfoError()),
                     };
-                    let event = !vec[FileEventRequest {
+                    let event = vec![FileEventRequest {
                         event_type: FileEventType::Created as i32,
                         pretty_path: info.pretty_path.display().to_string(),
                         path: vec![info.path.display().to_string()],
